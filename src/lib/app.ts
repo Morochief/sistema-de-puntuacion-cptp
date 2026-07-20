@@ -1353,6 +1353,11 @@ const setupCloudSync = () => {
     if (!(uploadBtn as any)._hasListener) {
       (uploadBtn as any)._hasListener = true;
       uploadBtn.addEventListener('click', async () => {
+        if (!navigator.onLine) {
+          showToast('Sin conexión a internet. No se puede subir.', 'error', 3000);
+          return;
+        }
+
         uploadBtn.disabled = true;
         uploadBtn.style.opacity = '0.5';
         showToast('Subiendo datos locales a la nube...', 'info', 2000);
@@ -1375,6 +1380,11 @@ const setupCloudSync = () => {
     if (!(downloadBtn as any)._hasListener) {
       (downloadBtn as any)._hasListener = true;
       downloadBtn.addEventListener('click', async () => {
+        if (!navigator.onLine) {
+          showToast('Sin conexión a internet. No se puede descargar.', 'error', 3000);
+          return;
+        }
+
         if (!await showConfirm('Descargar Datos', '¿Descargar datos oficiales de la nube? Esto REEMPLAZARÁ la base de datos de este dispositivo con los datos guardados en internet.')) return;
 
         downloadBtn.disabled = true;
