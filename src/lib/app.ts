@@ -170,8 +170,19 @@ async function renderDashboard(): Promise<void> {
      await db.events.delete(eid);
      await db.participants.where('eventId').equals(eid).delete();
      await db.series.where('eventId').equals(eid).delete();
-     showToast('Evento eliminado', 'success');
-     renderDashboard();
+      
+      // Eliminar de Supabase de manera asíncrona si hay conexión
+      if (navigator.onLine) {
+        const eventUuid = toDeterministicUuid(eid, 0);
+        supabase.from('events').delete().eq('id', eventUuid)
+          .then(({ error }) => {
+            if (error) console.error('[Sync] Error al borrar de Supabase:', error);
+            else console.log('[Sync] Evento eliminado de la nube con éxito');
+          });
+      }
+
+      showToast('Evento eliminado', 'success');
+      renderDashboard();
     } catch (err) {
      console.error('[DB] Error deleting event:', err);
      showToast('Error al eliminar el evento.', 'error');
@@ -189,14 +200,28 @@ async function renderDashboard(): Promise<void> {
  document.getElementById('btn-reset-db')?.addEventListener('click', async () => {
   if (!await showConfirm('Vaciar Base de Datos', '¿Restablecer la aplicación? Esto VACIARÁ toda la base de datos (eventos, competidores y series) y no se puede deshacer.')) return;
   if (!await showConfirm('Confirmación Final', '¿Realmente querés borrar todos los datos locales de la aplicación?')) return;
-  try {
-   await Promise.all([
-    db.events.clear(),
-    db.participants.clear(),
-    db.series.clear(),
-   ]);
-   showToast('Base de datos restablecida con éxito.', 'success');
-   renderDashboard();
+   try {
+    await Promise.all([
+     db.events.clear(),
+     db.participants.clear(),
+     db.series.clear(),
+    ]);
+
+    // Vaciar base remota si hay conexión
+    if (navigator.onLine) {
+      Promise.all([
+        supabase.from('series').delete().neq('id', '00000000-0000-4000-0000-000000000000'),
+        supabase.from('participants').delete().neq('id', '00000000-0000-4000-0000-000000000000'),
+        supabase.from('events').delete().neq('id', '00000000-0000-4000-0000-000000000000')
+      ]).then(() => {
+        console.log('[Sync] Base de datos remota vaciada con éxito');
+      }).catch(err => {
+        console.error('[Sync] Error al vaciar base de datos remota:', err);
+      });
+    }
+
+    showToast('Base de datos restablecida con éxito.', 'success');
+    renderDashboard();
   } catch (err) {
    console.error('[DB] Error restableciendo:', err);
    showToast('Error al limpiar la base de datos.', 'error');
@@ -1315,7 +1340,8 @@ window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
 
 // ── Sincronización con Supabase (Nube) ────────────────────────────────────
-import { syncLocalDatabaseToCloud, pullCloudDatabaseToLocal } from './sync';
+import { syncLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from './sync';
+import { supabase } from './supabase';
 
 // Bind del botón en el navbar
 const setupCloudSync = () => {
