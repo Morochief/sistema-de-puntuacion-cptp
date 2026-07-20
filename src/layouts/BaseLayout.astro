@@ -15,9 +15,9 @@ const { title, description } = Astro.props;
     <meta name="description" content={description ?? "App de puntuación CPTP .22 LR — tiro de precisión Long Range"} />
 
     <!-- PWA & Theme -->
-    <meta name="theme-color" content="#080d16" />
-    <meta name="background-color" content="#080d16" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="background-color" content="#f1f5f9" />
+    <meta name="color-scheme" content="light" />
 
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -36,6 +36,18 @@ const { title, description } = Astro.props;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description ?? "App de puntuación CPTP .22 LR"} />
     <meta property="og:type" content="website" />
+
+    <!-- PWA Manifest & Service Worker Registration -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Service Worker registrado:', reg))
+            .catch(err => console.error('Error registrando SW:', err));
+        });
+      }
+    </script>
 
     <title>{title}</title>
   </head>
