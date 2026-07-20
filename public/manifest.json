@@ -1,0 +1,38 @@
+{
+  "name": "CPTP .22 LR Scoring",
+  "short_name": "CPTP Scoring",
+  "description": "App de puntuación para eventos de tiro .22 Long Range — funciona sin internet",
+  "theme_color": "#ffffff",
+  "background_color": "#f1f5f9",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "id": "/cptp-scoring/",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo-cptp.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
