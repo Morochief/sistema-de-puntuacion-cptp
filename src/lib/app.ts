@@ -9,6 +9,12 @@
  *  No se puede pasar al siguiente blanco sin impactar el actual.
  */
 
+import { esc, showToast, showConfirm, showPrompt } from './modals';
+import { navigate, getRoute, showView } from './router';
+import { exportRankingToExcel } from './excel';
+import { exportEventBackup, importEventBackup } from './backup';
+import { sortRanking, showTieBreakerModal } from './tiebreaker';
+import { handleSeedParticipants, handleSeedScores } from './seeder';
 import { db } from './db';
 import type { ShootingEvent, Participant, Series, Shot } from './types';
 import { printSeriesCard, printEventCards, printRankingCard } from './print';
@@ -47,107 +53,11 @@ import {
 
 // ── Utilidades ─────────────────────────────────────────────────────────────
 
-function esc(s: string): string {
- return String(s)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
-}
 
 type ToastKind = 'success' | 'error' | 'info';
 
-function showToast(message: string, kind: ToastKind = 'info', ms = 3000): void {
- const container = document.getElementById('toast-container');
- if (!container) return;
- const icons: Record<ToastKind, string> = { success: 'OK', error: 'ERROR', info: 'INFO' };
- const toast = document.createElement('div');
- toast.className = `toast-item ${kind}`;
- toast.innerHTML = `<span aria-hidden="true">${icons[kind]}</span><span>${esc(message)}</span>`;
- container.appendChild(toast);
- setTimeout(() => {
-  toast.classList.add('toast-out');
-  toast.addEventListener('animationend', () => toast.remove(), { once: true });
- }, ms);
-}
 
-export function showConfirm(title: string, message: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'cptp-modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="cptp-modal-content">
-        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#e2e8f0;margin:0 0 10px;">${esc(title)}</h2>
-        <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin:0 0 20px;">${esc(message)}</p>
-        <div style="display:flex;gap:12px;justify-content:flex-end;">
-          <button id="modal-cancel-btn" class="btn-ghost-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Cancelar</button>
-          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Confirmar</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(backdrop);
-    void backdrop.offsetWidth;
-    backdrop.classList.add('is-open');
 
-    const closeWithResult = (res: boolean) => {
-      backdrop.classList.remove('is-open');
-      backdrop.classList.add('is-closing');
-      setTimeout(() => {
-        backdrop.remove();
-        resolve(res);
-      }, 150);
-    };
-
-    backdrop.querySelector('#modal-cancel-btn')?.addEventListener('click', () => closeWithResult(false));
-    backdrop.querySelector('#modal-confirm-btn')?.addEventListener('click', () => closeWithResult(true));
-  });
-}
-
-export function showPrompt(title: string, message: string, defaultValue: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'cptp-modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="cptp-modal-content">
-        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#e2e8f0;margin:0 0 10px;">${esc(title)}</h2>
-        <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin:0 0 16px;">${esc(message)}</p>
-        <input type="text" id="modal-prompt-input" class="field-input" value="${esc(defaultValue)}" style="margin-bottom:20px;" autofocus />
-        <div style="display:flex;gap:12px;justify-content:flex-end;">
-          <button id="modal-cancel-btn" class="btn-ghost-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Cancelar</button>
-          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Aceptar</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(backdrop);
-    const input = backdrop.querySelector('#modal-prompt-input') as HTMLInputElement | null;
-    if (input) {
-      input.focus();
-      input.select();
-    }
-    void backdrop.offsetWidth;
-    backdrop.classList.add('is-open');
-
-    const closeWithResult = (val: string | null) => {
-      backdrop.classList.remove('is-open');
-      backdrop.classList.add('is-closing');
-      setTimeout(() => {
-        backdrop.remove();
-        resolve(val);
-      }, 150);
-    };
-
-    backdrop.querySelector('#modal-cancel-btn')?.addEventListener('click', () => closeWithResult(null));
-    backdrop.querySelector('#modal-confirm-btn')?.addEventListener('click', () => closeWithResult(input?.value ?? null));
-    input?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        closeWithResult(input.value);
-      } else if (e.key === 'Escape') {
-        closeWithResult(null);
-      }
-    });
-  });
-}
 
 function formatDate(isoDate: string): string {
  try {
@@ -159,36 +69,8 @@ function formatDate(isoDate: string): string {
 
 // ── Router ──────────────────────────────────────────────────────────────────
 
-function navigate(hash: string): void {
- window.location.hash = hash;
-}
 
-function getRoute(): { view: string; params: Record<string, string> } {
- const hash = window.location.hash.slice(1) || '/';
- if (hash === '/') return { view: 'dashboard', params: {} };
- const mEvent = hash.match(/^\/event\/(\d+)$/);
- if (mEvent) return { view: 'event', params: { id: mEvent[1] } };
- const mNew = hash.match(/^\/new$/);
- if (mNew) return { view: 'new-event', params: {} };
- const mSeries = hash.match(/^\/series\/(\d+)$/);
- if (mSeries) return { view: 'series', params: { id: mSeries[1] } };
- return { view: 'dashboard', params: {} };
-}
 
-function showView(viewId: string): void {
- document.querySelectorAll('.view').forEach((el) => {
-  (el as HTMLElement).classList.add('hidden');
- });
- const el = document.getElementById(`view-${viewId}`);
- if (el) {
-  el.classList.remove('hidden');
-  const firstHeading = el.querySelector('h1, h2, [tabindex="-1"]') as HTMLElement | null;
-  if (firstHeading) {
-   firstHeading.setAttribute('tabindex', '-1');
-   firstHeading.focus({ preventScroll: false });
-  }
- }
-}
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
 
@@ -243,7 +125,15 @@ async function renderDashboard(): Promise<void> {
 
  // Agregar el botón para vaciar base de datos al final
  listHtml += `
-  <div style="margin-top:40px;display:flex;justify-content:center;border-top:1px solid rgba(255,255,255,0.08);padding-top:24px;width:100%;">
+  <div style="margin-top:40px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.08);padding-top:24px;width:100%;">
+   <button id="btn-import-backup" class="btn-ghost-custom"
+       style="font-size:0.85rem;padding:12px 20px;border:2px solid rgba(59,130,246,0.4);
+           border-radius:10px;color:#60a5fa;font-weight:700;
+           cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
+       title="Importar un evento desde un archivo .json de otra máquina">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+     Importar Evento
+   </button>
    <button id="btn-reset-db" class="btn-danger-custom"
        style="font-size:0.85rem;padding:12px 20px;border:2px solid #ef4444;
            border-radius:10px;background:#ef4444;color:#ffffff;font-weight:700;
@@ -290,6 +180,11 @@ async function renderDashboard(): Promise<void> {
   });
  }
 
+ // Vincular botón de importar backup
+ document.getElementById('btn-import-backup')?.addEventListener('click', () => {
+  importEventBackup(() => renderDashboard());
+ });
+
  // Vincular evento del botón para vaciar la base de datos
  document.getElementById('btn-reset-db')?.addEventListener('click', async () => {
   if (!await showConfirm('Vaciar Base de Datos', '¿Restablecer la aplicación? Esto VACIARÁ toda la base de datos (eventos, competidores y series) y no se puede deshacer.')) return;
@@ -331,7 +226,7 @@ async function renderNewEvent(): Promise<void> {
 
   <div style="margin-bottom:28px;">
    <div class="section-title" style="margin-bottom:4px;">Nuevo Evento</div>
-   <h1 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;color:#e2e8f0;">
+   <h1 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;color:#0f172a;">
     Crear Evento de Tiro
    </h1>
   </div>
@@ -444,18 +339,18 @@ async function renderEvent(eventId: string): Promise<void> {
   <div style="margin-bottom:20px;">
    <div class="section-title" style="margin-bottom:2px;">Evento</div>
    <h1 style="margin:0 0 4px;font-family:'Rajdhani',sans-serif;font-size:1.6rem;
-         font-weight:700;color:#e2e8f0;line-height:1.2;">${esc(event.name)}</h1>
+         font-weight:700;color:#0f172a;line-height:1.2;">${esc(event.name)}</h1>
    <p style="margin:0;font-size:0.85rem;color:#64748b;">
     ${formatDate(event.date)} ${event.location ? `· ${esc(event.location)}` : ''}
    </p>
   </div>
 
   <!-- TABS DE NAVEGACIÓN -->
-  <div class="tabs tabs-boxed mb-6" style="background:#0f1724;border:1px solid rgba(59,130,246,0.12);display:flex;gap:4px;padding:4px;border-radius:12px;">
-   <button id="tab-btn-tiradores" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;">
+  <div class="tabs tabs-boxed mb-6" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;">
+   <button id="tab-btn-tiradores" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;">
     Sorteo y Puestos (${participants.length}/32)
    </button>
-   <button id="tab-btn-series" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;">
+   <button id="tab-btn-series" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;">
     Series y Puntuación
    </button>
   </div>
@@ -464,13 +359,18 @@ async function renderEvent(eventId: string): Promise<void> {
   <div id="tab-panel-tiradores" class="tab-panel">
    <!-- Formulario de Inscripción -->
    <div class="card-tactical" style="padding:16px;margin-bottom:20px;">
-    <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#e2e8f0;margin-bottom:12px;">
+    <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:12px;">
      Inscribir Competidor
     </h3>
     <div style="display:flex;gap:10px;">
-     <input type="text" id="field-participant-name" class="field-input" style="flex:1;"
-         placeholder="Ej: Carlos Giménez" maxlength="60"
-         ${participants.length >= 32 ? 'disabled placeholder="Capacidad máxima de 32 alcanzada"' : ''} />
+     <div style="display:flex;gap:10px;flex:1;">
+      <input type="text" id="field-participant-name" class="field-input" style="flex:2;"
+          placeholder="Nombre completo" maxlength="60"
+          ${participants.length >= 32 ? 'disabled placeholder="Capacidad máxima (32)"' : ''} />
+      <input type="text" id="field-participant-category" class="field-input" style="flex:1;"
+          placeholder="Categoría (ej: Senior)" maxlength="30"
+          ${participants.length >= 32 ? 'disabled' : ''} />
+     </div>
      <button id="btn-add-participant" class="btn-primary-custom" style="padding:10px 18px;"
          ${participants.length >= 32 ? 'disabled' : ''}>
       Inscribir
@@ -494,15 +394,15 @@ async function renderEvent(eventId: string): Promise<void> {
    <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(245,158,11,0.25);">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
-      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#f59e0b;margin:0;">
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#d97706;margin:0;">
        Sorteo de Puestos
       </h3>
       <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">
-       Sortea aleatoriamente en 4 Tandas (Sector A/B, Spots 1-4).
+       Sortea aleatoriamente en 8 Tandas (Spots 1-4).
       </p>
      </div>
      <button id="btn-shuffle-sorteo" class="btn-primary-custom" 
-         style="background:#f59e0b;color:#000;border-color:#f59e0b;padding:12px 20px;"
+         style="background:#d97706;color:#ffffff;border-color:#d97706;padding:12px 20px;"
          ${participants.length === 0 ? 'disabled' : ''}>
        Sortear Posiciones
      </button>
@@ -521,17 +421,28 @@ async function renderEvent(eventId: string): Promise<void> {
   <div id="tab-panel-series" class="tab-panel hidden">
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Series por Tirador</div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
      ${participants.length > 0 ? `
-      <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#f59e0b;"
+      <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;"
           aria-label="Ver y Exportar Tabla de Posiciones">
         Tabla de Resultados
       </button>` : ''}
      ${participants.length > 0 ? `
       <button class="btn-ghost-custom" id="btn-export-excel" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(34,197,94,0.25);color:#22c55e;"
-          aria-label="Exportar todos los datos a Excel">
-        Exportar Excel
+          aria-label="Exportar todos los datos a CSV">
+        Exportar CSV
       </button>` : ''}
+     ${participants.length > 1 ? `
+      <button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(99,102,241,0.35);color:#6366f1;"
+          aria-label="Resolver empates de posiciones manualmente"
+          title="Resolver empates ordenándolos uno a uno en desempate">
+        Resolver Desempates
+      </button>` : ''}
+     <button class="btn-ghost-custom" id="btn-export-backup" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.35);color:#3b82f6;"
+          aria-label="Exportar copia de seguridad del evento"
+          title="Exportar como .json para importar en otra máquina">
+       Exportar Copia
+     </button>
      ${allSeries.length > 0 ? `
       <button class="btn-ghost-custom" id="btn-print-event" style="padding:8px 12px;font-size:0.75rem;"
           aria-label="Imprimir todas las planillas">
@@ -576,17 +487,17 @@ async function renderEvent(eventId: string): Promise<void> {
 
   listEl.innerHTML = participants.map((p) => `
    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-         background:#0f1724;border:1px solid rgba(255,255,255,0.03);border-radius:10px;">
+         background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
     <div style="display:flex;align-items:center;gap:10px;">
      <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
-            background:#1a2436;padding:4px 8px;border-radius:6px;color:#3b82f6;">
+            background:#f1f5f9;padding:4px 8px;border-radius:6px;color:#0056b3;">
       #${p.competitorNumber}
      </span>
-     <span style="font-weight:600;color:#e2e8f0;font-size:0.9rem;">${esc(p.name)}</span>
+     <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>${p.category ? `<span style="font-size:0.75rem;color:#64748b;margin-left:4px;">(${esc(p.category)})</span>` : ''}
      ${p.tanda ? `
-      <span style="font-size:0.68rem;background:rgba(245,158,11,0.1);color:#f59e0b;
-             padding:2px 6px;border-radius:4px;border:1px solid rgba(245,158,11,0.2);">
-       T${p.tanda}-${p.sector}${p.spot}
+      <span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;
+             padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">
+       T${p.tanda} · P${p.spot}
       </span>` : ''}
     </div>
     <button class="btn-danger-custom" data-remove-participant="${p.id}"
@@ -628,7 +539,7 @@ async function renderEvent(eventId: string): Promise<void> {
   });
  }
 
- // --- RENDER DEL CUADRO DE SORTEO (4 TANDAS) ---
+ // --- RENDER DEL CUADRO DE SORTEO (8 TANDAS) ---
  function renderCuadroSorteo(): void {
   const tableEl = document.getElementById('cuadro-sorteo-container');
   if (!tableEl) return;
@@ -637,7 +548,7 @@ async function renderEvent(eventId: string): Promise<void> {
   const sortedParticipants = participants.filter(p => p.tanda !== undefined);
   if (sortedParticipants.length === 0) {
    tableEl.innerHTML = `
-    <div style="text-align:center;padding:32px 16px;border:1px dashed #1a2436;border-radius:12px;">
+    <div style="text-align:center;padding:32px 16px;border:1px dashed #cbd5e1;border-radius:12px;">
      <div style="font-size:1.6rem;margin-bottom:6px;"></div>
      <div style="font-size:0.8rem;color:#475569;">Sorteo pendiente. Presioná el botón de arriba.</div>
     </div>`;
@@ -646,44 +557,26 @@ async function renderEvent(eventId: string): Promise<void> {
 
   let html = `<div style="display:flex;flex-direction:column;gap:18px;">`;
 
-  for (let t = 1; t <= 4; t++) {
-   // Spots de esta tanda
-   const getCompetitor = (sec: 'A' | 'B', spotNum: 1 | 2 | 3 | 4) => {
-    return participants.find(p => p.tanda === t && p.sector === sec && p.spot === spotNum);
-   };
+  // 8 Tandas de 4 spots cada una (32 competidores max)
+  for (let t = 1; t <= 8; t++) {
+    const getCompetitor = (spotNum: 1 | 2 | 3 | 4) => {
+      return participants.find(p => p.tanda === t && p.spot === spotNum);
+    };
 
-   html += `
-    <div class="card-tactical" style="padding:14px;border-color:rgba(255,255,255,0.02);">
-     <div style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:900;
-           color:#94a3b8;letter-spacing:0.08em;margin-bottom:10px;text-align:center;
-           border-bottom:1px solid #101724;padding-bottom:6px;">
-      TANDA ${t}
-     </div>
-     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <!-- Sector A -->
-      <div>
-       <div style="font-size:0.68rem;color:#475569;text-transform:uppercase;font-weight:800;
-             letter-spacing:0.06em;margin-bottom:6px;text-align:center;">Sector A</div>
-       <div style="display:flex;flex-direction:column;gap:6px;">
-        ${[1, 2, 3, 4].map(spotNum => {
-         const p = getCompetitor('A', spotNum as 1 | 2 | 3 | 4);
-         return renderSpotCell(spotNum, p);
-        }).join('')}
-       </div>
+    html += `
+     <div class="card-tactical" style="padding:14px;border-color:#e2e8f0;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:900;
+            color:#0f172a;letter-spacing:0.08em;margin-bottom:10px;text-align:center;
+            border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
+       TANDA ${t}
       </div>
-      <!-- Sector B -->
-      <div>
-       <div style="font-size:0.68rem;color:#475569;text-transform:uppercase;font-weight:800;
-             letter-spacing:0.06em;margin-bottom:6px;text-align:center;">Sector B</div>
-       <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
         ${[1, 2, 3, 4].map(spotNum => {
-         const p = getCompetitor('B', spotNum as 1 | 2 | 3 | 4);
-         return renderSpotCell(spotNum, p);
+          const p = getCompetitor(spotNum as 1 | 2 | 3 | 4);
+          return renderSpotCell(spotNum, p);
         }).join('')}
-       </div>
       </div>
-     </div>
-    </div>`;
+     </div>`;
   }
 
   html += `</div>`;
@@ -707,19 +600,19 @@ async function renderEvent(eventId: string): Promise<void> {
  function renderSpotCell(spotNum: number, p: Participant | undefined): string {
   if (!p) {
    return `
-    <div style="border:1px dashed #1a2436;border-radius:8px;padding:8px;
-          text-align:center;font-size:0.75rem;color:#334155;">
-     Spot ${spotNum}: [Libre]
+    <div style="border:1px dashed #cbd5e1;border-radius:8px;padding:8px;
+          text-align:center;font-size:0.75rem;color:#64748b;">
+     Puesto ${spotNum}: [Libre]
     </div>`;
   }
   return `
    <div data-goto-participant-id="${p.id}"
-      style="background:#0f1724;border:1px solid rgba(59,130,246,0.12);border-radius:8px;
+      style="background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;
          padding:8px 10px;font-size:0.75rem;cursor:pointer;
          display:flex;align-items:center;gap:6px;transition:border-color 0.2s;">
-    <span style="font-weight:900;color:#64748b;">${spotNum}</span>
-    <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#3b82f6;">#${p.competitorNumber}</span>
-    <span style="font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">
+    <span style="font-weight:900;color:#64748b;">P${spotNum}</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span>
+    <span style="font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">
      ${esc(p.name)}
     </span>
    </div>`;
@@ -745,12 +638,12 @@ async function renderEvent(eventId: string): Promise<void> {
     ? pSeries.map(s => {
       const shotDots = Array.from({ length: 10 }, (_, i) => {
        const sh = s.shots[i];
-       if (!sh) return `<span class="shot-dot" style="background:rgba(255,255,255,0.05);color:#334155;">·</span>`;
+       if (!sh) return `<span class="shot-dot" style="background:#e2e8f0;color:#94a3b8;">·</span>`;
        return `<span class="shot-dot ${sh.hit ? 'hit' : 'miss'}">${sh.hit ? 'O' : 'X'}</span>`;
       }).join('');
       return `
       <div class="series-card" data-series-id="${s.id}" role="button" tabindex="0"
-         style="background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.02);padding:10px 12px;margin-top:6px;border-radius:10px;">
+         style="background:#f8fafc;border:1px solid #e2e8f0;padding:10px 12px;margin-top:6px;border-radius:10px;">
        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
         <div style="flex:1;min-width:0;">
          <div style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;color:#64748b;margin-bottom:6px;">
@@ -759,7 +652,7 @@ async function renderEvent(eventId: string): Promise<void> {
          <div style="display:flex;gap:3px;flex-wrap:wrap;">${shotDots}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-         <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:#f59e0b;">
+         <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:#d97706;">
           ${s.totalScore}
          </div>
          <div style="font-size:0.6rem;color:#475569;">/ 67 pts</div>
@@ -770,18 +663,18 @@ async function renderEvent(eventId: string): Promise<void> {
     : `<div style="font-size:0.75rem;color:#475569;margin-top:4px;">Sin series registradas</div>`;
 
    return `
-   <div id="tirador-block-${p.id}" class="card-tactical" style="padding:14px;border-color:rgba(255,255,255,0.03);">
+   <div id="tirador-block-${p.id}" class="card-tactical" style="padding:14px;border-color:#e2e8f0;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
-          border-bottom:1px solid rgba(255,255,255,0.02);padding-bottom:10px;margin-bottom:8px;">
+          border-bottom:1px solid #f1f5f9;padding-bottom:10px;margin-bottom:8px;">
      <div>
       <div style="display:flex;align-items:center;gap:6px;">
-       <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#3b82f6;font-weight:700;">
+       <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#0056b3;font-weight:700;">
         #${p.competitorNumber}
        </span>
-       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#e2e8f0;">${esc(p.name)}</h4>
+       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0f172a;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
       </div>
-      <div style="font-size:0.7rem;color:#475569;margin-top:2px;">
-       ${p.tanda ? `Tanda ${p.tanda} — Sector ${p.sector} Spot ${p.spot}` : 'Posición no sorteada'}
+      <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
+       ${p.tanda ? `Tanda ${p.tanda} — Puesto ${p.spot}` : 'Posición no sorteada'}
        ${pSeries.length > 0 ? `· Acumulado: <strong style="color:#22c55e;">${totalScore} pts</strong>` : ''}
       </div>
      </div>
@@ -840,23 +733,21 @@ async function renderEvent(eventId: string): Promise<void> {
  }
 
  // --- HELPER: ENCONTRAR PRIMER PUESTO LIBRE EN EL CUADRO DE SORTEO ---
- function findFirstFreeSpot(existingParticipants: Participant[]): { tanda: number, sector: 'A' | 'B', spot: 1 | 2 | 3 | 4 } | null {
+ function findFirstFreeSpot(existingParticipants: Participant[]): { tanda: number, spot: 1 | 2 | 3 | 4 } | null {
   const hasBeenSorted = existingParticipants.some(p => p.tanda !== undefined);
   if (!hasBeenSorted) return null;
 
   const occupied = new Set(
    existingParticipants
     .filter(p => p.tanda !== undefined)
-    .map(p => `${p.tanda}_${p.sector}_${p.spot}`)
+    .map(p => `${p.tanda}_${p.spot}`)
   );
 
-  for (let t = 1; t <= 4; t++) {
-   for (const sec of ['A', 'B'] as const) {
-    for (let s = 1; s <= 4; s++) {
-     const key = `${t}_${sec}_${s}`;
-     if (!occupied.has(key)) {
-      return { tanda: t, sector: sec, spot: s as 1 | 2 | 3 | 4 };
-     }
+  for (let t = 1; t <= 8; t++) {
+   for (let s = 1; s <= 4; s++) {
+    const key = `${t}_${s}`;
+    if (!occupied.has(key)) {
+     return { tanda: t, spot: s as 1 | 2 | 3 | 4 };
     }
    }
   }
@@ -866,8 +757,10 @@ async function renderEvent(eventId: string): Promise<void> {
  // --- HANDLER: INSCRIBIR PARTICIPANTE ---
  document.getElementById('btn-add-participant')?.addEventListener('click', async () => {
   const input = document.getElementById('field-participant-name') as HTMLInputElement | null;
-  if (!input) return;
+  const catInput = document.getElementById('field-participant-category') as HTMLInputElement | null;
+  if (!input || !catInput) return;
   const name = input.value.trim();
+  const categoryVal = catInput.value.trim();
   if (!name) { showToast('Ingresá el nombre del tirador', 'error'); return; }
 
   if (participants.length >= 32) {
@@ -882,13 +775,14 @@ async function renderEvent(eventId: string): Promise<void> {
    await db.participants.add({
     eventId: id,
     name,
+    category: categoryVal || undefined,
     competitorNumber: chosenNumber,
     tanda: freeSpot?.tanda,
-    sector: freeSpot?.sector,
     spot: freeSpot?.spot
    });
 
    input.value = '';
+   catInput.value = '';
    showToast(`Inscrito Competidor #${chosenNumber}`, 'success');
 
    // recargar
@@ -912,194 +806,28 @@ async function renderEvent(eventId: string): Promise<void> {
 
  // --- HANDLER: POBLAR tiradores DEMO ---
  document.getElementById('btn-seed-participants')?.addEventListener('click', async () => {
-  const currentCount = participants.length;
-  if (currentCount >= 32) {
-   showToast('Límite de 32 competidores ya alcanzado.', 'error');
-   return;
-  }
-
-  const spaceLeft = 32 - currentCount;
-  const defaultVal = Math.min(20, spaceLeft);
-   const countStr = await showPrompt('Cargar Tiradores Demo', `¿Cuántos competidores demo deseas cargar? (Disponibles: ${spaceLeft})`, String(defaultVal));
-   if (countStr === null) return; // Cancelado
-
-  const count = parseInt(countStr.trim(), 10);
-  if (isNaN(count) || count <= 0) {
-   showToast('Por favor, ingresá un número válido mayor a 0.', 'error');
-   return;
-  }
-
-  const finalCount = Math.min(count, spaceLeft);
-
-  // Generador de nombres aleatorios realistas
-  const firstNames = ["Carlos", "Jorge", "Alejandro", "Daniel", "Eduardo", "Federico", "Gustavo", "Hernán", "Ignacio", "Lucas", "Martín", "Nicolás", "Oscar", "Pablo", "Ricardo", "Santiago", "Tomás", "Walter", "Víctor", "Hugo", "Luis", "José", "Juan", "Pedro", "Miguel", "Ángel", "Francisco", "Javier", "Andrés", "Diego", "Fernando", "Gabriel"];
-  const lastNames = ["Giménez", "Ramos", "Rossi", "López", "Benítez", "Silva", "Fernández", "Díaz", "Martínez", "González", "Sosa", "Romero", "Álvarez", "Torres", "Acosta", "Maidana", "Cardozo", "Gómez", "Sánchez", "Pérez", "Duarte", "Peralta", "Ayala", "Cáceres", "Rojas", "Galeano", "Miranda", "Rios", "Franco", "Sotomayor", "Gorostuaga", "Cardozo"];
-
-  const shuffledFirst = [...firstNames].sort(() => Math.random() - 0.5);
-  const shuffledLast = [...lastNames].sort(() => Math.random() - 0.5);
-  const generatedNames = Array.from({ length: 32 }, (_, idx) => `${shuffledFirst[idx]} ${shuffledLast[idx]}`);
-
-  const namesToSeed = generatedNames.slice(0, finalCount);
-
-  try {
-
-   const bulkData: Participant[] = [];
-   const tempParticipants = [...participants];
-   let currentMax = participants.length > 0 ? Math.max(...participants.map(p => p.competitorNumber)) : 0;
-
-   for (let i = 0; i < namesToSeed.length; i++) {
-    currentMax++;
-    const freeSpot = findFirstFreeSpot(tempParticipants);
-    const newParticipant: Participant = {
-     eventId: id,
-     name: namesToSeed[i],
-     competitorNumber: currentMax,
-     tanda: freeSpot?.tanda,
-     sector: freeSpot?.sector,
-     spot: freeSpot?.spot
-    };
-    bulkData.push(newParticipant);
-    tempParticipants.push(newParticipant);
-   }
-
-   await db.participants.bulkAdd(bulkData);
-   showToast(`Se inscribieron ${bulkData.length} competidores demo`, 'success');
-
-   // recargar
+  await handleSeedParticipants(id, participants, findFirstFreeSpot, async () => {
    participants = await db.participants.where('eventId').equals(id).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
    renderListaSeries();
-
-   // actualizar contador en el tab
    if (btnTiradores) btnTiradores.textContent = `Sorteo y Puestos (${participants.length}/32)`;
-
-   // Actualizar estado del botón de sorteo
    const btnShuffle = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
    if (btnShuffle) btnShuffle.disabled = participants.length === 0;
-
-   // Actualizar estado del botón de simulación
    const btnSeedScores = document.getElementById('btn-seed-scores') as HTMLButtonElement | null;
    if (btnSeedScores) btnSeedScores.disabled = false;
-  } catch (err) {
-   console.error('[DB] Error al poblar tiradores:', err);
-   showToast('Error al cargar competidores demo.', 'error');
-  }
+  });
  });
-
  // --- HANDLER: SIMULAR RESULTADOS (SERIES Y PUNTUACIONES DEMO) ---
  document.getElementById('btn-seed-scores')?.addEventListener('click', async () => {
-  if (participants.length === 0) {
-   showToast('No hay competidores inscritos para simular.', 'error');
-   return;
-  }
-
-   if (!await showConfirm('Simular Puntuaciones', '¿Simular puntuaciones de prueba para todos los competidores? Esto borrará las series actuales de este evento.')) return;
-
-  try {
-   // 1. Limpiar series anteriores para este evento
-   await db.series.where('eventId').equals(id).delete();
-
-   const bulkSeries: Series[] = [];
-
-   // Función helper para generar disparos siguiendo el reglamento exacto
-   function generateRealisticSeriesShots(): { shots: Shot[], totalScore: number } {
-    const shots: Shot[] = [];
-    let shotNum = 1;
-
-    // Blanco 15"
-    let hit15 = false;
-    while (shotNum <= 10 && !hit15) {
-     const hit = Math.random() > 0.15; // 85% probabilidad
-     if (hit) {
-      const val = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1][shotNum - 1] || 1;
-      shots.push({ shotNumber: shotNum, targetType: '15"', hit: true, value: val });
-      hit15 = true;
-     } else {
-      shots.push({ shotNumber: shotNum, targetType: '15"', hit: false, value: 0 });
-     }
-     shotNum++;
-    }
-
-    // Blanco 10"
-    let hit10 = false;
-    while (shotNum <= 10 && hit15 && !hit10) {
-     const hit = Math.random() > 0.25; // 75% probabilidad
-     if (hit) {
-      const val = [20, 18, 16, 14, 12, 10, 8, 6, 4][shotNum - 2] || 4;
-      shots.push({ shotNumber: shotNum, targetType: '10"', hit: true, value: val });
-      hit10 = true;
-     } else {
-      shots.push({ shotNumber: shotNum, targetType: '10"', hit: false, value: 0 });
-     }
-     shotNum++;
-    }
-
-    // Blanco 5"
-    let hit5 = false;
-    while (shotNum <= 10 && hit10 && !hit5) {
-     const hit = Math.random() > 0.4; // 60% probabilidad
-     if (hit) {
-      const val = [30, 26, 23, 20, 16, 13, 11, 7][shotNum - 3] || 7;
-      shots.push({ shotNumber: shotNum, targetType: '5"', hit: true, value: val });
-      hit5 = true;
-     } else {
-      shots.push({ shotNumber: shotNum, targetType: '5"', hit: false, value: 0 });
-     }
-     shotNum++;
-    }
-
-    // Adicionales automáticos (disparos sobrantes)
-    if (hit5) {
-     for (let n = shotNum; n <= 10; n++) {
-      shots.push({ shotNumber: n, targetType: 'additional', hit: true, value: 1 });
-     }
-    }
-
-    const totalScore = shots.reduce((sum, s) => sum + s.value, 0);
-    return { shots, totalScore };
-   }
-
-   // Generar 2 series para cada participante
-   for (const p of participants) {
-    const s1 = generateRealisticSeriesShots();
-    bulkSeries.push({
-     eventId: id,
-     participantId: p.id!,
-     seriesNumber: 1,
-     shots: s1.shots,
-     totalScore: s1.totalScore,
-     createdAt: Date.now()
-    });
-
-    const s2 = generateRealisticSeriesShots();
-    bulkSeries.push({
-     eventId: id,
-     participantId: p.id!,
-     seriesNumber: 2,
-     shots: s2.shots,
-     totalScore: s2.totalScore,
-     createdAt: Date.now() + 1000
-    });
-   }
-
-   await db.series.bulkAdd(bulkSeries);
-   showToast('Se simularon 2 series para cada tirador con éxito', 'success');
-
-   // recargar
+  await handleSeedScores(id, participants, async () => {
    allSeries = await db.series.where('eventId').equals(id).toArray();
    renderListaSeries();
-
-   // Forzar re-render de la vista de evento general
    await renderEvent(String(id));
-  } catch (err) {
-   console.error('[DB] Error simulando puntuaciones:', err);
-   showToast('Error al simular puntuaciones.', 'error');
-  }
+  });
  });
-
- // --- HANDLER: REALIZAR SORTEO ALEATORIO (32 competidores / 4 Tandas) ---
+ // --- HANDLER: REALIZAR SORTEO ALEATORIO (32 competidores / 8 Tandas) ---
  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
   if (participants.length === 0) {
    showToast('No hay competidores inscritos para sortear.', 'error');
@@ -1112,31 +840,29 @@ async function renderEvent(eventId: string): Promise<void> {
    const list = [...participants];
    const N = list.length;
 
-   // 1. Generar números de competidor del 1 al N y mezclarlos (papelitos aleatorios)
+   // 1. Generar números de competidor del 1 al N y mezclarlos
    const compNumbers = Array.from({ length: N }, (_, i) => i + 1);
    for (let i = compNumbers.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [compNumbers[i], compNumbers[j]] = [compNumbers[j], compNumbers[i]];
    }
 
-   // 2. Mezclar el orden de los participantes para el sorteo de brackets (Tandas/Sectores/Spots)
+   // 2. Mezclar el orden de los participantes
    for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
    }
 
-   // 3. Asignar los números de competidor mezclados y las posiciones físicas
-   for (let i = 0; i < list.length; i++) {
-    const tanda = Math.floor(i / 8) + 1; // 1, 2, 3, 4
-    const spotIdx = i % 8;       // 0 a 7
-    const sector = spotIdx < 4 ? 'A' : 'B';
-    const spot = (spotIdx % 4) + 1;
+    // 3. Asignar los números de competidor mezclados y las posiciones físicas (4 por Tanda)
+    for (let i = 0; i < list.length; i++) {
+     const tanda = Math.floor(i / 4) + 1; // 1 a 8
+     const spot = (i % 4) + 1;            // Spot 1, 2, 3, 4
 
-    list[i].competitorNumber = compNumbers[i];
-    list[i].tanda = tanda;
-    list[i].sector = sector;
-    list[i].spot = spot as 1 | 2 | 3 | 4;
-   }
+     list[i].competitorNumber = compNumbers[i];
+     list[i].tanda = tanda;
+     list[i].sector = undefined;
+     list[i].spot = spot as 1 | 2 | 3 | 4;
+    }
 
    // 4. Guardar en Dexie
    await Promise.all(list.map(p => db.participants.put(p)));
@@ -1155,126 +881,15 @@ async function renderEvent(eventId: string): Promise<void> {
   }
  });
 
-  // --- HELPER: EXPORTAR RESULTADOS COMPLETOS A EXCEL ---
-  function exportRankingToExcel(evt: ShootingEvent, pts: Participant[], sers: Series[]): void {
-   const rankingData = pts.map(p => {
-    const pSeries = sers.filter(s => s.participantId === p.id);
-    const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
-    return { participant: p, series: pSeries.sort((a,b) => a.seriesNumber - b.seriesNumber), totalScore };
+  // --- HANDLER: RESOLVER DESEMPATES TÁCTICO ---
+  document.getElementById('btn-resolve-ties')?.addEventListener('click', () => {
+   showTieBreakerModal(Number(id), participants, allSeries, async () => {
+    // recargar tiradores y refrescar
+    participants = await db.participants.where('eventId').equals(Number(id)).toArray();
+    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+    renderListaSeries();
    });
-   rankingData.sort((a, b) => b.totalScore - a.totalScore);
-
-   let tableRowsHtml = '';
-
-   rankingData.forEach((row, rankIdx) => {
-    const p = row.participant;
-    const seriesCount = row.series.length;
-
-    if (seriesCount === 0) {
-     tableRowsHtml += `
-      <tr>
-       <td>${rankIdx + 1}</td>
-       <td>#${p.competitorNumber}</td>
-       <td class="text-left">${esc(p.name)}</td>
-       <td>${p.tanda || '—'}</td>
-       <td>${p.sector || '—'}</td>
-       <td>${p.spot || '—'}</td>
-       <td>—</td>
-       ${Array.from({ length: 10 }, () => '<td>—</td>').join('')}
-       <td>0</td>
-       <td class="score-total">0</td>
-      </tr>
-     `;
-    } else {
-     row.series.forEach((s, sIdx) => {
-      let shotCells = '';
-      for (let shotN = 1; shotN <= 10; shotN++) {
-       const shot = s.shots.find(sh => sh.shotNumber === shotN);
-       if (shot) {
-        shotCells += `<td>${shot.hit ? shot.value : 'X'}</td>`;
-       } else {
-        shotCells += `<td>—</td>`;
-       }
-      }
-
-      tableRowsHtml += `
-       <tr>
-        <td>${rankIdx + 1}</td>
-        <td>#${p.competitorNumber}</td>
-        <td class="text-left">${esc(p.name)}</td>
-        <td>${p.tanda || '—'}</td>
-        <td>${p.sector || '—'}</td>
-        <td>${p.spot || '—'}</td>
-        <td>Serie ${s.seriesNumber}</td>
-        ${shotCells}
-        <td>${s.totalScore}</td>
-        <td class="score-total">${sIdx === 0 ? row.totalScore : ''}</td>
-       </tr>
-      `;
-     });
-    }
-   });
-
-   const htmlContent = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-     <meta charset="utf-8">
-     <style>
-      table { border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
-      th { background-color: #070708; color: #ffffff; font-weight: bold; border: 1.5px solid #000000; padding: 6px; text-transform: uppercase; }
-      td { border: 1px solid #000000; padding: 6px; text-align: center; }
-      .text-left { text-align: left; }
-      .header-main { background-color: #e31c25; color: white; font-size: 14px; font-weight: bold; height: 36px; }
-      .score-total { font-weight: bold; background-color: #fff9c4; }
-     </style>
-    </head>
-    <body>
-     <table>
-      <thead>
-       <tr class="header-main">
-        <th colspan="19" style="text-align: center;">CPTP SCORING — PLANILLA GENERAL — ${esc(evt.name)} (${formatDate(evt.date)})</th>
-       </tr>
-       <tr>
-        <th>Pos</th>
-        <th>Competidor #</th>
-        <th>Nombre</th>
-        <th>Tanda</th>
-        <th>Sector</th>
-        <th>Puesto</th>
-        <th>Serie</th>
-        <th>D1 (15")</th>
-        <th>D2 (10")</th>
-        <th>D3 (5")</th>
-        <th>D4 (Ad)</th>
-        <th>D5 (Ad)</th>
-        <th>D6 (Ad)</th>
-        <th>D7 (Ad)</th>
-        <th>D8 (Ad)</th>
-        <th>D9 (Ad)</th>
-        <th>D10 (Ad)</th>
-        <th>Total Serie</th>
-        <th>Total General</th>
-       </tr>
-      </thead>
-      <tbody>
-       ${tableRowsHtml}
-      </tbody>
-     </table>
-    </body>
-    </html>
-   `;
-
-   const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
-   const url = URL.createObjectURL(blob);
-   const link = document.createElement('a');
-   link.href = url;
-   const cleanEventName = evt.name.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 20);
-   link.download = `cptp_resultados_${cleanEventName}.xls`;
-   document.body.appendChild(link);
-   link.click();
-   document.body.removeChild(link);
-   URL.revokeObjectURL(url);
-  }
+  });
 
   // --- EXPORTAR RANKING / TABLA DE POSICIONES ---
   document.getElementById('btn-export-excel')?.addEventListener('click', () => {
@@ -1282,19 +897,25 @@ async function renderEvent(eventId: string): Promise<void> {
    exportRankingToExcel(event!, participants, allSeries);
   });
 
+  // --- EXPORTAR COPIA DE SEGURIDAD (JSON) ---
+  document.getElementById('btn-export-backup')?.addEventListener('click', async () => {
+   await exportEventBackup(Number(id));
+  });
+
  // --- EXPORTAR RANKING / TABLA DE POSICIONES ---
- document.getElementById('btn-print-ranking')?.addEventListener('click', () => {
-  if (participants.length === 0) { showToast('No hay competidores inscritos.', 'info'); return; }
+ document.getElementById('btn-print-ranking')?.addEventListener('click', async () => {
+  const freshParticipants = await db.participants.where('eventId').equals(Number(id)).toArray();
+  if (freshParticipants.length === 0) { showToast('No hay competidores inscritos.', 'info'); return; }
 
   // Calcular acumulado
-  const rankingData = participants.map(p => {
+  const rankingData = freshParticipants.map(p => {
    const pSeries = allSeries.filter(s => s.participantId === p.id);
    const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
    return { participant: p, totalScore };
   });
 
-  // Ordenar descendente por totalScore
-  rankingData.sort((a, b) => b.totalScore - a.totalScore);
+  // Ordenar por puntaje total y desempates manuales
+  rankingData.sort(sortRanking);
 
   printRankingCard(event!, rankingData);
  });

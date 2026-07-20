@@ -6,26 +6,26 @@
 @plugin "daisyui/theme" {
   name: "cptp-dark";
   default: true;
-  prefersdark: true;
-  color-scheme: dark;
+  prefersdark: false;
+  color-scheme: light;
 
-  /* Palette táctica de alto contraste (Rojo, Blanco, Azul, Negro) */
+  /* Palette táctica de alto contraste clara (Rojo, Blanco, Azul, Slate) */
   --color-primary: #e31c25;              /* Rojo CPTP */
   --color-primary-content: #ffffff;
   --color-secondary: #0056b3;            /* Azul Paraguay */
   --color-secondary-content: #ffffff;
   --color-accent: #e31c25;               /* Rojo CPTP */
   --color-accent-content: #ffffff;
-  --color-neutral: #111215;              /* Negro mate */
-  --color-neutral-content: #f8fafc;
-  --color-base-100: #070708;             /* Fondo negro táctico */
-  --color-base-200: #0e0f11;             /* Fondo intermedio gunmetal */
-  --color-base-300: #151619;             /* Fondo tarjetas gunmetal claro */
-  --color-base-content: #e2e8f0;
+  --color-neutral: #f1f5f9;              /* Gris táctico */
+  --color-neutral-content: #0f172a;
+  --color-base-100: #f8fafc;             /* Fondo claro principal */
+  --color-base-200: #f1f5f9;             /* Fondo intermedio gris */
+  --color-base-300: #ffffff;             /* Fondo de tarjetas blanco */
+  --color-base-content: #0f172a;         /* Texto azul oscuro */
   --color-info: #0056b3;                 /* Azul */
   --color-info-content: #ffffff;
   --color-success: #22c55e;
-  --color-success-content: #000000;
+  --color-success-content: #ffffff;
   --color-warning: #eab308;
   --color-warning-content: #000000;
   --color-error: #e31c25;
@@ -47,21 +47,39 @@ html {
 
 body {
   font-family: 'Rajdhani', sans-serif;
-  background: #070708;
+  background: #f1f5f9;
+  color: #0f172a;
   min-height: 100dvh;
   overflow-x: hidden;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
 }
 
-/* ── Animated background ────────────────────────────────── */
-body::before {
-  content: '';
+/* ── Watermarks ─────────────────────────────────────────── */
+.watermark-left {
   position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(227,28,37,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(0,86,179,0.05) 0%, transparent 60%);
+  bottom: -40px;
+  left: -40px;
+  width: 38vw;
+  height: 38vw;
+  max-width: 320px;
+  max-height: 320px;
+  background: url('/logo-cptp.svg') no-repeat center/contain;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+.watermark-right {
+  position: fixed;
+  top: 45%;
+  transform: translateY(-50%);
+  right: -30px;
+  width: 42vw;
+  height: 42vw;
+  max-width: 360px;
+  max-height: 360px;
+  background: url('/logo-long-range.svg') no-repeat center/contain;
+  opacity: 0.04;
   pointer-events: none;
   z-index: 0;
 }
@@ -69,11 +87,13 @@ body::before {
 /* ── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
 
 /* ── View transitions ────────────────────────────────────── */
 .view {
   animation: fadeIn 0.18s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -83,19 +103,19 @@ body::before {
 
 /* ── Tactical Card ──────────────────────────────────────── */
 .card-tactical {
-  background: linear-gradient(135deg, #0f1012 0%, #17181c 100%);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow:
-    0 4px 24px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+    0 4px 16px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255,255,255,0.8);
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 .card-tactical:hover {
   border-color: rgba(227,28,37,0.25);
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.9);
 }
 .card-tactical.interactive:hover {
   transform: translateY(-2px);
@@ -324,13 +344,23 @@ body::before {
 
 /* ── Navbar ──────────────────────────────────────────────── */
 .app-navbar {
-  background: rgba(8,13,22,0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: #ffffff;
+  border-bottom: 3px solid #0f1f3d; /* Azul profundo */
+  position: relative;
   position: sticky;
   top: 0;
   z-index: 50;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+}
+.app-navbar::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #b7201c; /* Rojo vivo */
+  z-index: 51;
 }
 
 /* ── Event card ──────────────────────────────────────────── */
@@ -413,8 +443,8 @@ body::before {
 
 /* ── Buttons ─────────────────────────────────────────────── */
 .btn-primary-custom {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(135deg, #e31c25, #b7201c);
+  border: 1px solid rgba(0,0,0,0.08);
   border-radius: 10px;
   color: #ffffff;
   font-weight: 700;
@@ -423,15 +453,15 @@ body::before {
   font-size: 0.95rem;
   transition: all 0.15s;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+  box-shadow: 0 4px 16px rgba(227,28,37,0.25);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 .btn-primary-custom:hover {
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
-  box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+  background: linear-gradient(135deg, #b7201c, #991b1b);
+  box-shadow: 0 6px 20px rgba(227,28,37,0.35);
   transform: translateY(-1px);
 }
 .btn-primary-custom:active { transform: translateY(0); }

@@ -13,6 +13,8 @@ export interface Participant {
   sector?: 'A' | 'B';
   spot?: 1 | 2 | 3 | 4;
   tanda?: number; // 1, 2, 3 o 4
+  category?: string;
+  tieRank?: number;
 }
 
 export interface Series {

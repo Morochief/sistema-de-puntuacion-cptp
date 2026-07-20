@@ -1,504 +1,550 @@
 /**
- * CPTP .22 LR — Planilla oficial imprimible
+ * CPTP .22 LR — Planilla oficial imprimible en formato horizontal (Landscape)
  *
- * Genera la planilla con MARCAS VISUALES sobre la tabla de puntuación:
- *  - Celda del valor LOGRADO → fondo negro, valor en blanco ()
- *  - Celdas donde se FALLÓ antes de lograrlo → marca "" superpuesta
- *  - Disparos adicionales (shots 4-10) → O/X en la fila de resultado
+ * Imprime dos series (Tandas) de un competidor una al lado de la otra
+ * en una sola hoja A4 horizontal para ahorrar papel y facilitar la fiscalización.
  */
 
 import type { Series, ShootingEvent, Shot, Participant } from './types';
 import { SCORING_TABLES } from './scoring';
-
-function findShot(shots: Shot[], shotNumber: number): Shot | undefined {
- return shots.find((s) => s.shotNumber === shotNumber);
-}
+import { db } from './db';
 
 function formatDate(isoDate: string): string {
- try {
-  const d = new Date(isoDate + 'T12:00:00');
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
- } catch { return isoDate; }
+  try {
+    const d = new Date(isoDate + 'T12:00:00');
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  } catch { return isoDate; }
 }
 
 /**
  * Renderiza una celda de la tabla de puntuación.
- *
- * @param colShotNum Número de disparo que corresponde a esta columna (1-10)
- * @param cellValue  Valor de referencia de la celda (ej: 7)
- * @param hitShotNum En qué disparo se impactó este blanco (undefined = no impactado aún)
- * @param missNums  Set de números de disparo donde se falló este blanco
  */
 function renderScoreCell(
- colShotNum: number,
- cellValue: number,
- hitShotNum: number | undefined,
- missNums: Set<number>,
+  colShotNum: number,
+  cellValue: number,
+  hitShotNum: number | undefined,
+  missNums: Set<number>,
 ): string {
- const isHit = hitShotNum === colShotNum;
- const isMiss = missNums.has(colShotNum);
+  const isHit = hitShotNum === colShotNum;
+  const isMiss = missNums.has(colShotNum);
 
- if (isHit) {
+  if (isHit) {
+    return `
+     <td class="score-cell cell-hit" title="Impactado aquí — ${cellValue} pts">
+      <span class="val">${cellValue}</span>
+      <span class="pts-lbl">pts</span>
+     </td>`;
+  }
+
+  if (isMiss) {
+    return `
+     <td class="score-cell cell-miss" title="Fallo en disparo ${colShotNum}">
+      <span class="val miss-val">${cellValue}</span>
+      <span class="miss-x">✕</span>
+     </td>`;
+  }
+
   return `
-   <td class="score-cell cell-hit" title="Impactado aquí — ${cellValue} pts">
+   <td class="score-cell">
     <span class="val">${cellValue}</span>
     <span class="pts-lbl">pts</span>
    </td>`;
- }
-
- if (isMiss) {
-  return `
-   <td class="score-cell cell-miss" title="Fallo en disparo ${colShotNum}">
-    <span class="val miss-val">${cellValue}</span>
-    <span class="miss-x"></span>
-   </td>`;
- }
-
- return `
-  <td class="score-cell">
-   <span class="val">${cellValue}</span>
-   <span class="pts-lbl">pts</span>
-  </td>`;
 }
 
-/** Genera y abre la planilla imprimible para una serie */
-export function printSeriesCard(event: ShootingEvent, participant: Participant, series: Series): void {
- const shots = series.shots;
+/**
+ * Retorna los estilos CSS para la planilla imprimible horizontal (Landscape).
+ */
+function getLandscapePrintStyles(): string {
+  return `
+     @page { size: A4 landscape; margin: 2mm 5mm; }
+   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
- // ── Buscar el impacto y los fallos de cada blanco ──────────────
- const hit15  = shots.find((s) => s.targetType === '15"' && s.hit);
- const hit10  = shots.find((s) => s.targetType === '10"' && s.hit);
- const hit5  = shots.find((s) => s.targetType === '5"' && s.hit);
- const addShots = shots.filter((s) => s.targetType === 'additional');
+   body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f0f0f0;
+    color: #000;
+    padding: 0;
+    margin: 0;
+   }
 
- const miss15 = new Set(shots.filter((s) => s.targetType === '15"' && !s.hit).map((s) => s.shotNumber));
- const miss10 = new Set(shots.filter((s) => s.targetType === '10"' && !s.hit).map((s) => s.shotNumber));
- const miss5 = new Set(shots.filter((s) => s.targetType === '5"' && !s.hit).map((s) => s.shotNumber));
+   .a4-landscape-page {
+    width: 250mm;
+    min-height: 165mm;
+    margin: 4mm auto;
+    background: #fff;
+    padding: 6px 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    display: flex;
+    gap: 12px;
+    page-break-after: always;
+    break-after: page;
+   }
 
- const pts15  = hit15?.value ?? 0;
- const pts10  = hit10?.value ?? 0;
- const pts5  = hit5?.value ?? 0;
- const addPts = addShots.reduce((s, sh) => s + sh.value, 0);
- const mainPts = pts15 + pts10 + pts5;
- const total  = mainPts + addPts;
+   @media print {
+    body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .a4-landscape-page { margin: 0 auto; padding: 6px 0; box-shadow: none; width: 250mm; height: 165mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+   }
 
- const vals15 = SCORING_TABLES['15"'];
- const vals10 = SCORING_TABLES['10"'];
- const vals5 = SCORING_TABLES['5"'];
+   .print-btn {
+    display: block; margin: 5px auto 3px; padding: 7px 24px;
+    background: #000; color: #fff; border: none; border-radius: 6px;
+    font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.06em;
+    font-family: Arial, sans-serif;
+   }
+   .print-btn:hover { background: #333; }
 
- const resultRow = Array.from({ length: 10 }, (_, i) => {
-  const sn = i + 1;
-  const sh = findShot(shots, sn);
-  if (!sh) return `<td class="res-cell res-empty">·</td>`;
-  return `<td class="res-cell ${sh.hit ? 'res-hit' : 'res-miss'}">${sh.hit ? 'O' : 'X'}</td>`;
- }).join('');
+   /* Columnas lado a lado */
+   .series-column {
+    flex: 1;
+    width: 50%;
+    border: 1.5px solid #000;
+    border-radius: 6px;
+    padding: 3px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #fff;
+   }
 
- const targetSummary = (label: string, hitShot: Shot | undefined, missSet: Set<number>): string => {
-  if (!hitShot) {
-   return `<span style="color:#888;">${label}: no impactado (${missSet.size} fallo${missSet.size !== 1 ? 's' : ''})</span>`;
-  }
-  return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` — ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
- };
+   /* Sub-diseño de las tarjetas internas */
+   .header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+   .logo-left { width: 50px; flex-shrink: 0; }
+   .logo-left img, .logo-right img { width: 100%; height: auto; object-fit: contain; }
+   .logo-right { width: 70px; flex-shrink: 0; text-align: center; }
+   .header-fields { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 
- const html = /* html */`<!DOCTYPE html>
+   .field-box {
+    border: 1px solid #000; border-radius: 10px; padding: 2px 6px;
+    position: relative; min-height: 26px; display: flex; align-items: flex-end;
+   }
+   .field-lbl { position: absolute; top: 1px; left: 6px; font-size: 6.5px; font-weight: 700; color: #555; text-transform: uppercase; }
+   .field-lbl-r { position: absolute; top: 1px; right: 42px; font-size: 6.5px; font-weight: 700; color: #555; text-transform: uppercase; }
+   .field-val { font-size: 9px; font-weight: 600; padding: 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   .field-date { position: absolute; bottom: 2px; right: 6px; font-size: 8.5px; font-family: monospace; }
+
+   .lr-fallback { display: flex; flex-direction: column; align-items: center; gap: 0.5px; }
+   .lr-fallback .lrt { font-size: 11px; font-weight: 900; line-height: 1; text-align: center; }
+   .lr-fallback .lrs { font-size: 6.5px; color: #555; letter-spacing: 0.05em; }
+
+   .thick-hr { border: none; border-top: 2px solid #000; margin: 2px 0; }
+
+   .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 2px; }
+   .meta-box {
+    border: 1.5px solid #000; border-radius: 18px; height: 40px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 2px;
+   }
+   .meta-box .lbl { font-size: 8px; font-weight: 900; text-transform: uppercase; color: #000; }
+   .meta-box .vl { font-size: 13px; font-weight: 900; line-height: 1.05; }
+   .meta-box .vs { font-size: 12px; font-weight: 700; margin-top: 0.5px; }
+
+   .table-wrap { border: 1.5px solid #000; border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
+   table.score-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+   .score-table th, .score-table td { border: 1px solid #000; text-align: center; vertical-align: middle; padding: 2px; }
+   .score-table thead tr { background: #f0f0f0; height: 20px; }
+   .score-table th { font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
+   .th-label { width: 12%; } .th-pts { width: 10%; font-size: 8.5px; } .th-add { width: 11%; font-size: 8.5px; }
+
+   .score-cell { height: 23px; font-size: 0; position: relative; }
+   .score-cell .val   { font-size: 11px; font-weight: 600; display: block; line-height: 1.05; color: #555; }
+   .score-cell .pts-lbl { font-size: 7.5px; color: #aaa; display: block; line-height: 0.85; }
+
+   .cell-empty { height: 23px; background: #f8f8f8; }
+
+   .score-cell.cell-hit {
+    background: #000 !important;
+    border: 1.5px solid #000 !important;
+   }
+   .score-cell.cell-hit .val {
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+   }
+   .score-cell.cell-hit .pts-lbl { color: #888 !important; }
+
+   .score-cell.cell-miss {
+    background: #fff5f5;
+    position: relative;
+   }
+   .score-cell.cell-miss .miss-val { color: #ccc; font-size: 10px; }
+   .score-cell.cell-miss .miss-x {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 13px; color: #e53e3e; font-weight: 900; opacity: 0.85;
+   }
+
+   .row-label { font-size: 15px; font-weight: 900; background: #fafafa; height: 23px; }
+
+   .td-puntos  { font-size: 15px; font-weight: 900; background: #fffde7; }
+   .td-adicional{ font-size: 14px; font-weight: 700; background: #fffde7; }
+
+   .totals-row { display: flex; gap: 6px; margin-top: 2px; }
+   .total-box {
+    flex: 1; border: 1.5px solid #000; border-radius: 8px; height: 32px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+   }
+   .total-lbl { font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
+   .total-val { display: flex; align-items: baseline; gap: 3px; }
+   .total-num { font-size: 20px; font-weight: 900; }
+   .total-word { font-size: 11px; font-weight: 300; color: #555; }
+   .visto-box { width: 36%; border: 1.5px solid #000; border-radius: 8px; height: 32px; padding: 3px 8px; position: relative; flex-shrink: 0; }
+   .visto-lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; color: #555; }
+
+   .target-summary {
+    margin: 1px 0; padding: 3px 6px; background: #f8f8f8; border-radius: 4px;
+    font-size: 8.5px; display: flex; flex-direction: column; gap: 1px;
+   }
+   .target-summary p { margin: 0; color: #333; line-height: 1.15; }
+
+   .importante { border: 1.5px solid #000; padding: 4px 8px; display: flex; flex-direction: column; align-items: center; margin-top: 2px; }
+   .imp-title { font-size: 12px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+   .imp-list { width: 100%; list-style: none; padding: 0 2px; margin-bottom: 2px; }
+   .imp-list li { font-size: 9px; font-weight: 700; text-transform: uppercase; margin-bottom: 1px; padding-left: 8px; position: relative; }
+   .imp-list li::before { content: '•'; position: absolute; left: 0; }
+   .imp-banner { font-size: 8.5px; font-weight: 900; text-transform: uppercase; background: #000; color: #fff; padding: 2px 8px; text-align: center; margin-bottom: 1px; width: 90%; }
+   .imp-banner.narrow { width: 70%; }
+
+   .foot { text-align: center; font-size: 7.5px; color: #aaa; margin-top: 2px; font-style: italic; }
+
+   .legend { display: flex; gap: 8px; justify-content: center; margin: 1px 0; font-size: 9px; flex-wrap: wrap; }
+   .legend-item { display: flex; align-items: center; gap: 3px; }
+   .legend-box { width: 12px; height: 12px; border: 1px solid #000; display: inline-flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 900; }
+   .legend-box.lhit { background: #000; color: #fff; }
+   .legend-box.lmiss { background: #fff5f5; color: #e53e3e; font-size: 9px; }
+  `;
+}
+
+/**
+ * Genera el HTML de una sola columna representando una serie.
+ * Si la serie es undefined, genera una planilla en blanco (valores de referencia)
+ * para llenado manual del competidor.
+ */
+function getSeriesColumnHtml(
+  event: ShootingEvent,
+  participant: Participant,
+  series: Series | undefined,
+  seriesNumberLabel: number
+): string {
+  const shots = series?.shots ?? [];
+
+  // Buscar impactos y fallos
+  const hit15  = shots.find((s) => s.targetType === '15"' && s.hit);
+  const hit10  = shots.find((s) => s.targetType === '10"' && s.hit);
+  const hit5  = shots.find((s) => s.targetType === '5"' && s.hit);
+  const addShots = shots.filter((s) => s.targetType === 'additional');
+
+  const miss15 = new Set(shots.filter((s) => s.targetType === '15"' && !s.hit).map((s) => s.shotNumber));
+  const miss10 = new Set(shots.filter((s) => s.targetType === '10"' && !s.hit).map((s) => s.shotNumber));
+  const miss5 = new Set(shots.filter((s) => s.targetType === '5"' && !s.hit).map((s) => s.shotNumber));
+
+  const pts15  = hit15?.value ?? 0;
+  const pts10  = hit10?.value ?? 0;
+  const pts5  = hit5?.value ?? 0;
+  const addPts = addShots.reduce((s, sh) => s + sh.value, 0);
+  const mainPts = pts15 + pts10 + pts5;
+  const total  = series ? (mainPts + addPts) : 0;
+
+  const vals15 = SCORING_TABLES['15"'];
+  const vals10 = SCORING_TABLES['10"'];
+  const vals5 = SCORING_TABLES['5"'];
+
+  const targetSummary = (label: string, hitShot: Shot | undefined, missSet: Set<number>): string => {
+    if (!series) {
+      return `<span style="color:#aaa;">${label}: no impactado (Firma Fiscal)</span>`;
+    }
+    if (!hitShot) {
+      return `<span style="color:#888;">${label}: no impactado (${missSet.size} fallo${missSet.size !== 1 ? 's' : ''})</span>`;
+    }
+    return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` — ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
+  };
+
+  return `
+  <div class="series-column">
+    <!-- HEADER -->
+    <div class="header">
+     <div class="logo-left">
+      <img src="/logo-cptp.svg" alt="Club Paraguayo de Tiro"
+         onerror="this.src='/images/logo-club.png'; this.onerror=function(){this.style.display='none'; document.getElementById('logo-fallback-svg').style.display='block';};" />
+      <svg id="logo-fallback-svg" style="display:none;" viewBox="0 0 80 80" width="40" height="40">
+       <circle cx="40" cy="40" r="37" fill="none" stroke="#000" stroke-width="2"/>
+       <text x="40" y="44" text-anchor="middle" font-size="7" font-weight="bold">CPTP</text>
+      </svg>
+     </div>
+
+     <div class="header-fields">
+      <div class="field-box">
+       <span class="field-lbl">Evento</span>
+       <span class="field-lbl-r">Fecha</span>
+       <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-end;">
+        <span class="field-val" style="max-width:110px;overflow:hidden;">${event.name}</span>
+        <span class="field-date">${formatDate(event.date)}</span>
+       </div>
+      </div>
+      <div class="field-box" style="min-height:30px;">
+       <span class="field-lbl">Participante</span>
+       <span class="field-val">
+        #${participant.competitorNumber} — ${participant.name} 
+        ${participant.tanda ? ` (Tanda ${participant.tanda} · Puesto ${participant.spot})` : ''}
+       </span>
+      </div>
+     </div>
+
+     <div class="logo-right">
+      <img src="/logo-long-range.svg" alt="Long Range"
+         onerror="this.src='/images/logo-long-range.png'; this.onerror=function(){this.style.display='none'; document.getElementById('lr-fallback-svg').style.display='flex';};" />
+      <div id="lr-fallback-svg" class="lr-fallback" style="display:none;">
+       <div class="lrt">LONG RANGE</div>
+       <div class="lrs">.22 LR</div>
+      </div>
+     </div>
+    </div>
+
+    <hr class="thick-hr" />
+
+    <!-- META BLOCKS (OVALOS: ORDEN, MODALIDAD, CALIBRE, CATEGORIA) -->
+    <div class="meta-grid">
+     <div class="meta-box">
+      <span class="lbl">ORDEN</span>
+      <span class="vl" style="font-size:11px;font-weight:900;text-transform:uppercase;">SERIE ${seriesNumberLabel}</span>
+     </div>
+     <div class="meta-box">
+      <span class="lbl">MODALIDAD</span>
+      <img src="/modalidad.svg" alt="Long Range" style="height:24px;width:auto;object-fit:contain;" />
+     </div>
+     <div class="meta-box">
+      <span class="lbl">CALIBRE</span>
+      <img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />
+     </div>
+     <div class="meta-box">
+      <span class="lbl">CATEGORIA</span>
+      <div class="vs" style="font-size:12px;font-weight:900;text-transform:uppercase;">${participant.category || '—'}</div>
+     </div>
+    </div>
+
+    <!-- LEYENDA -->
+    <div class="legend no-print">
+     <div class="legend-item"><div class="legend-box lhit">#</div><span>Impacto</span></div>
+     <div class="legend-item"><div class="legend-box lmiss">X</div><span>Fallo</span></div>
+     <div class="legend-item" style="font-size:7px;color:#555;">Valores son de referencia</div>
+    </div>
+
+    <!-- TABLA PRINCIPAL DE PUNTUACIÓN -->
+    <div class="table-wrap">
+     <table class="score-table">
+      <colgroup>
+       <col class="th-label">
+       ${Array.from({ length: 10 }, () => '<col>').join('')}
+       <col class="th-pts">
+       <col class="th-add">
+      </colgroup>
+      <thead>
+       <tr>
+        <th class="th-label">Disparos</th>
+        ${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join('')}
+        <th class="th-pts">Ptos</th>
+        <th class="th-add">Adic</th>
+       </tr>
+      </thead>
+      <tbody>
+
+       <!-- ROW 15" — columnas 1 a 10 -->
+       <tr>
+        <td class="row-label">15"</td>
+        ${vals15.map((v, i) => {
+         const colN = i + 1;
+         return renderScoreCell(colN, v, series ? hit15?.shotNumber : undefined, miss15);
+        }).join('')}
+        <td class="td-puntos" rowspan="3">${series ? (mainPts || '—') : '—'}</td>
+        <td class="td-adicional" rowspan="3">${series ? addPts : '—'}</td>
+       </tr>
+
+       <!-- ROW 10" — columna 1 vacía, columnas 2 a 10 -->
+       <tr>
+        <td class="row-label">10"</td>
+        <td class="cell-empty"></td>
+        ${vals10.map((v, i) => {
+         const colN = i + 2;
+         return renderScoreCell(colN, v, series ? hit10?.shotNumber : undefined, miss10);
+        }).join('')}
+        ${ vals10.length < 9 ? Array.from({ length: 9 - vals10.length }, () => '<td class="cell-empty"></td>').join('') : '' }
+       </tr>
+
+       <!-- ROW 5" — columnas 1-2 vacías, columnas 3 a 10 -->
+       <tr>
+        <td class="row-label">5"</td>
+        <td class="cell-empty"></td>
+        <td class="cell-empty"></td>
+        ${vals5.map((v, i) => {
+         const colN = i + 3;
+         return renderScoreCell(colN, v, series ? hit5?.shotNumber : undefined, miss5);
+        }).join('')}
+        ${ vals5.length < 8 ? Array.from({ length: 8 - vals5.length }, () => '<td class="cell-empty"></td>').join('') : '' }
+       </tr>
+
+       <!-- FILA DE TOTAL HIGHLIGHTED (PIE DE TABLA) -->
+       <tr class="total-footer-row">
+        <td colspan="11" style="text-align:right; font-weight:bold; font-size:8px; padding-right:8px; background:#fafafa; border-right:1px solid #000;">TOTAL:</td>
+        <td colspan="2" style="font-size:12px; font-weight:900; background:#000; color:#fff; text-align:center; border:2.5px solid #000; padding:4px;">
+         ${series ? `${total} / 67` : '— / 67'}
+        </td>
+       </tr>
+
+      </tbody>
+     </table>
+    </div>
+
+     <!-- RESUMEN DE BLANCOS IMPACTADOS -->
+     <div class="target-summary">
+      <p>${targetSummary('15"', hit15, miss15)}</p>
+      <p>${targetSummary('10"', hit10, miss10)}</p>
+      <p>${targetSummary('5"', hit5, miss5)}</p>
+      ${series && addShots.length > 0 ? `<p><strong>Adicionales:</strong> ${addShots.length} disparos — ${addPts} pts</p>` : series ? '' : '<p style="color:#aaa;">Adicionales: firma de fiscal al culminar</p>'}
+     </div>
+
+    <!-- TOTAL GENERAL -->
+    <div class="totals-row">
+     <div class="total-box">
+      <span class="total-lbl">Total</span>
+      <div class="total-val">
+       <span class="total-num">${total || '—'}</span>
+       <span class="total-word">pts</span>
+      </div>
+     </div>
+     <div class="visto-box">
+      <span class="visto-lbl">Firma Fiscal</span>
+     </div>
+    </div>
+
+    <!-- IMPORTANTE -->
+    <div class="importante">
+     <h2 class="imp-title">Reglamento CPTP</h2>
+     <ul class="imp-list">
+      <li>Marcar acierto con "O", fallo con "X"</li>
+      <li>Firma de fiscal es obligatoria tras la serie</li>
+     </ul>
+     <div class="imp-banner">Protección visual y auditiva obligatoria</div>
+    </div>
+
+  </div>
+  `;
+}
+
+/**
+ * Genera la página A4 horizontal que agrupa las series de un tirador en dos columnas (Series 1 y 2).
+ */
+function getCompetitorLandscapePageHtml(
+  event: ShootingEvent,
+  participant: Participant,
+  seriesList: Series[],
+  pageBreakStyle: string = ''
+): string {
+  // Buscar Serie 1 y Serie 2
+  const s1 = seriesList.find((s) => s.seriesNumber === 1);
+  const s2 = seriesList.find((s) => s.seriesNumber === 2);
+
+  // Generar columnas
+  const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
+  const col2Html = getSeriesColumnHtml(event, participant, s2, 2);
+
+  return `
+   <div class="a4-landscape-page" ${pageBreakStyle}>
+     ${col1Html}
+     ${col2Html}
+   </div>
+  `;
+}
+
+/** Genera y abre la planilla imprimible horizontal (Series 1 y 2 juntas) para un tirador */
+export async function printSeriesCard(event: ShootingEvent, participant: Participant, currentSeries: Series): Promise<void> {
+  // Consultar todas las series del participante para este evento
+  const participantSeries = (await db.series
+    .where('participantId')
+    .equals(participant.id!)
+    .toArray())
+    .filter((s) => s.eventId === event.id);
+
+  const pageHtml = getCompetitorLandscapePageHtml(event, participant, participantSeries);
+
+  const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Planilla CPTP — ${event.name} — Serie ${series.seriesNumber}</title>
+ <title>Planilla CPTP — ${participant.name} — Series 1 y 2</title>
  <style>
-  @page { size: A4 portrait; margin: 10mm 12mm; }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-   font-family: Arial, Helvetica, sans-serif;
-   background: #f0f0f0;
-   color: #000;
-  }
-
-  .a4-page {
-   width: 210mm;
-   min-height: 270mm;
-   margin: 8mm auto;
-   background: #fff;
-   padding: 16px 18px;
-   box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-  }
-  @media print {
-   body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-   .a4-page { margin: 0; padding: 14px 16px; box-shadow: none; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-   .no-print { display: none !important; }
-   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  }
-
-  .print-btn {
-   display: block; margin: 0 auto 10px; padding: 9px 28px;
-   background: #000; color: #fff; border: none; border-radius: 6px;
-   font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.06em;
-   font-family: Arial, sans-serif;
-  }
-  .print-btn:hover { background: #333; }
-
-  .outer-card { border: 1px solid #aaa; border-radius: 4px; padding: 12px; margin-bottom: 10px; }
-
-  .header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .logo-left { width: 80px; flex-shrink: 0; }
-  .logo-left img, .logo-right img { width: 100%; height: auto; object-fit: contain; }
-  .logo-right { width: 110px; flex-shrink: 0; text-align: center; }
-  .header-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-
-  .field-box {
-   border: 1px solid #000; border-radius: 18px; padding: 5px 12px;
-   position: relative; min-height: 42px; display: flex; align-items: flex-end;
-  }
-  .field-lbl { position: absolute; top: 4px; left: 12px; font-size: 8.5px; font-weight: 700; color: #555; text-transform: uppercase; }
-  .field-lbl-r { position: absolute; top: 4px; right: 72px; font-size: 8.5px; font-weight: 700; color: #555; text-transform: uppercase; }
-  .field-val { font-size: 11px; font-weight: 600; padding: 0 4px; }
-  .field-date { position: absolute; bottom: 5px; right: 12px; font-size: 11px; font-family: monospace; }
-
-  .lr-fallback { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .lr-fallback .lrt { font-size: 18px; font-weight: 900; line-height: 1; text-align: center; }
-  .lr-fallback .lrs { font-size: 9px; color: #555; letter-spacing: 0.1em; }
-
-  .thick-hr { border: none; border-top: 4px solid #000; margin: 8px 0; }
-
-  .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
-  .meta-box {
-   border: 1px solid #000; border-radius: 35px; height: 70px;
-   display: flex; flex-direction: column; align-items: center; justify-content: center;
-   text-align: center; padding: 4px;
-  }
-  .meta-box .lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: #000; }
-  .meta-box .vl { font-size: 20px; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
-  .meta-box .vs { font-size: 12px; font-weight: 700; margin-top: 2px; }
-  .meta-box .vxl { font-size: 26px; font-weight: 900; font-style: italic; letter-spacing: -0.03em; }
-
-  .table-wrap { border: 1px solid #000; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
-  table.score-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .score-table th, .score-table td { border: 1px solid #000; text-align: center; vertical-align: middle; padding: 2px; }
-  .score-table thead tr { background: #f0f0f0; height: 30px; }
-  .score-table th { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
-  .th-label { width: 13%; } .th-pts { width: 9%; font-size: 8.5px; } .th-add { width: 10%; font-size: 8.5px; }
-
-  .score-cell { height: 36px; font-size: 0; position: relative; }
-  .score-cell .val   { font-size: 11px; font-weight: 600; display: block; line-height: 1.2; color: #555; }
-  .score-cell .pts-lbl { font-size: 7.5px; color: #aaa; display: block; line-height: 1; }
-
-  .cell-empty { height: 36px; background: #f8f8f8; }
-
-  .score-cell.cell-hit {
-   background: #000 !important;
-   border: 2px solid #000 !important;
-  }
-  .score-cell.cell-hit .val {
-   color: #fff !important;
-   font-size: 13px !important;
-   font-weight: 900 !important;
-  }
-  .score-cell.cell-hit .pts-lbl { color: #999 !important; }
-
-  .score-cell.cell-miss {
-   background: #fff5f5;
-   position: relative;
-  }
-  .score-cell.cell-miss .miss-val { color: #ccc; font-size: 10px; }
-  .score-cell.cell-miss .miss-x {
-   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-   font-size: 14px; color: #e53e3e; font-weight: 900; opacity: 0.85;
-  }
-
-  .row-label { font-size: 18px; font-weight: 900; background: #fafafa; height: 36px; }
-
-  .td-puntos  { font-size: 18px; font-weight: 900; background: #fffde7; }
-  .td-adicional{ font-size: 16px; font-weight: 700; background: #fffde7; }
-
-  .res-row td { height: 26px; }
-  .res-cell { font-size: 13px; font-weight: 900; }
-  .res-hit { background: #e8f5e9; color: #1b5e20; }
-  .res-miss { background: #fce4ec; color: #880e4f; }
-  .res-empty { color: #ccc; font-size: 10px; }
-  .res-lbl {
-   font-size: 7.5px; font-weight: 900; background: #e8e8e8;
-   text-transform: uppercase; letter-spacing: 0.06em;
-  }
-
-  .totals-row { display: flex; gap: 10px; }
-  .total-box {
-   flex: 1; border: 1px solid #000; border-radius: 14px; height: 52px;
-   display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
-  }
-  .total-lbl { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
-  .total-val { display: flex; align-items: baseline; gap: 5px; }
-  .total-num { font-size: 26px; font-weight: 900; }
-  .total-word { font-size: 13px; font-weight: 300; color: #555; }
-  .visto-box { width: 36%; border: 1px solid #000; border-radius: 14px; height: 52px; padding: 5px 10px; position: relative; flex-shrink: 0; }
-  .visto-lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
-
-  .target-summary {
-   margin: 8px 0; padding: 7px 12px; background: #f8f8f8; border-radius: 8px;
-   font-size: 9px; display: flex; flex-direction: column; gap: 3px;
-  }
-  .target-summary p { margin: 0; color: #333; }
-
-  .importante { border: 1px solid #000; padding: 10px 14px; display: flex; flex-direction: column; align-items: center; }
-  .imp-title { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
-  .imp-list { width: 100%; list-style: none; padding: 0 6px; margin-bottom: 8px; }
-  .imp-list li { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; padding-left: 10px; position: relative; }
-  .imp-list li::before { content: '•'; position: absolute; left: 0; }
-  .imp-banner { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; background: #000; color: #fff; padding: 4px 18px; text-align: center; margin-bottom: 4px; width: 90%; }
-  .imp-banner.narrow { width: 70%; }
-
-  .foot { text-align: center; font-size: 7.5px; color: #aaa; margin-top: 8px; font-style: italic; }
-
-  .legend { display: flex; gap: 14px; justify-content: center; margin: 7px 0; font-size: 8.5px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 5px; }
-  .legend-box { width: 14px; height: 14px; border: 1px solid #000; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; }
-  .legend-box.lhit { background: #000; color: #fff; }
-  .legend-box.lmiss { background: #fff5f5; color: #e53e3e; font-size: 11px; }
+   ${getLandscapePrintStyles()}
  </style>
 </head>
 <body>
-
-<button class="print-btn no-print" onclick="window.print()"> Imprimir / Guardar PDF</button>
-
-<div class="a4-page">
-<div class="outer-card">
-
- <!-- HEADER -->
- <div class="header">
-  <div class="logo-left">
-   <img src="/logo.svg" alt="Club Paraguayo de Tiro"
-      onerror="this.src='/images/logo-club.png'; this.onerror=function(){this.style.display='none'; document.getElementById('logo-fallback-svg').style.display='block';};" />
-   <svg id="logo-fallback-svg" style="display:none;" viewBox="0 0 80 80" width="80" height="80">
-    <circle cx="40" cy="40" r="37" fill="none" stroke="#000" stroke-width="2"/>
-    <circle cx="40" cy="40" r="27" fill="none" stroke="#000" stroke-width="1.5"/>
-    <text x="40" y="18" text-anchor="middle" font-size="5.5" font-weight="bold">CLUB PARAGUAYO</text>
-    <text x="40" y="26" text-anchor="middle" font-size="5">L.P.B.C.</text>
-    <line x1="40" y1="30" x2="40" y2="58" stroke="#000" stroke-width="2.5"/>
-    <line x1="26" y1="44" x2="54" y2="44" stroke="#000" stroke-width="2.5"/>
-    <circle cx="40" cy="44" r="7" fill="none" stroke="#000" stroke-width="1.5"/>
-    <circle cx="40" cy="44" r="2.5" fill="#000"/>
-    <text x="40" y="72" text-anchor="middle" font-size="5" font-weight="bold">N.C.</text>
-   </svg>
-  </div>
-
-  <div class="header-fields">
-   <div class="field-box">
-    <span class="field-lbl">Evento</span>
-    <span class="field-lbl-r">Fecha</span>
-    <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-end;">
-     <span class="field-val">${event.name}</span>
-     <span class="field-date">${formatDate(event.date)}</span>
-    </div>
-   </div>
-   <div class="field-box" style="min-height:36px;">
-    <span class="field-lbl">Participante</span>
-    <span class="field-val">
-     #${participant.competitorNumber} — ${participant.name} 
-     ${participant.tanda ? ` (Tanda ${participant.tanda} · Sector ${participant.sector} · Puesto ${participant.spot})` : ''}
-    </span>
-   </div>
-  </div>
-
-  <div class="logo-right">
-   <img src="/long-range.svg" alt="Long Range"
-      onerror="this.src='/images/logo-long-range.png'; this.onerror=function(){this.style.display='none'; document.getElementById('lr-fallback-svg').style.display='flex';};" />
-   <div id="lr-fallback-svg" class="lr-fallback" style="display:none;">
-    <svg viewBox="0 0 40 18" width="34" height="14" style="margin-bottom:2px;">
-     <rect x="0" y="6" width="27" height="4" fill="#000" rx="1"/>
-     <rect x="7" y="3" width="12" height="10" fill="#000" rx="1"/>
-     <rect x="25" y="7" width="10" height="2" fill="#000" rx="1"/>
-     <rect x="3" y="10" width="8" height="6" fill="#000" rx="1"/>
-    </svg>
-    <div class="lrt">LONG<br>RANGE</div>
-    <div class="lrs">.22 LR</div>
-   </div>
-  </div>
- </div>
-
- <hr class="thick-hr" />
-
- <!-- META BLOCKS (OVALOS: ORDEN, MODALIDAD, CALIBRE, CATEGORIA) -->
- <div class="meta-grid">
-  <div class="meta-box">
-   <span class="lbl">ORDEN</span>
-   <span class="vl" style="font-size:12px;font-weight:900;margin-top:4px;text-transform:uppercase;">SERIE ${series.seriesNumber}</span>
-  </div>
-  <div class="meta-box">
-   <span class="lbl">MODALIDAD</span>
-   <img src="/modalidad.svg" alt="Long Range" style="height:44px;width:auto;object-fit:contain;margin-top:2px;" />
-  </div>
-  <div class="meta-box">
-   <span class="lbl">CALIBRE</span>
-   <img src="/22lr.svg" alt=".22 LR" style="height:36px;width:auto;object-fit:contain;margin-top:4px;" />
-  </div>
-  <div class="meta-box">
-   <span class="lbl" style="margin-bottom:8px;">CATEGORIA</span>
-   <div style="height:14px;width:100%;"></div>
-  </div>
- </div>
-
- <!-- LEYENDA -->
- <div class="legend no-print">
-  <div class="legend-item"><div class="legend-box lhit">#</div><span>Valor logrado (impacto)</span></div>
-  <div class="legend-item"><div class="legend-box lmiss">X</div><span>Fallo en ese disparo</span></div>
-  <div class="legend-item" style="font-size:8.5px;color:#555;">Los demás son valores de referencia</div>
- </div>
-
- <!-- TABLA PRINCIPAL DE PUNTUACIÓN -->
- <div class="table-wrap">
-  <table class="score-table">
-   <colgroup>
-    <col class="th-label">
-    ${Array.from({ length: 10 }, () => '<col>').join('')}
-    <col class="th-pts">
-    <col class="th-add">
-   </colgroup>
-   <thead>
-    <tr>
-     <th class="th-label">Disparos</th>
-     ${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join('')}
-     <th class="th-pts">Puntos</th>
-     <th class="th-add">Adicional</th>
-    </tr>
-   </thead>
-   <tbody>
-
-    <!-- ROW 15" — columnas 1 a 10 -->
-    <tr>
-     <td class="row-label">15"</td>
-     ${vals15.map((v, i) => {
-      const colN = i + 1;
-      return renderScoreCell(colN, v, hit15?.shotNumber, miss15);
-     }).join('')}
-     <td class="td-puntos" rowspan="3">${mainPts || '—'}</td>
-     <td class="td-adicional" rowspan="3">${addPts}</td>
-    </tr>
-
-    <!-- ROW 10" — columna 1 vacía, columnas 2 a 10 -->
-    <tr>
-     <td class="row-label">10"</td>
-     <td class="cell-empty"></td>
-     ${vals10.map((v, i) => {
-      const colN = i + 2;
-      return renderScoreCell(colN, v, hit10?.shotNumber, miss10);
-     }).join('')}
-     ${ vals10.length < 9 ? Array.from({ length: 9 - vals10.length }, () => '<td class="cell-empty"></td>').join('') : '' }
-    </tr>
-
-    <!-- ROW 5" — columnas 1-2 vacías, columnas 3 a 10 -->
-    <tr>
-     <td class="row-label">5"</td>
-     <td class="cell-empty"></td>
-     <td class="cell-empty"></td>
-     ${vals5.map((v, i) => {
-      const colN = i + 3;
-      return renderScoreCell(colN, v, hit5?.shotNumber, miss5);
-     }).join('')}
-     ${ vals5.length < 8 ? Array.from({ length: 8 - vals5.length }, () => '<td class="cell-empty"></td>').join('') : '' }
-    </tr>
-
-    <!-- ROW RESULTADO: O/X por cada disparo -->
-    <tr class="res-row">
-     <td class="res-lbl">Resultado</td>
-     ${resultRow}
-     <td colspan="2" style="font-size:9.5px;font-weight:700;background:#fffde7;text-align:center;">
-      Total: <strong style="font-size:12px;">${total}</strong> / 67 pts
-     </td>
-    </tr>
-
-   </tbody>
-  </table>
- </div>
-
- <!-- RESUMEN DE BLANCOS IMPACTADOS -->
- <div class="target-summary">
-  <p>${targetSummary('15"', hit15, miss15)}</p>
-  <p>${targetSummary('10"', hit10, miss10)}</p>
-  <p>${targetSummary('5"', hit5, miss5)}</p>
-  ${addShots.length > 0 ? `<p><strong>Disparos no realizados (Adicionales):</strong> ${addShots.length} disparos sobrantes — ${addPts} pts</p>` : ''}
- </div>
-
- <!-- TOTAL GENERAL -->
- <div class="totals-row">
-  <div class="total-box">
-   <span class="total-lbl">Total General</span>
-   <div class="total-val">
-    <span class="total-num">${total}</span>
-    <span class="total-word">puntos</span>
-   </div>
-  </div>
-  <div class="visto-box">
-   <span class="visto-lbl">Visto Por (Fiscal)</span>
-  </div>
- </div>
-
-</div><!-- /outer-card -->
-
-<!-- IMPORTANTE -->
-<div class="importante">
- <h2 class="imp-title">Importante</h2>
- <ul class="imp-list">
-  <li>Tiro correcto marcar con "O"</li>
-  <li>Tiro errado marcar con "X"</li>
-  <li>Al término de la prueba sumar los puntos</li>
-  <li>Es obligatoria la firma del fiscal después de cada serie y del tirador al final de la prueba</li>
- </ul>
- <div class="imp-banner">En la línea de tiro es obligatorio el uso de lentes y tapa oído</div>
- <div class="imp-banner narrow">La seguridad es un hábito, ¡Practíquela!</div>
-</div>
-
-<div class="foot">
- Generado automáticamente por CPTP .22 LR Scoring App
- · ${new Date().toLocaleDateString('es-AR')} · ${event.name} · Serie ${series.seriesNumber}
-</div>
-
-</div><!-- /a4-page -->
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla Doble</button>
+ ${pageHtml}
 </body>
 </html>`;
 
- const win = window.open('', '_blank');
- if (!win) { alert('Habilitá las ventanas emergentes para generar la planilla.'); return; }
- win.document.write(html);
- win.document.close();
+  const win = window.open('', '_blank');
+  if (!win) { alert('Habilitá las ventanas emergentes para generar la planilla.'); return; }
+  win.document.write(html);
+  win.document.close();
 }
 
+/** Genera y abre una planilla única que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
 export function printEventCards(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
- const sorted = [...seriesList].sort((a, b) => a.seriesNumber - b.seriesNumber);
- for (const s of sorted) {
-  const p = participants.find((x) => x.id === s.participantId);
-  if (p) {
-   printSeriesCard(event, p, s);
-  }
- }
+  // Agrupar series por participante
+  const pagesHtml = participants.map((p, idx) => {
+    const pSeries = seriesList.filter((s) => s.participantId === p.id);
+    const isLast = idx === participants.length - 1;
+    const breakStyle = isLast ? '' : 'style="page-break-after: always; break-after: page;"';
+    return getCompetitorLandscapePageHtml(event, p, pSeries, breakStyle);
+  }).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+ <meta charset="UTF-8"/>
+ <title>Todas las Planillas — ${event.name}</title>
+ <style>
+   ${getLandscapePrintStyles()}
+ </style>
+</head>
+<body>
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Todas las Planillas</button>
+ ${pagesHtml}
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Habilitá las ventanas emergentes para generar las planillas.'); return; }
+  win.document.write(html);
+  win.document.close();
 }
 
 export function printRankingCard(event: ShootingEvent, rankings: { participant: Participant, totalScore: number }[]): void {
- const year = new Date(event.date + 'T12:00:00').getFullYear();
- 
- const rowsHtml = rankings.map((r, i) => {
-  const pos = i + 1;
-  const p = r.participant;
-  const isTop3 = pos <= 3;
-  const posHtml = isTop3 
-   ? `<div class="pos-badge top-${pos}">${pos}</div>`
-   : `<div class="pos-number">${pos}</div>`;
-   
-  const laneLabel = p.tanda ? `T${p.tanda} · Sector ${p.sector} · Puesto ${p.spot}` : 'Sin posición';
+  const year = new Date(event.date + 'T12:00:00').getFullYear();
+  
+  const rowsHtml = rankings.map((r, i) => {
+   const pos = i + 1;
+   const p = r.participant;
+   const isTop3 = pos <= 3;
+   const posHtml = isTop3 
+    ? `<div class="pos-badge top-${pos}">${pos}</div>`
+    : `<div class="pos-number">${pos}</div>`;
+    
+   const laneLabel = p.tanda ? `Tanda ${p.tanda} · Puesto ${p.spot}` : 'Sin posición';
 
-  return `
-   <tr class="rank-row">
-    <td class="td-pos">${posHtml}</td>
-    <td class="td-name">
-     <div class="name-text">${p.name.toUpperCase()}</div>
-     <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel}</div>
-    </td>
-    <td class="td-score">
-     <div class="score-val">${r.totalScore}</div>
-    </td>
-   </tr>`;
- }).join('');
+   return `
+    <tr class="rank-row">
+     <td class="td-pos">${posHtml}</td>
+     <td class="td-name">
+      <div class="name-text">${p.name.toUpperCase()}</div>
+      <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel}</div>
+     </td>
+     <td class="td-score">
+      <div class="score-val">${r.totalScore}</div>
+     </td>
+    </tr>`;
+  }).join('');
 
- const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
@@ -529,279 +575,110 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
   }
 
   @media print {
-   body { background: #080c14; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-   .a4-page { box-shadow: none; margin: 0; width: 100%; min-height: 100vh; }
+   body { background: none; }
+   .a4-page { margin: 0; padding: 24px 24px 24px 40px; box-shadow: none; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
    .no-print { display: none !important; }
   }
 
   .print-btn {
-   display: block; margin: 15px auto 10px; padding: 10px 32px;
-   background: #ef4444; color: #fff; border: 2px solid #ef4444; border-radius: 8px;
-   font-size: 14px; font-weight: 900; cursor: pointer; letter-spacing: 0.08em;
-   text-transform: uppercase;
-   font-family: Arial, sans-serif;
+   display: block; margin: 10px auto; padding: 10px 30px;
+   background: #3b82f6; color: #fff; border: none; border-radius: 8px;
+   font-size: 14px; font-weight: 700; cursor: pointer;
   }
-  .print-btn:hover { background: #d52b1e; }
+  .print-btn:hover { background: #2563eb; }
 
-  .left-flag-stripe {
-   position: absolute;
-   left: 0;
-   top: 0;
-   bottom: 0;
-   width: 24px;
-   display: flex;
-   height: 100%;
-   z-index: 10;
-  }
-  .flag-red  { width: 8px; background: #d52b1e; height: 100%; }
-  .flag-white { width: 8px; background: #ffffff; height: 100%; }
-  .flag-blue { width: 8px; background: #0038a8; height: 100%; }
+  .layout-border-red { position: absolute; top: 0; left: 0; bottom: 0; width: 12px; background: #ef4444; }
+  .layout-border-blue { position: absolute; top: 0; left: 12px; bottom: 0; width: 8px; background: #3b82f6; }
+  .layout-border-white { position: absolute; top: 0; left: 20px; bottom: 0; width: 4px; background: #ffffff; }
 
-  .header-container {
-   display: flex;
-   align-items: center;
-   justify-content: space-between;
-   gap: 16px;
-   margin-bottom: 12px;
-  }
-
-  .logo-box {
-   width: 90px;
-   height: 90px;
-   flex-shrink: 0;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-  }
-  .logo-box img {
-   width: 100%;
-   height: auto;
-   object-fit: contain;
-  }
-
-  .title-box {
-   flex: 1;
-   text-align: center;
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-  }
-  .title-sub {
-   font-size: 13px;
-   color: #94a3b8;
-   font-weight: 900;
-   letter-spacing: 0.18em;
-   margin-bottom: 2px;
-  }
-  .title-main {
-   font-size: 38px;
-   color: #ef4444;
-   font-weight: 900;
-   line-height: 0.9;
-   letter-spacing: 0.02em;
-   margin: 4px 0;
-   text-transform: uppercase;
-   text-shadow: 2px 2px 0px #000;
-  }
-  .title-event {
-   font-size: 13px;
-   color: #60a5fa;
-   font-weight: 700;
-   font-style: italic;
-   letter-spacing: 0.06em;
-   margin-top: 4px;
-  }
-
-  .sub-banner {
-   background: #111827;
-   border: 1px solid #1f2937;
-   text-align: center;
-   padding: 8px;
-   font-size: 11px;
-   font-weight: 900;
-   letter-spacing: 0.12em;
-   text-transform: uppercase;
-   margin-bottom: 20px;
-   border-radius: 4px;
-   color: #e2e8f0;
-  }
-
-  .ranking-table {
-   width: 100%;
-   border-collapse: separate;
-   border-spacing: 0 8px;
-   margin-bottom: 20px;
-  }
-
-  .ranking-table th {
-   font-size: 10px;
-   color: #64748b;
-   font-weight: 900;
-   text-transform: uppercase;
-   letter-spacing: 0.08em;
-   padding: 6px 12px;
-   text-align: left;
-  }
-  .ranking-table th.th-pos { text-align: center; width: 14%; }
-  .ranking-table th.th-score { text-align: center; width: 22%; }
-
-  .rank-row {
-   background: #111827;
-   border-radius: 8px;
-  }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; }
+  .header-left { display: flex; flex-direction: column; gap: 4px; }
+  .header-left .category { font-size: 11px; font-weight: 800; color: #3b82f6; letter-spacing: 0.15em; text-transform: uppercase; }
+  .header-left .title-main { font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; }
+  .header-left .event-name { font-size: 13px; color: #94a3b8; font-weight: 500; }
   
-  .rank-row td {
-   padding: 10px 14px;
-   vertical-align: middle;
-   border-top: 1px solid #1f2937;
-   border-bottom: 1px solid #1f2937;
-  }
-  .rank-row td:first-child {
-   border-left: 1px solid #1f2937;
-   border-top-left-radius: 8px;
-   border-bottom-left-radius: 8px;
-   text-align: center;
-  }
-  .rank-row td:last-child {
-   border-right: 1px solid #1f2937;
-   border-top-right-radius: 8px;
-   border-bottom-right-radius: 8px;
-   padding: 0;
-   text-align: center;
-  }
+  .header-right { text-align: right; }
+  .header-right .year { font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.07); font-style: italic; line-height: 0.8; }
+  .header-right .date { font-size: 12px; color: #64748b; font-family: monospace; font-weight: bold; }
 
-  .pos-badge {
-   width: 32px;
-   height: 32px;
-   border-radius: 6px;
-   display: inline-flex;
-   align-items: center;
-   justify-content: center;
-   color: #ffffff;
-   font-weight: 900;
-   font-size: 16px;
-   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  }
-  .pos-badge.top-1 { background: #ef4444; border: 1px solid #ff6b6b; }
-  .pos-badge.top-2 { background: #f97316; border: 1px solid #ff9d5c; }
-  .pos-badge.top-3 { background: #f59e0b; border: 1px solid #ffc252; }
+  .ranking-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .ranking-table th { text-align: left; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 12px; border-bottom: 2px solid #1e293b; }
+  .ranking-table th.th-score { text-align: right; }
 
-  .pos-number {
-   font-size: 14px;
-   font-weight: 900;
-   color: #94a3b8;
-  }
+  .rank-row { border-bottom: 1px solid #1e293b; transition: background 0.2s; }
+  .rank-row td { padding: 10px 12px; vertical-align: middle; }
+  
+  .td-pos { width: 60px; }
+  .pos-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #000000; }
+  .pos-badge.top-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 12px rgba(245,158,11,0.4); }
+  .pos-badge.top-2 { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); color: #0f172a; }
+  .pos-badge.top-3 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; }
+  .pos-number { font-size: 15px; font-weight: bold; color: #475569; padding-left: 8px; }
 
-  .td-name {
-   text-align: left;
-  }
-  .name-text {
-   font-size: 12.5px;
-   font-weight: 900;
-   color: #ffffff;
-   letter-spacing: 0.02em;
-  }
-  .sub-text {
-   font-size: 8px;
-   color: #4b5563;
-   font-weight: 700;
-   margin-top: 3px;
-   letter-spacing: 0.04em;
-  }
+  .td-name { flex: 1; }
+  .name-text { font-size: 14px; font-weight: 800; color: #f8fafc; letter-spacing: 0.02em; }
+  .sub-text { font-size: 10px; color: #64748b; font-weight: bold; margin-top: 2px; }
 
-  .td-score {
-   background: #ef4444 !important;
-   border-top-right-radius: 8px;
-   border-bottom-right-radius: 8px;
-   height: 48px;
-  }
-  .score-val {
-   font-size: 18px;
-   font-weight: 900;
-   color: #ffffff;
-   text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
-  }
+  .td-score { text-align: right; width: 100px; }
+  .score-val { font-size: 20px; font-weight: 900; color: #22c55e; font-family: monospace; }
 
-  .footer-note {
-   text-align: center;
-   font-size: 8px;
-   color: #374151;
-   margin-top: 24px;
-   font-style: italic;
-   border-top: 1px solid #111827;
-   padding-top: 12px;
-  }
+  .footer { position: absolute; bottom: 24px; left: 52px; right: 28px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 16px; font-size: 9px; color: #475569; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
+  .footer-right { color: #3b82f6; }
  </style>
 </head>
 <body>
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Ranking</button>
+ <div class="a4-page">
+  <div class="layout-border-red"></div>
+  <div class="layout-border-blue"></div>
+  <div class="layout-border-white"></div>
 
-<div class="no-print" style="display:flex;gap:12px;justify-content:center;margin:15px auto 10px;width:210mm;max-width:100%;padding:0 10px;">
- <button class="print-btn" onclick="window.print()" style="margin:0;flex:1;"> Imprimir / PDF</button>
- <button class="print-btn" onclick="if(window.opener &amp;&amp; window.opener.downloadElementAsPng){ window.opener.downloadElementAsPng(document.querySelector('.a4-page'), 'ranking-' + '${event.name.replace(/\s+/g, '-').toLowerCase()}' + '.png'); } else { alert('Error: Ventana principal no accesible.'); }" style="margin:0;flex:1;background:#22c55e;border-color:#22c55e;"> Guardar Imagen (PNG)</button>
-</div>
+  <header class="header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:20px;gap:12px;">
+   <!-- Logo Izquierdo (CPTP) -->
+   <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:45px;flex-shrink:0;">
+    <img src="/logo-cptp.svg" alt="CPTP Logo" style="height:38px;width:38px;object-fit:contain;" />
+   </div>
 
-<div class="a4-page">
- <div class="left-flag-stripe">
-  <div class="flag-red"></div>
-  <div class="flag-white"></div>
-  <div class="flag-blue"></div>
+   <div class="header-left" style="flex:1;margin-left:8px;">
+    <span class="category">Resultados Oficiales</span>
+    <h1 class="title-main">TABLA DE POSICIONES</h1>
+    <span class="event-name">${event.name.toUpperCase()}</span>
+   </div>
+   
+   <div class="header-right" style="margin-right:8px;">
+    <div class="year">${year}</div>
+    <div class="date">${formatDate(event.date)}</div>
+   </div>
+
+   <!-- Logo Derecho (Long Range) -->
+   <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:55px;flex-shrink:0;">
+    <img src="/logo-long-range.svg" alt="Long Range .22 LR" style="height:38px;width:48px;object-fit:contain;" />
+   </div>
+  </header>
+
+  <table class="ranking-table">
+   <thead>
+    <tr>
+     <th>Pos</th>
+     <th>Tirador</th>
+     <th class="th-score">Puntaje</th>
+    </tr>
+   </thead>
+   <tbody>
+    ${rowsHtml}
+   </tbody>
+  </table>
+
+  <footer class="footer">
+   <div>Club Paraguayo de Tiro de Long Range · Planilla Oficial</div>
+   <div class="footer-right">CPTP Scoring</div>
+  </footer>
  </div>
-
- <div class="header-container">
-  <div class="logo-box">
-   <img src="/logo.svg" alt="Club Logo"
-      onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
-   <svg style="display:none;" viewBox="0 0 80 80" width="80" height="80">
-    <circle cx="40" cy="40" r="37" fill="none" stroke="#fff" stroke-width="2"/>
-    <text x="40" y="44" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">CPTP</text>
-   </svg>
-  </div>
-
-  <div class="title-box">
-   <div class="title-sub">• TABLA DE POSICIONES •</div>
-   <div class="title-main">RESULTADOS</div>
-   <div class="title-event">${event.name.toUpperCase()} — ${year}</div>
-  </div>
-
-  <div class="logo-box">
-   <img src="/long-range.svg" alt="Long Range Logo"
-      onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
-   <svg style="display:none;" viewBox="0 0 40 18" width="40" height="18">
-    <text x="20" y="12" text-anchor="middle" font-size="6" fill="#fff" font-weight="bold">.22 LR</text>
-   </svg>
-  </div>
- </div>
-
- <div class="sub-banner">
-  ${event.location ? event.location : 'CAMPEONATO CPTP .22 LR'} · ${formatDate(event.date)}
- </div>
-
- <table class="ranking-table">
-  <thead>
-   <tr>
-    <th class="th-pos">POS</th>
-    <th>COMPETIDOR / PUESTO DE TIRO</th>
-    <th class="th-score">GENERAL</th>
-   </tr>
-  </thead>
-  <tbody>
-   ${rowsHtml}
-  </tbody>
- </table>
-
- <div class="footer-note">
-  Generado automáticamente por CPTP .22 LR Scoring App
-  · ${new Date().toLocaleDateString('es-AR')} · ${event.name}
- </div>
-
-</div>
-
 </body>
 </html>`;
 
- const win = window.open('', '_blank');
- if (!win) { alert('Habilitá las ventanas emergentes para generar la tabla.'); return; }
- win.document.write(html);
- win.document.close();
+  const win = window.open('', '_blank');
+  if (!win) { alert('Habilitá las ventanas emergentes.'); return; }
+  win.document.write(html);
+  win.document.close();
 }
