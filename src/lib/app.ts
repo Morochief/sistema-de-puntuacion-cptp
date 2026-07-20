@@ -103,11 +103,11 @@ async function renderDashboard(): Promise<void> {
         aria-label="Evento: ${esc(e.name)}, ${formatDate(e.date)}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
      <div style="min-width:0;flex:1;">
-      <h3 style="margin:0 0 4px;font-size:1rem;font-weight:700;color:#e2e8f0;
+      <h3 style="margin:0 0 4px;font-size:1.05rem;font-weight:700;color:#0f172a;
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.name)}</h3>
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
        <span style="font-size:0.78rem;color:#64748b;">${formatDate(e.date)}</span>
-       ${e.location ? `<span style="color:#334155;font-size:0.7rem;">·</span><span style="font-size:0.78rem;color:#475569;">${esc(e.location)}</span>` : ''}
+       ${e.location ? `<span style="color:#cbd5e1;font-size:0.7rem;">·</span><span style="font-size:0.78rem;color:#64748b;">${esc(e.location)}</span>` : ''}
       </div>
      </div>
      <button class="btn-danger-custom" data-delete-id="${e.id}"
@@ -125,11 +125,11 @@ async function renderDashboard(): Promise<void> {
 
  // Agregar el botón para vaciar base de datos al final
  listHtml += `
-  <div style="margin-top:40px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.08);padding-top:24px;width:100%;">
+  <div style="margin-top:40px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:24px;width:100%;">
    <button id="btn-import-backup" class="btn-ghost-custom"
-       style="font-size:0.85rem;padding:12px 20px;border:2px solid rgba(59,130,246,0.4);
-           border-radius:10px;color:#60a5fa;font-weight:700;
-           cursor:pointer;display:inline-flex;align-items:center;gap:8px;"
+       style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #0056b3;
+           border-radius:10px;color:#0056b3;font-weight:700;
+           cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
        title="Importar un evento desde un archivo .json de otra máquina">
      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
      Importar Evento
