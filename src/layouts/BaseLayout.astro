@@ -58,12 +58,12 @@ const { title, description } = Astro.props;
 
     <!-- Navbar táctica -->
     <header class="app-navbar" role="banner">
-      <div style="max-width:768px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:70px;gap:8px;">
+      <div class="app-navbar-container" style="max-width:768px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:70px;gap:8px;">
 
         <!-- Logo CPTP + título -->
         <a href="#/" style="display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0;" aria-label="Inicio — CPTP Scoring">
-          <img src="/logo-cptp.svg" alt="CPTP Logo" style="height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';" />
-          <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.25rem;letter-spacing:0.04em;color:#0f1f3d;white-space:nowrap;">CPTP <span style="color:#b7201c">.22 LR</span></span>
+          <img class="logo-left" src="/logo-cptp.svg" alt="CPTP Logo" style="height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';" />
+          <span class="navbar-title" style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.25rem;letter-spacing:0.04em;color:#0f1f3d;white-space:nowrap;">CPTP <span style="color:#b7201c">.22 LR</span></span>
         </a>
 
         <!-- Bandera de Paraguay (centro) + Sincronización Doble -->
@@ -86,13 +86,13 @@ const { title, description } = Astro.props;
             <span style="font-size:0.68rem;font-weight:800;color:#0056b3;font-family:'Rajdhani',sans-serif;text-transform:uppercase;">Bajar</span>
           </button>
 
-          <img src="/flag-paraguay.svg" alt="Bandera de Paraguay" style="height:26px;width:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.06);margin-left:4px;" />
+          <img class="navbar-flag" src="/flag-paraguay.svg" alt="Bandera de Paraguay" style="height:26px;width:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.06);margin-left:4px;" />
           <div id="offline-indicator" style="display:none;"></div>
         </div>
 
         <!-- Logo Long Range (derecha) -->
         <div style="display:flex;align-items:center;justify-content:center;height:50px;flex-shrink:0;">
-          <img src="/logo-long-range.svg" alt="Long Range .22 LR" style="height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';" />
+          <img class="logo-right" src="/logo-long-range.svg" alt="Long Range .22 LR" style="height:50px;width:auto;object-fit:contain;" onerror="this.style.display='none';" />
         </div>
 
       </div>
