@@ -32,6 +32,8 @@ export default defineConfig({
         workbox: {
           // Precache ALL static assets
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,webp,json}'],
+          // Navegación offline segura: redirige la raíz a index.html cuando está sin internet
+          navigateFallback: '/index.html',
           // FIXED: CacheFirst for app assets (offline-first PWA)
           runtimeCaching: [
             {
