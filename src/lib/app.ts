@@ -1313,3 +1313,56 @@ async function router(): Promise<void> {
 
 window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
+
+// ── Sincronización con Supabase (Nube) ────────────────────────────────────
+import { syncLocalDatabaseToCloud } from './sync';
+
+// Bind del botón en el navbar
+const setupCloudSync = () => {
+  const syncBtn = document.getElementById('btn-cloud-sync');
+  if (syncBtn) {
+    // Evitar duplicar listeners
+    if ((syncBtn as any)._hasListener) return;
+    (syncBtn as any)._hasListener = true;
+
+    syncBtn.addEventListener('click', async () => {
+      const originalContent = syncBtn.innerHTML;
+      syncBtn.disabled = true;
+      syncBtn.style.opacity = '0.5';
+      showToast('Subiendo datos a la nube...', 'info', 2000);
+
+      const res = await syncLocalDatabaseToCloud();
+      syncBtn.disabled = false;
+      syncBtn.style.opacity = '1';
+
+      if (res.success) {
+        if (res.eventsSynced === 0 && res.participantsSynced === 0 && res.seriesSynced === 0) {
+          showToast('Base de datos al día. Nada nuevo por subir.', 'success', 3000);
+        } else {
+          showToast(`¡Sincronizado! Se subieron ${res.eventsSynced} eventos, ${res.participantsSynced} tiradores y ${res.seriesSynced} series.`, 'success', 5000);
+        }
+      } else {
+        showToast(`Fallo al sincronizar: ${res.error}`, 'error', 5000);
+      }
+    });
+  }
+};
+
+// Intentar configurar en carga inicial y re-intentar en cada cambio de vista si es necesario
+window.addEventListener('load', () => {
+  setupCloudSync();
+  
+  // Sincronización automática inicial después de cargar
+  if (navigator.onLine) {
+    setTimeout(async () => {
+      const res = await syncLocalDatabaseToCloud();
+      if (res.success && (res.eventsSynced > 0 || res.participantsSynced > 0 || res.seriesSynced > 0)) {
+        console.log('[Sync] Autoportado completado de forma silenciosa:', res);
+      }
+    }, 3000);
+  }
+});
+window.addEventListener('hashchange', () => {
+  // Asegurar enlace tras renderizado de layout
+  setTimeout(setupCloudSync, 100);
+});

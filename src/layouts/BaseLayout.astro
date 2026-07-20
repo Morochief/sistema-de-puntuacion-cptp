@@ -54,8 +54,15 @@ const { title, description } = Astro.props;
           <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.25rem;letter-spacing:0.04em;color:#0f1f3d;white-space:nowrap;">CPTP <span style="color:#b7201c">.22 LR</span></span>
         </a>
 
-        <!-- Bandera de Paraguay (centro) -->
-        <div style="display:flex;align-items:center;">
+        <!-- Bandera de Paraguay (centro) + Sincronización -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button id="btn-cloud-sync" title="Sincronizar base de datos con Supabase" style="padding:4px 8px;border-radius:8px;border:1px solid #cbd5e1;display:flex;align-items:center;gap:4px;cursor:pointer;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.05);outline:none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0056b3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v13m0 0-4-4m4 4 4-4"/>
+              <path d="M4 20h16"/>
+            </svg>
+            <span style="font-size:0.72rem;font-weight:800;color:#0056b3;font-family:'Rajdhani',sans-serif;text-transform:uppercase;">Subir</span>
+          </button>
           <img src="/flag-paraguay.svg" alt="Bandera de Paraguay" style="height:26px;width:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.06);" />
           <div id="offline-indicator" style="display:none;"></div>
         </div>
