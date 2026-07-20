@@ -1340,59 +1340,81 @@ window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
 
 // ── Sincronización con Supabase (Nube) ────────────────────────────────────
-import { syncLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from './sync';
+import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from './sync';
 import { supabase } from './supabase';
 
-// Bind del botón en el navbar
+// Bind de los botones en el navbar (Subir y Descargar por separado)
 const setupCloudSync = () => {
-  const syncBtn = document.getElementById('btn-cloud-sync');
-  if (syncBtn) {
-    // Evitar duplicar listeners
-    if ((syncBtn as any)._hasListener) return;
-    (syncBtn as any)._hasListener = true;
+  const uploadBtn = document.getElementById('btn-cloud-upload');
+  const downloadBtn = document.getElementById('btn-cloud-download');
 
-    syncBtn.addEventListener('click', async () => {
-      syncBtn.disabled = true;
-      syncBtn.style.opacity = '0.5';
-      showToast('Sincronizando datos con la nube...', 'info', 2000);
+  // Vincular botón de SUBIR
+  if (uploadBtn) {
+    if (!(uploadBtn as any)._hasListener) {
+      (uploadBtn as any)._hasListener = true;
+      uploadBtn.addEventListener('click', async () => {
+        uploadBtn.disabled = true;
+        uploadBtn.style.opacity = '0.5';
+        showToast('Subiendo datos locales a la nube...', 'info', 2000);
 
-      const res = await syncLocalDatabaseToCloud();
-      syncBtn.disabled = false;
-      syncBtn.style.opacity = '1';
+        const res = await pushLocalDatabaseToCloud();
+        uploadBtn.disabled = false;
+        uploadBtn.style.opacity = '1';
 
-      if (res.success) {
-        // Refrescamos la vista actual para renderizar lo bajado/actualizado
-        await router();
-        showToast('¡Base de datos sincronizada con la nube con éxito!', 'success', 3000);
-      } else {
-        showToast(`Fallo al sincronizar: ${res.error}`, 'error', 5000);
-      }
-    });
+        if (res.success) {
+          showToast('¡Datos subidos a la nube con éxito!', 'success', 3000);
+        } else {
+          showToast(`Error al subir: ${res.error}`, 'error', 5000);
+        }
+      });
+    }
+  }
+
+  // Vincular botón de DESCARGAR (Bajar)
+  if (downloadBtn) {
+    if (!(downloadBtn as any)._hasListener) {
+      (downloadBtn as any)._hasListener = true;
+      downloadBtn.addEventListener('click', async () => {
+        if (!await showConfirm('Descargar Datos', '¿Descargar datos oficiales de la nube? Esto REEMPLAZARÁ la base de datos de este dispositivo con los datos guardados en internet.')) return;
+
+        downloadBtn.disabled = true;
+        downloadBtn.style.opacity = '0.5';
+        showToast('Descargando datos oficiales...', 'info', 2000);
+
+        const res = await pullCloudDatabaseToLocal();
+        downloadBtn.disabled = false;
+        downloadBtn.style.opacity = '1';
+
+        if (res.success) {
+          await router(); // Recargar UI con datos nuevos
+          showToast('¡Base de datos descargada con éxito!', 'success', 3000);
+        } else {
+          showToast(`Error al descargar: ${res.error}`, 'error', 5000);
+        }
+      });
+    }
   }
 };
 
-// Intentar configurar en carga inicial y re-intentar en cada cambio de vista si es necesario
+// Configurar enlaces y auto-descarga inteligente al iniciar
 window.addEventListener('load', () => {
   setupCloudSync();
   
-  // Sincronización automática inicial después de cargar (Descarga + Subida)
+  // Auto-descarga silenciosa al abrir si no tenemos NADA de datos locales
   if (navigator.onLine) {
     setTimeout(async () => {
-      // 1. Bajamos cambios de Supabase para alimentar el Dexie de esta pestaña limpia
-      const pullRes = await pullCloudDatabaseToLocal();
-      if (pullRes.success) {
-        await router(); // Refrescar UI si bajamos nuevos eventos
+      const localEvents = await db.events.toArray();
+      if (localEvents.length === 0) {
+        console.log('[Sync] Base de datos vacía. Iniciando descarga automática...');
+        const pullRes = await pullCloudDatabaseToLocal();
+        if (pullRes.success) {
+          await router();
+        }
       }
-      
-      // 2. Subimos cualquier cambio local pendiente
-      const res = await syncLocalDatabaseToCloud();
-      if (res.success && (res.eventsSynced > 0 || res.participantsSynced > 0 || res.seriesSynced > 0)) {
-        await router();
-      }
-    }, 1500);
+    }, 1200);
   }
 });
+
 window.addEventListener('hashchange', () => {
-  // Asegurar enlace tras renderizado de layout
   setTimeout(setupCloudSync, 100);
 });

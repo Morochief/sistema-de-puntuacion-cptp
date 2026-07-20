@@ -22,20 +22,14 @@ export function toDeterministicUuid(id: number | undefined, namespace: 0 | 1 | 2
 }
 
 /**
- * Sincroniza toda la base de datos local (Dexie) hacia la nube (Supabase)
- * utilizando un flujo bidireccional limpio de descarga (pull) y subida (push).
+ * Sube exclusivamente toda la base de datos local (Dexie) hacia la nube (Supabase)
+ * utilizando Upserts basados en las llaves primarias mapeadas a UUID.
  */
-export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
+export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
   try {
-    console.log('[Sync] Iniciando sincronización local -> Supabase...');
+    console.log('[Sync] Iniciando subida local -> Supabase...');
 
-    // 1. Descargamos primero y limpiamos los borrados de la nube para no re-subirlos
-    const pullRes = await pullCloudDatabaseToLocal();
-    if (!pullRes.success) {
-      console.warn('[Sync] Advertencia: fallo al descargar antes de subir:', pullRes.error);
-    }
-
-    // 2. Obtener datos locales limpios después del pull
+    // Obtener datos locales
     const localEvents = await db.events.toArray();
     const localParticipants = await db.participants.toArray();
     const localSeries = await db.series.toArray();
@@ -44,7 +38,7 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
     let participantsSynced = 0;
     let seriesSynced = 0;
 
-    // 3. Sincronizar Eventos
+    // 1. Sincronizar Eventos
     if (localEvents.length > 0) {
       const eventsData = localEvents.map(e => ({
         id: toDeterministicUuid(e.id, 0),
@@ -62,7 +56,7 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       eventsSynced = localEvents.length;
     }
 
-    // 4. Sincronizar Participantes
+    // 2. Sincronizar Participantes
     if (localParticipants.length > 0) {
       const participantsData = localParticipants.map(p => ({
         id: toDeterministicUuid(p.id, 1),
@@ -83,7 +77,7 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       participantsSynced = localParticipants.length;
     }
 
-    // 5. Sincronizar Series
+    // 3. Sincronizar Series
     if (localSeries.length > 0) {
       const seriesData = localSeries.map(s => ({
         id: toDeterministicUuid(s.id, 2),
@@ -103,7 +97,7 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       seriesSynced = localSeries.length;
     }
 
-    console.log('[Sync] Sincronización bidireccional finalizada con éxito.');
+    console.log('[Sync] Subida a la nube finalizada con éxito.');
     return {
       success: true,
       eventsSynced,
@@ -111,7 +105,7 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       seriesSynced
     };
   } catch (err: any) {
-    console.error('[Sync] Error crítico durante la sincronización:', err);
+    console.error('[Sync] Error crítico durante la subida:', err);
     return {
       success: false,
       eventsSynced: 0,
@@ -150,56 +144,14 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     const { data: cloudSeries, error: sErr } = await supabase.from('series').select('*');
     if (sErr) throw new Error(`Error descargando series: ${sErr.message}`);
 
-    // Umbral de 5 minutos para proteger registros locales nuevos creados en modo offline
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    // 2. Limpiar locales completamente para recibir el estado oficial de la nube
+    await Promise.all([
+      db.events.clear(),
+      db.participants.clear(),
+      db.series.clear()
+    ]);
 
-    // 2. Limpiar locales que ya no existen en la nube (borrados desde otro dispositivo)
-    if (cloudEvents) {
-      const cloudEventIds = new Set(cloudEvents.map(e => fromDeterministicUuid(e.id)));
-      const localEvents = await db.events.toArray();
-      for (const e of localEvents) {
-        if (e.id && !cloudEventIds.has(e.id)) {
-          // Si el evento tiene más de 5 minutos local y ya no está en Supabase, lo borramos de local
-          if (e.createdAt < fiveMinutesAgo) {
-            console.log(`[Sync] Borrando evento local ${e.id} porque no está en la nube.`);
-            await db.events.delete(e.id);
-            await db.participants.where('eventId').equals(e.id).delete();
-            await db.series.where('eventId').equals(e.id).delete();
-          }
-        }
-      }
-    }
-
-    if (cloudParticipants) {
-      const cloudParticipantIds = new Set(cloudParticipants.map(p => fromDeterministicUuid(p.id)));
-      const localParticipants = await db.participants.toArray();
-      for (const p of localParticipants) {
-        if (p.id && !cloudParticipantIds.has(p.id)) {
-          // Solo borramos el competidor si no es parte de un evento offline nuevo
-          const parentEvent = await db.events.get(p.eventId);
-          if (!parentEvent || parentEvent.createdAt < fiveMinutesAgo) {
-            console.log(`[Sync] Borrando competidor local ${p.id} porque no está en la nube.`);
-            await db.participants.delete(p.id);
-          }
-        }
-      }
-    }
-
-    if (cloudSeries) {
-      const cloudSeriesIds = new Set(cloudSeries.map(s => fromDeterministicUuid(s.id)));
-      const localSeries = await db.series.toArray();
-      for (const s of localSeries) {
-        if (s.id && !cloudSeriesIds.has(s.id)) {
-          const parentEvent = await db.events.get(s.eventId);
-          if (!parentEvent || parentEvent.createdAt < fiveMinutesAgo) {
-            console.log(`[Sync] Borrando serie local ${s.id} porque no está en la nube.`);
-            await db.series.delete(s.id);
-          }
-        }
-      }
-    }
-
-    // 3. Escribir/Actualizar datos de la nube en Dexie
+    // 3. Escribir datos de la nube en Dexie
     if (cloudEvents) {
       for (const e of cloudEvents) {
         const localId = fromDeterministicUuid(e.id);
@@ -247,7 +199,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       }
     }
 
-    console.log('[Sync] Base de datos local (Dexie) sincronizada con Supabase con éxito.');
+    console.log('[Sync] Base de datos local (Dexie) reemplazada con éxito desde la nube.');
     return { success: true };
   } catch (err: any) {
     console.error('[Sync] Error en pullCloudDatabaseToLocal:', err);
