@@ -1,0 +1,78 @@
+---
+import '../styles/global.css';
+export interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" data-theme="cptp-dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content={description ?? "App de puntuación CPTP .22 LR — tiro de precisión Long Range"} />
+
+    <!-- PWA & Theme -->
+    <meta name="theme-color" content="#080d16" />
+    <meta name="background-color" content="#080d16" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CPTP Scoring" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Icons & Fonts -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- OpenGraph (para compartir) -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description ?? "App de puntuación CPTP .22 LR"} />
+    <meta property="og:type" content="website" />
+
+    <title>{title}</title>
+  </head>
+  <body>
+    <!-- Navbar táctica -->
+    <header class="app-navbar" role="banner">
+      <div style="max-width:768px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;">
+        <a href="#/" class="flex items-center gap-2 hover:opacity-80 transition-opacity" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#ffffff;" aria-label="Inicio — CPTP Scoring">
+          <img src="/logo.svg" alt="CPTP Logo" style="height:36px;width:auto;" onerror="this.style.display='none';" />
+          <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.15rem;letter-spacing:0.04em">CPTP <span style="color:#ef4444">.22 LR</span></span>
+        </a>
+        <div id="offline-indicator" class="offline-badge hidden" role="status" aria-live="polite">
+          SIN SEÑAL
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main style="max-width:768px;margin:0 auto;padding:16px 16px 80px;position:relative;z-index:1;" role="main">
+      <slot />
+    </main>
+
+    <!-- Toast container -->
+    <div id="toast-container" role="region" aria-label="Notificaciones" aria-live="polite"></div>
+
+    <!-- Offline detection script -->
+    <script>
+      (function () {
+        const indicator = document.getElementById('offline-indicator');
+        if (!indicator) return;
+        function update() {
+          indicator.classList.toggle('hidden', navigator.onLine);
+        }
+        window.addEventListener('online', update);
+        window.addEventListener('offline', update);
+        update();
+      })();
+    </script>
+  </body>
+</html>
