@@ -68,12 +68,12 @@ function getLandscapePrintStyles(): string {
    }
 
    .a4-landscape-page {
-    width: 250mm;
-    min-height: 165mm;
-    margin: 4mm auto;
+    width: 275mm;
+    min-height: 175mm;
+    margin: 10mm auto;
     background: #fff;
-    padding: 6px 12px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    padding: 8px 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
     gap: 12px;
     page-break-after: always;
@@ -82,7 +82,15 @@ function getLandscapePrintStyles(): string {
 
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .a4-landscape-page { margin: 0 auto; padding: 6px 0; box-shadow: none; width: 250mm; height: 165mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .a4-landscape-page { 
+      margin: 18mm auto 0 auto; /* Espacio superior libre de 18mm para perforación de carpeta */
+      padding: 6px 0; 
+      box-shadow: none; 
+      width: 275mm; 
+      height: 175mm; 
+      -webkit-print-color-adjust: exact; 
+      print-color-adjust: exact; 
+    }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
    }
