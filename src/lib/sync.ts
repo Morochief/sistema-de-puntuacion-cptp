@@ -11,8 +11,19 @@ export interface SyncResult {
 }
 
 /**
+ * Convierte un ID numérico local de Dexie a un UUID válido en formato estándar RFC4122
+ * de manera determinista según la tabla, evitando colisiones e invalidación de tipos en Postgres.
+ */
+function toDeterministicUuid(id: number | undefined, namespace: 0 | 1 | 2): string {
+  if (id === undefined) return '00000000-0000-4000-0000-000000000000';
+  const paddedId = String(id).padStart(12, '0');
+  const namespaceStr = String(namespace).padStart(4, '0');
+  return `00000000-0000-4000-${namespaceStr}-${paddedId}`;
+}
+
+/**
  * Sincroniza toda la base de datos local (Dexie) hacia la nube (Supabase)
- * utilizando Upserts basados en las llaves primarias numéricas actuales.
+ * utilizando Upserts basados en las llaves primarias mapeadas a UUID.
  */
 export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
   try {
@@ -29,9 +40,8 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
 
     // 2. Sincronizar Eventos
     if (localEvents.length > 0) {
-      // Mapeamos los campos a la estructura de Supabase
       const eventsData = localEvents.map(e => ({
-        id: e.id,
+        id: toDeterministicUuid(e.id, 0),
         name: e.name,
         date: e.date,
         location: e.location || null,
@@ -49,8 +59,8 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
     // 3. Sincronizar Participantes
     if (localParticipants.length > 0) {
       const participantsData = localParticipants.map(p => ({
-        id: p.id,
-        event_id: p.eventId,
+        id: toDeterministicUuid(p.id, 1),
+        event_id: toDeterministicUuid(p.eventId, 0),
         name: p.name,
         competitor_number: p.competitorNumber,
         category: p.category || null,
@@ -70,11 +80,11 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
     // 4. Sincronizar Series
     if (localSeries.length > 0) {
       const seriesData = localSeries.map(s => ({
-        id: s.id,
-        event_id: s.eventId,
-        participant_id: s.participantId,
+        id: toDeterministicUuid(s.id, 2),
+        event_id: toDeterministicUuid(s.eventId, 0),
+        participant_id: toDeterministicUuid(s.participantId, 1),
         series_number: s.seriesNumber,
-        shots: s.shots, // Objeto JSONB
+        shots: s.shots,
         total_score: s.totalScore,
         created_at: new Date(s.createdAt).toISOString()
       }));
