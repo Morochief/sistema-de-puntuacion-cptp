@@ -1337,11 +1337,7 @@ const setupCloudSync = () => {
       if (res.success) {
         // Refrescamos la vista actual para renderizar lo bajado/actualizado
         await router();
-        if (res.eventsSynced === 0 && res.participantsSynced === 0 && res.seriesSynced === 0) {
-          showToast('Base de datos sincronizada y al día.', 'success', 3000);
-        } else {
-          showToast(`¡Sincronizado! Se subieron ${res.eventsSynced} eventos, ${res.participantsSynced} tiradores y ${res.seriesSynced} series.`, 'success', 5000);
-        }
+        showToast('¡Base de datos sincronizada con la nube con éxito!', 'success', 3000);
       } else {
         showToast(`Fallo al sincronizar: ${res.error}`, 'error', 5000);
       }
