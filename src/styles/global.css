@@ -365,13 +365,13 @@ body {
 
 /* ── Event card ──────────────────────────────────────────── */
 .event-card {
-  background: linear-gradient(135deg, #0f1724, #1a2436);
-  border: 1px solid rgba(59,130,246,0.1);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   position: relative;
   overflow: hidden;
 }
@@ -379,30 +379,32 @@ body {
   content: '';
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #3b82f6, #6366f1);
+  width: 4px;
+  background: linear-gradient(180deg, #0056b3, #b7201c); /* Azul a Rojo */
   border-radius: 3px 0 0 3px;
 }
 .event-card:hover {
-  border-color: rgba(59,130,246,0.3);
+  border-color: rgba(0,86,179,0.3);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 .event-card:active { transform: translateY(0); }
 
 /* ── Series card ─────────────────────────────────────────── */
 .series-card {
-  background: linear-gradient(135deg, #0f1724, #1a2436);
-  border: 1px solid rgba(255,255,255,0.07);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 16px 20px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 .series-card:hover {
-  border-color: rgba(59,130,246,0.25);
-  background: linear-gradient(135deg, #111a2e, #1e2a40);
+  border-color: rgba(0,86,179,0.25);
+  background: #f8fafc;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
 }
 
 /* ── Forms ───────────────────────────────────────────────── */
