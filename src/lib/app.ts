@@ -1315,7 +1315,7 @@ window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
 
 // ── Sincronización con Supabase (Nube) ────────────────────────────────────
-import { syncLocalDatabaseToCloud } from './sync';
+import { syncLocalDatabaseToCloud, pullCloudDatabaseToLocal } from './sync';
 
 // Bind del botón en el navbar
 const setupCloudSync = () => {
@@ -1326,18 +1326,19 @@ const setupCloudSync = () => {
     (syncBtn as any)._hasListener = true;
 
     syncBtn.addEventListener('click', async () => {
-      const originalContent = syncBtn.innerHTML;
       syncBtn.disabled = true;
       syncBtn.style.opacity = '0.5';
-      showToast('Subiendo datos a la nube...', 'info', 2000);
+      showToast('Sincronizando datos con la nube...', 'info', 2000);
 
       const res = await syncLocalDatabaseToCloud();
       syncBtn.disabled = false;
       syncBtn.style.opacity = '1';
 
       if (res.success) {
+        // Refrescamos la vista actual para renderizar lo bajado/actualizado
+        await router();
         if (res.eventsSynced === 0 && res.participantsSynced === 0 && res.seriesSynced === 0) {
-          showToast('Base de datos al día. Nada nuevo por subir.', 'success', 3000);
+          showToast('Base de datos sincronizada y al día.', 'success', 3000);
         } else {
           showToast(`¡Sincronizado! Se subieron ${res.eventsSynced} eventos, ${res.participantsSynced} tiradores y ${res.seriesSynced} series.`, 'success', 5000);
         }
@@ -1352,14 +1353,21 @@ const setupCloudSync = () => {
 window.addEventListener('load', () => {
   setupCloudSync();
   
-  // Sincronización automática inicial después de cargar
+  // Sincronización automática inicial después de cargar (Descarga + Subida)
   if (navigator.onLine) {
     setTimeout(async () => {
+      // 1. Bajamos cambios de Supabase para alimentar el Dexie de esta pestaña limpia
+      const pullRes = await pullCloudDatabaseToLocal();
+      if (pullRes.success) {
+        await router(); // Refrescar UI si bajamos nuevos eventos
+      }
+      
+      // 2. Subimos cualquier cambio local pendiente
       const res = await syncLocalDatabaseToCloud();
       if (res.success && (res.eventsSynced > 0 || res.participantsSynced > 0 || res.seriesSynced > 0)) {
-        console.log('[Sync] Autoportado completado de forma silenciosa:', res);
+        await router();
       }
-    }, 3000);
+    }, 1500);
   }
 });
 window.addEventListener('hashchange', () => {

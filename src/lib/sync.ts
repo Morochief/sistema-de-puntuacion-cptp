@@ -97,7 +97,14 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       seriesSynced = localSeries.length;
     }
 
-    console.log('[Sync] Sincronización finalizada con éxito.');
+    console.log('[Sync] Sincronización de subida finalizada con éxito. Iniciando descarga...');
+    
+    // Realizamos un pull automático después de subir para mantener consistencia
+    const pullRes = await pullCloudDatabaseToLocal();
+    if (!pullRes.success) {
+      console.warn('[Sync] Advertencia: la subida funcionó pero la descarga falló:', pullRes.error);
+    }
+
     return {
       success: true,
       eventsSynced,
@@ -113,5 +120,96 @@ export async function syncLocalDatabaseToCloud(): Promise<SyncResult> {
       seriesSynced: 0,
       error: err.message || String(err)
     };
+  }
+}
+
+/**
+ * Traduce un UUID determinista de vuelta a su ID entero original de Dexie
+ */
+function fromDeterministicUuid(uuid: string): number {
+  if (!uuid) return 0;
+  const parts = uuid.split('-');
+  const lastPart = parts[parts.length - 1];
+  return parseInt(lastPart, 10);
+}
+
+/**
+ * Descarga todos los registros desde Supabase y los inserta/actualiza en Dexie (IndexedDB)
+ */
+export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('[Sync] Descargando datos desde Supabase...');
+
+    // 1. Obtener eventos de Supabase
+    const { data: cloudEvents, error: eErr } = await supabase
+      .from('events')
+      .select('*');
+    if (eErr) throw new Error(`Error descargando eventos: ${eErr.message}`);
+
+    // 2. Obtener participantes de Supabase
+    const { data: cloudParticipants, error: pErr } = await supabase
+      .from('participants')
+      .select('*');
+    if (pErr) throw new Error(`Error descargando competidores: ${pErr.message}`);
+
+    // 3. Obtener series de Supabase
+    const { data: cloudSeries, error: sErr } = await supabase
+      .from('series')
+      .select('*');
+    if (sErr) throw new Error(`Error descargando series: ${sErr.message}`);
+
+    // 4. Guardar en Dexie
+    if (cloudEvents) {
+      for (const e of cloudEvents) {
+        const localId = fromDeterministicUuid(e.id);
+        await db.events.put({
+          id: localId,
+          name: e.name,
+          date: e.date,
+          location: e.location || '',
+          createdAt: new Date(e.created_at).getTime()
+        });
+      }
+    }
+
+    if (cloudParticipants) {
+      for (const p of cloudParticipants) {
+        const localId = fromDeterministicUuid(p.id);
+        const localEventId = fromDeterministicUuid(p.event_id);
+        await db.participants.put({
+          id: localId,
+          eventId: localEventId,
+          name: p.name,
+          competitorNumber: p.competitor_number,
+          category: p.category || '',
+          tanda: p.tanda || undefined,
+          spot: p.spot || undefined,
+          tieRank: p.tie_rank || undefined
+        });
+      }
+    }
+
+    if (cloudSeries) {
+      for (const s of cloudSeries) {
+        const localId = fromDeterministicUuid(s.id);
+        const localEventId = fromDeterministicUuid(s.event_id);
+        const localParticipantId = fromDeterministicUuid(s.participant_id);
+        await db.series.put({
+          id: localId,
+          eventId: localEventId,
+          participantId: localParticipantId,
+          seriesNumber: s.series_number,
+          shots: s.shots,
+          totalScore: s.total_score,
+          createdAt: new Date(s.created_at).getTime()
+        });
+      }
+    }
+
+    console.log('[Sync] Base de datos local (Dexie) actualizada desde Supabase.');
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Sync] Error en pullCloudDatabaseToLocal:', err);
+    return { success: false, error: err.message || String(err) };
   }
 }
