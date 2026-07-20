@@ -103,7 +103,7 @@ async function renderDashboard(): Promise<void> {
         aria-label="Evento: ${esc(e.name)}, ${formatDate(e.date)}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
      <div style="min-width:0;flex:1;">
-      <h3 style="margin:0 0 4px;font-size:1.05rem;font-weight:700;color:#0f172a;
+      <h3 style="margin:0 0 4px;font-size:1.05rem;font-weight:700;color:#0056b3;
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.name)}</h3>
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
        <span style="font-size:0.78rem;color:#64748b;">${formatDate(e.date)}</span>
@@ -226,7 +226,7 @@ async function renderNewEvent(): Promise<void> {
 
   <div style="margin-bottom:28px;">
    <div class="section-title" style="margin-bottom:4px;">Nuevo Evento</div>
-   <h1 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;color:#0f172a;">
+   <h1 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;color:#0056b3;">
     Crear Evento de Tiro
    </h1>
   </div>
@@ -339,7 +339,7 @@ async function renderEvent(eventId: string): Promise<void> {
   <div style="margin-bottom:20px;">
    <div class="section-title" style="margin-bottom:2px;">Evento</div>
    <h1 style="margin:0 0 4px;font-family:'Rajdhani',sans-serif;font-size:1.6rem;
-         font-weight:700;color:#0f172a;line-height:1.2;">${esc(event.name)}</h1>
+         font-weight:700;color:#0056b3;line-height:1.2;">${esc(event.name)}</h1>
    <p style="margin:0;font-size:0.85rem;color:#64748b;">
     ${formatDate(event.date)} ${event.location ? `· ${esc(event.location)}` : ''}
    </p>
@@ -359,7 +359,7 @@ async function renderEvent(eventId: string): Promise<void> {
   <div id="tab-panel-tiradores" class="tab-panel">
    <!-- Formulario de Inscripción -->
    <div class="card-tactical" style="padding:16px;margin-bottom:20px;">
-    <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:12px;">
+    <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin-bottom:12px;">
      Inscribir Competidor
     </h3>
     <div style="display:flex;gap:10px;">
@@ -671,7 +671,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#0056b3;font-weight:700;">
         #${p.competitorNumber}
        </span>
-       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0f172a;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
+       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
       </div>
       <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
        ${p.tanda ? `Tanda ${p.tanda} — Puesto ${p.spot}` : 'Posición no sorteada'}
