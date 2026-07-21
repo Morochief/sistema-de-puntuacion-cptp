@@ -98,8 +98,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         category: p.category || null,
         tanda: p.tanda || null,
         spot: p.spot || null,
-        tie_rank: p.tieRank || null,
-        status: p.status || 'active'
+        tie_rank: p.tieRank || null
       }));
 
       const { error: pErr } = await supabase
