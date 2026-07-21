@@ -59,4 +59,13 @@ db.version(5).stores({
   masterCompetitors: '++id, &name, createdAt',
 });
 
+// Versión 6: Eliminar constraint UNIQUE de masterCompetitors.name para permitir
+// migración robusta. La deduplicación se maneja a nivel de aplicación.
+db.version(6).stores({
+  events: '++id, date, createdAt',
+  participants: '++id, eventId, competitorNumber, status, paymentStatus',
+  series: '++id, eventId, participantId, seriesNumber',
+  masterCompetitors: '++id, name, createdAt',
+});
+
 export { db };

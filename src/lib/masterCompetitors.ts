@@ -48,10 +48,12 @@ export async function deleteMasterCompetitor(id: number): Promise<void> {
 export async function migrateParticipantsToPadron(): Promise<number> {
   try {
     const allParticipants = await db.participants.toArray();
+    console.log(`[Padron] Encontrados ${allParticipants.length} participantes para migrar.`);
     if (allParticipants.length === 0) return 0;
 
-    // Cargar el padrón actual una sola vez (más eficiente que consultar por cada participante)
+    // Cargar el padrón actual una sola vez
     const currentPadron = await db.masterCompetitors.toArray();
+    console.log(`[Padron] Padron actual tiene ${currentPadron.length} entradas.`);
     const padronNames = new Set(currentPadron.map(c => c.name.toLowerCase()));
 
     let added = 0;
@@ -63,23 +65,30 @@ export async function migrateParticipantsToPadron(): Promise<number> {
       if (!nameLower || seenInBatch.has(nameLower) || padronNames.has(nameLower)) continue;
 
       seenInBatch.add(nameLower);
-      padronNames.add(nameLower); // evitar duplicar dentro del mismo batch
+      padronNames.add(nameLower);
 
-      await db.masterCompetitors.add({
-        name: nameTrimmed,
-        category: p.category?.trim() || '',
-        phone: '',
-        createdAt: Date.now()
-      });
-      added++;
+      try {
+        await db.masterCompetitors.add({
+          name: nameTrimmed,
+          category: p.category?.trim() || '',
+          phone: '',
+          createdAt: Date.now()
+        });
+        added++;
+        console.log(`[Padron] Agregado: "${nameTrimmed}"`);
+      } catch (addErr) {
+        // Si falla un add individual (ej: constraint), lo saltamos y seguimos
+        console.warn(`[Padron] No se pudo agregar "${nameTrimmed}":`, addErr);
+      }
     }
 
     return added;
   } catch (err) {
-    console.error('[Padron] Error en migracion:', err);
+    console.error('[Padron] Error fatal en migracion:', err);
     return 0;
   }
 }
+
 
 // ── Modal de Gestión del Padrón Maestro ──────────────────────────────────────
 
@@ -148,12 +157,17 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
       : `<tr><td colspan="4" style="text-align:center;padding:24px;color:#94a3b8;">No se encontraron competidores en el Padrón.</td></tr>`;
 
     modalBox.innerHTML = `
-      <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+      <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
         <div>
           <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Padron Maestro de Tiradores</h2>
           <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Base de datos de tiradores registrados (${totalItems} en total)</span>
         </div>
-        <button id="close-mc-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;">X</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="btn-sync-padron" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;font-weight:700;border-color:#0056b3;color:#0056b3;" title="Importar todos los competidores de todos los eventos al Padron">
+            Sincronizar desde Eventos
+          </button>
+          <button id="close-mc-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;">X</button>
+        </div>
       </div>
 
       <div style="padding:16px 20px;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
@@ -207,6 +221,24 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
     // Eventos
     modalBox.querySelector('#close-mc-modal')?.addEventListener('click', () => {
       backdrop.remove();
+    });
+
+    modalBox.querySelector('#btn-sync-padron')?.addEventListener('click', async () => {
+      const syncBtn = modalBox.querySelector('#btn-sync-padron') as HTMLButtonElement;
+      if (syncBtn) { syncBtn.disabled = true; syncBtn.textContent = 'Sincronizando...'; }
+      try {
+        const added = await migrateParticipantsToPadron();
+        if (added > 0) {
+          showToast(`${added} tiradores agregados al Padron Maestro.`, 'success');
+        } else {
+          showToast('El Padron ya esta al dia. No se encontraron tiradores nuevos.', 'info');
+        }
+        await renderContent();
+      } catch (err) {
+        showToast('Error al sincronizar el Padron.', 'error');
+      } finally {
+        if (syncBtn) { syncBtn.disabled = false; syncBtn.textContent = 'Sincronizar desde Eventos'; }
+      }
     });
 
     modalBox.querySelector('#form-new-mc')?.addEventListener('submit', async (e) => {
