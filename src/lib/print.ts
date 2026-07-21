@@ -565,8 +565,8 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
 
   body {
    font-family: Arial, Helvetica, sans-serif;
-   background: #080c14;
-   color: #ffffff;
+   background: #f1f5f9;
+   color: #0f172a;
    padding: 0;
    margin: 0;
    min-height: 297mm;
@@ -577,11 +577,11 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
    width: 210mm;
    min-height: 297mm;
    margin: 0 auto;
-   background: #080c14;
+   background: #ffffff;
    padding: 24px 28px 24px 52px;
    position: relative;
    overflow: hidden;
-   box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+   box-shadow: 0 4px 32px rgba(15, 23, 42, 0.15);
   }
 
   @media print {
@@ -592,48 +592,48 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
 
   .print-btn {
    display: block; margin: 10px auto; padding: 10px 30px;
-   background: #3b82f6; color: #fff; border: none; border-radius: 8px;
+   background: #0056b3; color: #fff; border: none; border-radius: 8px;
    font-size: 14px; font-weight: 700; cursor: pointer;
   }
-  .print-btn:hover { background: #2563eb; }
+  .print-btn:hover { background: #004085; }
 
-  .layout-border-red { position: absolute; top: 0; left: 0; bottom: 0; width: 12px; background: #ef4444; }
-  .layout-border-blue { position: absolute; top: 0; left: 12px; bottom: 0; width: 8px; background: #3b82f6; }
-  .layout-border-white { position: absolute; top: 0; left: 20px; bottom: 0; width: 4px; background: #ffffff; }
+  .layout-border-red { position: absolute; top: 0; left: 0; bottom: 0; width: 12px; background: #b7201c; }
+  .layout-border-blue { position: absolute; top: 0; left: 12px; bottom: 0; width: 8px; background: #0056b3; }
+  .layout-border-white { position: absolute; top: 0; left: 20px; bottom: 0; width: 4px; background: #cbd5e1; }
 
-  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 16px; margin-bottom: 20px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 20px; }
   .header-left { display: flex; flex-direction: column; gap: 4px; }
-  .header-left .category { font-size: 11px; font-weight: 800; color: #3b82f6; letter-spacing: 0.15em; text-transform: uppercase; }
-  .header-left .title-main { font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; }
-  .header-left .event-name { font-size: 13px; color: #94a3b8; font-weight: 500; }
+  .header-left .category { font-size: 11px; font-weight: 800; color: #0056b3; letter-spacing: 0.15em; text-transform: uppercase; }
+  .header-left .title-main { font-size: 26px; font-weight: 900; color: #b7201c; letter-spacing: -0.02em; }
+  .header-left .event-name { font-size: 13px; color: #475569; font-weight: 500; }
   
   .header-right { text-align: right; }
-  .header-right .year { font-size: 32px; font-weight: 900; color: rgba(255,255,255,0.07); font-style: italic; line-height: 0.8; }
-  .header-right .date { font-size: 12px; color: #64748b; font-family: monospace; font-weight: bold; }
+  .header-right .year { font-size: 32px; font-weight: 900; color: rgba(0,86,179,0.07); font-style: italic; line-height: 0.8; }
+  .header-right .date { font-size: 12px; color: #475569; font-family: monospace; font-weight: bold; }
 
   .ranking-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  .ranking-table th { text-align: left; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 12px; border-bottom: 2px solid #1e293b; }
+  .ranking-table th { text-align: left; font-size: 10px; font-weight: 800; color: #0056b3; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 12px; border-bottom: 2px solid #cbd5e1; }
   .ranking-table th.th-score { text-align: right; }
 
-  .rank-row { border-bottom: 1px solid #1e293b; transition: background 0.2s; }
+  .rank-row { border-bottom: 1px solid #e2e8f0; transition: background 0.2s; }
   .rank-row td { padding: 10px 12px; vertical-align: middle; }
   
   .td-pos { width: 60px; }
-  .pos-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #000000; }
-  .pos-badge.top-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 12px rgba(245,158,11,0.4); }
+  .pos-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #ffffff; }
+  .pos-badge.top-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000000; box-shadow: 0 0 12px rgba(245,158,11,0.4); }
   .pos-badge.top-2 { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); color: #0f172a; }
-  .pos-badge.top-3 { background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; }
+  .pos-badge.top-3 { background: linear-gradient(135deg, #b7201c, #991b1b); color: #ffffff; }
   .pos-number { font-size: 15px; font-weight: bold; color: #475569; padding-left: 8px; }
 
   .td-name { flex: 1; }
-  .name-text { font-size: 14px; font-weight: 800; color: #f8fafc; letter-spacing: 0.02em; }
-  .sub-text { font-size: 10px; color: #64748b; font-weight: bold; margin-top: 2px; }
+  .name-text { font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: 0.02em; }
+  .sub-text { font-size: 10px; color: #475569; font-weight: bold; margin-top: 2px; }
 
   .td-score { text-align: right; width: 100px; }
-  .score-val { font-size: 20px; font-weight: 900; color: #22c55e; font-family: monospace; }
+  .score-val { font-size: 20px; font-weight: 900; color: #16a34a; font-family: monospace; }
 
-  .footer { position: absolute; bottom: 24px; left: 52px; right: 28px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 16px; font-size: 9px; color: #475569; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
-  .footer-right { color: #3b82f6; }
+  .footer { position: absolute; bottom: 24px; left: 52px; right: 28px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 9px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
+  .footer-right { color: #0056b3; }
  </style>
 </head>
 <body>
@@ -709,17 +709,17 @@ function openPrintModal(htmlContent: string, title: string): void {
   `;
 
   backdrop.innerHTML = `
-    <div style="width: 95%; max-width: 1100px; height: 85vh; background: #0f172a; border: 1.5px solid #475569; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
-      <div style="background:#0f172a;border-bottom:1px solid #334155;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px;flex-wrap:wrap;">
+    <div style="width: 95%; max-width: 1100px; height: 85vh; background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 5px solid #b7201c; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(15, 23, 42, 0.25);">
+      <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:0.95rem;color:#ffffff;"> Vista Previa</span>
-          <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">${title}</span>
+          <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:0.95rem;color:#0056b3;">Vista Previa</span>
+          <span style="font-size:0.75rem;color:#64748b;font-weight:600;">${title}</span>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button id="btn-do-print" class="btn-primary-custom" style="padding:6px 14px;background:#0056b3;color:#ffffff;font-weight:bold;border-radius:8px;font-size:0.8rem;cursor:pointer;">
+          <button id="btn-do-print" class="btn-primary-custom" style="padding:8px 16px;background:#0056b3;color:#ffffff;border-color:#0056b3;font-weight:bold;border-radius:8px;font-size:0.8rem;cursor:pointer;box-shadow:none;">
             Imprimir
           </button>
-          <button id="btn-close-print" class="btn-ghost-custom" style="padding:6px 12px;color:#cbd5e1;border-color:#475569;font-weight:bold;font-size:0.8rem;cursor:pointer;">
+          <button id="btn-close-print" class="btn-ghost-custom" style="padding:8px 14px;color:#0f172a;border-color:#cbd5e1;background:#ffffff;font-weight:bold;font-size:0.8rem;cursor:pointer;">
             Cerrar
           </button>
         </div>

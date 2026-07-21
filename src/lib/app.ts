@@ -507,8 +507,9 @@ async function renderEvent(eventId: string): Promise<void> {
     <div style="display:flex;gap:10px;">
      <div style="display:flex;gap:10px;flex:1;">
       <input type="text" id="field-participant-name" class="field-input" style="flex:2;"
-          placeholder="Nombre completo" maxlength="60"
+          placeholder="Nombre completo" maxlength="60" list="padron-suggestions"
           ${participants.length >= 32 ? 'disabled placeholder="Capacidad máxima (32)"' : ''} />
+       <datalist id="padron-suggestions"></datalist>
       <input type="text" id="field-participant-category" class="field-input" style="flex:1;"
           placeholder="Categoría (ej: Senior)" maxlength="30"
           ${participants.length >= 32 ? 'disabled' : ''} />
