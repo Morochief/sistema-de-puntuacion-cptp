@@ -1114,6 +1114,11 @@ async function renderEvent(eventId: string): Promise<void> {
    return;
   }
 
+  if (participants.some(p => p.name.trim().toLowerCase() === name.toLowerCase())) {
+   showToast(`El tirador "${name}" ya está inscrito en este evento.`, 'error');
+   return;
+  }
+
   try {
    const chosenNumber = participants.length > 0 ? Math.max(...participants.map(p => p.competitorNumber)) + 1 : 1;
    const freeSpot = findFirstFreeSpot(participants);
