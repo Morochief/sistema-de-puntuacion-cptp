@@ -7,6 +7,7 @@
 import { db } from './db';
 import type { ShootingEvent, Participant, Series } from './types';
 import { esc, showToast } from './modals';
+import { openPrintModal } from './print';
 
 export interface ChampionshipRow {
   name: string;
@@ -478,5 +479,5 @@ function printChampionshipPreview(year: number, events: ShootingEvent[], rows: C
 </html>`;
 
   // Invocar al visor de impresión universal
-  (window as any).cptpOpenPrintModalGlobal?.(html, `Campeonato General ${year}`);
+  openPrintModal(html, `Campeonato General ${year}`);
 }

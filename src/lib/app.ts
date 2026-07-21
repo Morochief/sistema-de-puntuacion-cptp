@@ -606,6 +606,11 @@ async function renderEvent(eventId: string): Promise<void> {
        Exportar Copia
      </button>
      ${allSeries.length > 0 ? `
+      <button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
+          aria-label="Vaciar todas las series del evento" title="Eliminar todas las series y resultados (los tiradores se mantienen)">
+        Reiniciar Todo
+      </button>` : ''}
+     ${allSeries.length > 0 ? `
       <button class="btn-ghost-custom" id="btn-print-event" style="padding:8px 12px;font-size:0.75rem;"
           aria-label="Imprimir todas las planillas">
         Imprimir Todo
@@ -993,10 +998,17 @@ async function renderEvent(eventId: string): Promise<void> {
        ${pSeries.length > 0 ? `· Acumulado: <strong style="color:#22c55e;">${totalScore} pts</strong>` : ''}
       </div>
      </div>
-     <button class="btn-primary-custom" data-add-series-for="${p.id}"
-         style="font-size:0.7rem;padding:6px 10px;" aria-label="Nueva serie para ${esc(p.name)}">
-      + Serie
-     </button>
+     <div style="display:flex;gap:6px;">
+      ${pSeries.length > 0 ? `
+      <button class="btn-ghost-custom" data-clear-series-for="${p.id}"
+          style="font-size:0.7rem;padding:6px 10px;border-color:rgba(239,68,68,0.25);color:#ef4444;" aria-label="Limpiar series para ${esc(p.name)}" title="Eliminar las series de este tirador">
+       Vaciar
+      </button>` : ''}
+      <button class="btn-primary-custom" data-add-series-for="${p.id}"
+          style="font-size:0.7rem;padding:6px 10px;" aria-label="Nueva serie para ${esc(p.name)}">
+       + Serie
+      </button>
+     </div>
     </div>
     <div>
      ${seriesCards}
@@ -1035,6 +1047,25 @@ async function renderEvent(eventId: string): Promise<void> {
      showToast('Error al crear la serie.', 'error');
      btnEl.disabled = false;
      btnEl.textContent = '+ Serie';
+    }
+   });
+  });
+
+  // Bind Limpiar Series por Tirador
+  containerEl.querySelectorAll('[data-clear-series-for]').forEach(btn => {
+   btn.addEventListener('click', async (e) => {
+    const pid = Number((e.currentTarget as HTMLElement).dataset.clearSeriesFor);
+    const p = participants.find(x => x.id === pid);
+    if (!p) return;
+    if (!await showConfirm('Vaciar Series', `¿Eliminar TODAS las series de ${p.name}? Esto dejará sus puntajes en cero.`)) return;
+    try {
+     await db.series.where('participantId').equals(pid).delete();
+     allSeries = await db.series.where('eventId').equals(id).toArray();
+     renderListaSeries();
+     showToast(`Series de ${p.name} eliminadas.`, 'info');
+    } catch (err) {
+     console.error('[DB] Error borrando series del participante:', err);
+     showToast('Error al vaciar series.', 'error');
     }
    });
   });
@@ -1281,6 +1312,21 @@ async function renderEvent(eventId: string): Promise<void> {
  document.getElementById('btn-print-event')?.addEventListener('click', () => {
   if (allSeries.length === 0) { showToast('No hay series registradas.', 'info'); return; }
   printEventCards(event!, participants, allSeries);
+ });
+
+ // --- HANDLER: REINICIAR TODAS LAS SERIES ---
+ document.getElementById('btn-clear-all-series')?.addEventListener('click', async () => {
+  if (allSeries.length === 0) return;
+  if (!await showConfirm('Reiniciar Todo', '¿Eliminar absolutamente TODAS las series de este evento? Los puntajes de todos los tiradores quedarán en 0. ¡Esta acción no se puede deshacer!')) return;
+  try {
+   await db.series.where('eventId').equals(id).delete();
+   allSeries = [];
+   renderListaSeries();
+   showToast('Todas las series fueron eliminadas.', 'info');
+  } catch (err) {
+   console.error('[DB] Error reiniciando series:', err);
+   showToast('Error al reiniciar las series.', 'error');
+  }
  });
 
  // --- INICIALIZACIÓN DE PANELES ---
