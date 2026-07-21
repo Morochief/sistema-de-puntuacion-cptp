@@ -173,9 +173,28 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       // Aplicar reglas especiales de Ángel y Facundo Domínguez si aplican
       const validatedParticipants = applySpecialFamilySeedingRules(workingParticipants);
 
+      // Agrupar por tanda asignada y asignar spots secuenciales del 1 al 4
+      const groups: Record<number, Participant[]> = {};
+      for (const p of validatedParticipants) {
+        if (p.tanda) {
+          if (!groups[p.tanda]) groups[p.tanda] = [];
+          groups[p.tanda].push(p);
+        }
+      }
+
+      // Para cada tanda, reasignar spots consecutivamente de 1 a 4
+      for (const tString in groups) {
+        const t = Number(tString);
+        groups[t].forEach((p, idx) => {
+          p.spot = (idx + 1) as 1 | 2 | 3 | 4;
+        });
+      }
+
       for (const p of validatedParticipants) {
         await db.participants.update(p.id!, {
-          tanda: p.tanda
+          tanda: p.tanda,
+          spot: p.tanda ? p.spot : undefined,
+          sector: undefined
         });
       }
 

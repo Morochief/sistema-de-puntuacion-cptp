@@ -709,22 +709,24 @@ function openPrintModal(htmlContent: string, title: string): void {
   `;
 
   backdrop.innerHTML = `
-    <div style="background:#0f172a;border-bottom:1px solid #334155;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1rem;color:#ffffff;">🖨️ Vista Previa de Impresión</span>
-        <span style="font-size:0.78rem;color:#94a3b8;font-weight:600;">${title}</span>
+    <div style="width: 95%; max-width: 1100px; height: 85vh; background: #0f172a; border: 1.5px solid #475569; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+      <div style="background:#0f172a;border-bottom:1px solid #334155;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:0.95rem;color:#ffffff;"> Vista Previa</span>
+          <span style="font-size:0.75rem;color:#94a3b8;font-weight:600;">${title}</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button id="btn-do-print" class="btn-primary-custom" style="padding:6px 14px;background:#0056b3;color:#ffffff;font-weight:bold;border-radius:8px;font-size:0.8rem;cursor:pointer;">
+            Imprimir
+          </button>
+          <button id="btn-close-print" class="btn-ghost-custom" style="padding:6px 12px;color:#cbd5e1;border-color:#475569;font-weight:bold;font-size:0.8rem;cursor:pointer;">
+            Cerrar
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <button id="btn-do-print" class="btn-primary-custom" style="padding:8px 18px;background:#0056b3;color:#ffffff;font-weight:bold;border-radius:8px;font-size:0.88rem;cursor:pointer;">
-          🖨️ Imprimir
-        </button>
-        <button id="btn-close-print" class="btn-ghost-custom" style="padding:8px 14px;color:#cbd5e1;border-color:#475569;font-weight:bold;font-size:0.88rem;cursor:pointer;">
-          ✕ Cerrar
-        </button>
+      <div style="flex:1;background:#ffffff;overflow:hidden;position:relative;">
+        <iframe id="print-iframe" style="width:100%;height:100%;border:none;background:#ffffff;" title="Planilla de impresion"></iframe>
       </div>
-    </div>
-    <div style="flex:1;background:#ffffff;border-radius:0 0 12px 12px;overflow:hidden;position:relative;">
-      <iframe id="print-iframe" style="width:100%;height:100%;border:none;background:#ffffff;" title="Planilla de impresión"></iframe>
     </div>
   `;
 

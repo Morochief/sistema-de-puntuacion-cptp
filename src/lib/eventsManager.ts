@@ -34,8 +34,8 @@ export async function getFilteredEvents(options: EventFilterOptions): Promise<{
 
   // 2. Ordenamiento
   allEvents.sort((a, b) => {
-    if (options.sortBy === 'date_desc') return b.createdAt - a.createdAt;
-    if (options.sortBy === 'date_asc') return a.createdAt - b.createdAt;
+    if (options.sortBy === 'date_desc') return b.date.localeCompare(a.date);
+    if (options.sortBy === 'date_asc') return a.date.localeCompare(b.date);
     if (options.sortBy === 'name_asc') return a.name.localeCompare(b.name);
     if (options.sortBy === 'name_desc') return b.name.localeCompare(a.name);
     return 0;
