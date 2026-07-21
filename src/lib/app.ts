@@ -793,7 +793,18 @@ async function renderEvent(eventId: string): Promise<void> {
     try {
      await db.participants.delete(pid);
      await db.series.where('participantId').equals(pid).delete();
-     showToast('Inscripción eliminada', 'info');
+
+     // Reordenar secuencialmente los participantes restantes del evento
+     const restantes = await db.participants.where('eventId').equals(id).toArray();
+     restantes.sort((a, b) => a.competitorNumber - b.competitorNumber);
+     for (let i = 0; i < restantes.length; i++) {
+       const nuevoNum = i + 1;
+       if (restantes[i].competitorNumber !== nuevoNum) {
+         await db.participants.update(restantes[i].id!, { competitorNumber: nuevoNum });
+       }
+     }
+
+     showToast('Inscripción eliminada. Tiradores reordenados consecutivamente.', 'info');
      // recargar datos y UI
      participants = await db.participants.where('eventId').equals(id).toArray();
      allSeries = await db.series.where('eventId').equals(id).toArray();
