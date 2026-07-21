@@ -38,6 +38,38 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     let participantsSynced = 0;
     let seriesSynced = 0;
 
+    // ── 0. Borrar en la nube los registros que fueron eliminados localmente ──
+    const localEventIds = new Set(localEvents.map(e => toDeterministicUuid(e.id, 0)));
+    const localParticipantIds = new Set(localParticipants.map(p => toDeterministicUuid(p.id, 1)));
+    const localSeriesIds = new Set(localSeries.map(s => toDeterministicUuid(s.id, 2)));
+
+    // Borrar Series
+    const { data: cloudSeriesIds } = await supabase.from('series').select('id');
+    if (cloudSeriesIds) {
+      const sToDelete = cloudSeriesIds.map(s => s.id).filter(id => !localSeriesIds.has(id));
+      if (sToDelete.length > 0) {
+        await supabase.from('series').delete().in('id', sToDelete);
+      }
+    }
+
+    // Borrar Participantes
+    const { data: cloudParticipantIds } = await supabase.from('participants').select('id');
+    if (cloudParticipantIds) {
+      const pToDelete = cloudParticipantIds.map(p => p.id).filter(id => !localParticipantIds.has(id));
+      if (pToDelete.length > 0) {
+        await supabase.from('participants').delete().in('id', pToDelete);
+      }
+    }
+
+    // Borrar Eventos
+    const { data: cloudEventIds } = await supabase.from('events').select('id');
+    if (cloudEventIds) {
+      const eToDelete = cloudEventIds.map(e => e.id).filter(id => !localEventIds.has(id));
+      if (eToDelete.length > 0) {
+        await supabase.from('events').delete().in('id', eToDelete);
+      }
+    }
+
     // 1. Sincronizar Eventos
     if (localEvents.length > 0) {
       const eventsData = localEvents.map(e => ({
@@ -66,7 +98,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         category: p.category || null,
         tanda: p.tanda || null,
         spot: p.spot || null,
-        tie_rank: p.tieRank || null
+        tie_rank: p.tieRank || null,
+        status: p.status || 'active'
       }));
 
       const { error: pErr } = await supabase
