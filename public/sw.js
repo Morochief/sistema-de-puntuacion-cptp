@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cptp-scoring-cache-v3';
+const CACHE_NAME = 'cptp-scoring-cache-v4';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -46,8 +46,13 @@ self.addEventListener('fetch', (event) => {
     // Si es una petición de navegación (abrir la página principal / o rutas)
     if (event.request.mode === 'navigate') {
       event.respondWith(
-        caches.match('/index.html').then((cachedResponse) => {
-          return cachedResponse || fetch(event.request);
+        fetch(event.request).then((networkResponse) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put('/index.html', networkResponse.clone());
+            return networkResponse;
+          });
+        }).catch(() => {
+          return caches.match('/index.html');
         })
       );
       return;
