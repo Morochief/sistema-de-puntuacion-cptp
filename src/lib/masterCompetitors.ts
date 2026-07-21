@@ -15,10 +15,11 @@ export async function getAllMasterCompetitors(): Promise<MasterCompetitor[]> {
 
 export async function addMasterCompetitor(name: string, category = '', phone = ''): Promise<number> {
   const trimmedName = name.trim();
-  if (!trimmedName) throw new Error('El nombre no puede estar vacío.');
+  if (!trimmedName) throw new Error('El nombre no puede estar vacio.');
 
-  // Verificar si ya existe en el padrón para evitar duplicaciones
-  const existing = await db.masterCompetitors.where('name').equalsIgnoreCase(trimmedName).first();
+  // Verificar si ya existe en el padrón (búsqueda case-insensitive en memoria)
+  const all = await db.masterCompetitors.toArray();
+  const existing = all.find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
   if (existing) {
     return existing.id!;
   }
@@ -49,31 +50,28 @@ export async function migrateParticipantsToPadron(): Promise<number> {
     const allParticipants = await db.participants.toArray();
     if (allParticipants.length === 0) return 0;
 
-    let added = 0;
+    // Cargar el padrón actual una sola vez (más eficiente que consultar por cada participante)
+    const currentPadron = await db.masterCompetitors.toArray();
+    const padronNames = new Set(currentPadron.map(c => c.name.toLowerCase()));
 
-    // Procesar en batch, agrupando por nombre único (case-insensitive)
-    const seen = new Set<string>();
+    let added = 0;
+    const seenInBatch = new Set<string>();
 
     for (const p of allParticipants) {
-      const nameLower = p.name.trim().toLowerCase();
-      if (!nameLower || seen.has(nameLower)) continue;
-      seen.add(nameLower);
+      const nameTrimmed = p.name.trim();
+      const nameLower = nameTrimmed.toLowerCase();
+      if (!nameLower || seenInBatch.has(nameLower) || padronNames.has(nameLower)) continue;
 
-      // Verificar si ya existe en el padrón
-      const existing = await db.masterCompetitors
-        .where('name')
-        .equalsIgnoreCase(p.name.trim())
-        .first();
+      seenInBatch.add(nameLower);
+      padronNames.add(nameLower); // evitar duplicar dentro del mismo batch
 
-      if (!existing) {
-        await db.masterCompetitors.add({
-          name: p.name.trim(),
-          category: p.category?.trim() || '',
-          phone: '',
-          createdAt: Date.now()
-        });
-        added++;
-      }
+      await db.masterCompetitors.add({
+        name: nameTrimmed,
+        category: p.category?.trim() || '',
+        phone: '',
+        createdAt: Date.now()
+      });
+      added++;
     }
 
     return added;
