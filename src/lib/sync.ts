@@ -212,6 +212,20 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           spot: p.spot || undefined,
           tieRank: p.tie_rank || undefined
         });
+
+        // ─ Alimentar Padrón Maestro local silenciosamente ─
+        try {
+          const existing = await db.masterCompetitors.where('name').equalsIgnoreCase(p.name).first();
+          if (!existing) {
+            await db.masterCompetitors.add({
+              name: p.name,
+              category: p.category || 'General',
+              createdAt: Date.now()
+            });
+          }
+        } catch (err) {
+          console.warn('[Sync] No se pudo agregar al padrón maestro:', err);
+        }
       }
     }
 
