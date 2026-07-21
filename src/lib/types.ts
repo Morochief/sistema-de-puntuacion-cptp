@@ -15,6 +15,8 @@ export interface Participant {
   tanda?: number; // 1, 2, 3 o 4
   category?: string;
   tieRank?: number;
+  status?: 'active' | 'dq' | 'dns'; // Estado del competidor (Activo, Descalificado, No presentado)
+  paymentStatus?: 'paid' | 'pending' | 'exempt'; // Estado de inscripción (Abonado, Pendiente, Exento)
 }
 
 export interface Series {
@@ -32,5 +34,14 @@ export interface ShootingEvent {
   name: string;
   date: string; // ISO date
   location: string;
+  championshipDate?: string; // Ej: "1ª Fecha", "2ª Fecha", "Final"
+  createdAt: number;
+}
+
+export interface MasterCompetitor {
+  id?: number;
+  name: string;
+  category?: string;
+  phone?: string;
   createdAt: number;
 }

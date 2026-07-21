@@ -1,10 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ShootingEvent, Participant, Series } from './types';
+import type { ShootingEvent, Participant, Series, MasterCompetitor } from './types';
 
 const db = new Dexie('cptpScoring') as Dexie & {
   events: EntityTable<ShootingEvent, 'id'>;
   participants: EntityTable<Participant, 'id'>;
   series: EntityTable<Series, 'id'>;
+  masterCompetitors: EntityTable<MasterCompetitor, 'id'>;
 };
 
 // Historial de versiones anteriores para compatibilidad
@@ -24,7 +25,6 @@ db.version(3).stores({
 });
 
 // Versión 4: Esquema con múltiples competidores e inscripción/sorteo.
-// Migra el participante único anterior como "Competidor #1" del evento y vincula sus series.
 db.version(4).stores({
   events: '++id, date, createdAt',
   participants: '++id, eventId, competitorNumber',
@@ -33,7 +33,6 @@ db.version(4).stores({
   const events = await tx.table('events').toArray();
   for (const e of events) {
     const oldName = (e as any).participant || 'Tirador';
-    // Crear participante único v4
     const pId = await tx.table('participants').add({
       eventId: e.id!,
       name: oldName,
@@ -43,7 +42,6 @@ db.version(4).stores({
       spot: 1
     } as Participant);
 
-    // Actualizar series de este evento para apuntar al participante
     await tx.table('series')
       .where('eventId')
       .equals(e.id!)
@@ -51,6 +49,14 @@ db.version(4).stores({
         s.participantId = pId;
       });
   }
+});
+
+// Versión 5: Esquema con Padrón Maestro de Tiradores y nuevos campos de estado/pago/fecha.
+db.version(5).stores({
+  events: '++id, date, createdAt',
+  participants: '++id, eventId, competitorNumber, status, paymentStatus',
+  series: '++id, eventId, participantId, seriesNumber',
+  masterCompetitors: '++id, &name, createdAt',
 });
 
 export { db };

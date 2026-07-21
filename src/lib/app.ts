@@ -19,6 +19,9 @@ import { db } from './db';
 import type { ShootingEvent, Participant, Series, Shot } from './types';
 import { printSeriesCard, printEventCards, printRankingCard } from './print';
 import html2canvas from 'html2canvas';
+import { getFilteredEvents, showEditEventModal } from './eventsManager';
+import { renderMasterCompetitorsModal, addMasterCompetitor } from './masterCompetitors';
+import { applySpecialFamilySeedingRules, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
 
 (window as any).downloadElementAsPng = async (el: HTMLElement, filename: string) => {
  showToast('Generando imagen de alta calidad…', 'info', 4000);
@@ -67,12 +70,10 @@ function formatDate(isoDate: string): string {
  } catch { return isoDate; }
 }
 
-// ── Router ──────────────────────────────────────────────────────────────────
-
-
-
-
-// ── Dashboard ──────────────────────────────────────────────────────────────
+// ── Router ────�let dashSearchQuery = '';
+let dashSortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' = 'date_desc';
+let dashPage = 1;
+const DASH_ITEMS_PER_PAGE = 6;
 
 async function renderDashboard(): Promise<void> {
  const container = document.getElementById('event-list-container');
@@ -80,9 +81,14 @@ async function renderDashboard(): Promise<void> {
 
  container.innerHTML = `<div style="text-align:center;padding:32px;color:#334155;font-size:0.85rem;">Cargando…</div>`;
 
- let events: ShootingEvent[];
+ let filteredData;
  try {
-  events = await db.events.orderBy('createdAt').reverse().toArray();
+  filteredData = await getFilteredEvents({
+   searchQuery: dashSearchQuery,
+   sortBy: dashSortBy,
+   page: dashPage,
+   itemsPerPage: DASH_ITEMS_PER_PAGE
+  });
  } catch (err) {
   console.error('[DB] Error cargando eventos:', err);
   container.innerHTML = `<div class="empty-state"><div class="empty-icon"></div>
@@ -90,15 +96,40 @@ async function renderDashboard(): Promise<void> {
   return;
  }
 
- let listHtml = '';
+ const { events, totalItems, totalPages } = filteredData;
+
+ let listHtml = `
+  <!-- Barra de Filtros, Ordenamiento y Padrón Maestro -->
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <input type="text" id="dash-search-input" value="${esc(dashSearchQuery)}"
+        placeholder="🔍 Buscar por nombre, ubicación o fecha de campeonato…"
+        class="field-input" style="flex:2;min-width:200px;padding:9px 14px;font-size:0.9rem;" />
+    
+    <select id="dash-sort-select" style="padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:0.88rem;background:#ffffff;color:#0f172a;font-weight:600;">
+     <option value="date_desc" ${dashSortBy === 'date_desc' ? 'selected' : ''}>Fecha (Más reciente)</option>
+     <option value="date_asc" ${dashSortBy === 'date_asc' ? 'selected' : ''}>Fecha (Más antigua)</option>
+     <option value="name_asc" ${dashSortBy === 'name_asc' ? 'selected' : ''}>Nombre (A-Z)</option>
+     <option value="name_desc" ${dashSortBy === 'name_desc' ? 'selected' : ''}>Nombre (Z-A)</option>
+    </select>
+
+    <button id="btn-open-master-padron" class="btn-ghost-custom"
+        style="padding:9px 16px;border:1.5px solid #0056b3;color:#0056b3;font-weight:700;border-radius:10px;background:#ffffff;"
+        title="Administrar el Padrón Maestro de Tiradores">
+      🎯 Padrón Maestro
+    </button>
+   </div>
+  </div>
+ `;
+
  if (events.length === 0) {
-  listHtml = `<div class="empty-state">
+  listHtml += `<div class="empty-state">
    <div class="empty-icon" aria-hidden="true"></div>
-   <p style="color:#64748b;font-size:0.95rem;margin:0">No hay eventos aún.</p>
-   <p style="color:#475569;font-size:0.82rem;margin:8px 0 0">Creá tu primer evento para empezar.</p>
+   <p style="color:#64748b;font-size:0.95rem;margin:0">No se encontraron eventos.</p>
+   <p style="color:#475569;font-size:0.82rem;margin:8px 0 0">Probá cambiando los filtros o creá un nuevo evento.</p>
   </div>`;
  } else {
-  listHtml = `<div style="display:flex;flex-direction:column;gap:12px;">${events.map((e) => `
+  listHtml += `<div style="display:flex;flex-direction:column;gap:12px;">${events.map((e) => `
    <article class="event-card" data-event-id="${e.id}" role="button" tabindex="0"
         aria-label="Evento: ${esc(e.name)}, ${formatDate(e.date)}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
@@ -108,24 +139,42 @@ async function renderDashboard(): Promise<void> {
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
        <span style="font-size:0.78rem;color:#64748b;">${formatDate(e.date)}</span>
        ${e.location ? `<span style="color:#cbd5e1;font-size:0.7rem;">·</span><span style="font-size:0.78rem;color:#64748b;">${esc(e.location)}</span>` : ''}
+       ${e.championshipDate ? `<span style="font-size:0.72rem;background:#eff6ff;color:#0056b3;padding:2px 6px;border-radius:4px;font-weight:600;">${esc(e.championshipDate)}</span>` : ''}
       </div>
      </div>
-     <button class="btn-danger-custom" data-delete-id="${e.id}"
-         aria-label="Eliminar evento ${esc(e.name)}"
-         onclick="event.stopPropagation()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="2.5" aria-hidden="true">
-       <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/>
-       <path d="M10,11v6M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
-      </svg>
-     </button>
+     <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+      <button class="btn-ghost-custom" data-edit-event-id="${e.id}"
+          aria-label="Editar evento ${esc(e.name)}"
+          onclick="event.stopPropagation()"
+          style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">✏️ Editar</button>
+      <button class="btn-danger-custom" data-delete-id="${e.id}"
+          aria-label="Eliminar evento ${esc(e.name)}"
+          onclick="event.stopPropagation()">
+       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" aria-hidden="true">
+        <polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14a2,2,0,0,1-2,2H8a2,2,0,0,1-2-2L5,6"/>
+        <path d="M10,11v6M14,11v6"/><path d="M9,6V4a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1v2"/>
+       </svg>
+      </button>
+     </div>
     </div>
    </article>`).join('')}</div>`;
+
+  // Paginador
+  listHtml += `
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:0.85rem;color:#64748b;">
+    <span>Página <b>${dashPage}</b> de <b>${totalPages}</b> (${totalItems} eventos)</span>
+    <div style="display:flex;gap:6px;">
+     <button id="dash-prev-page" ${dashPage === 1 ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">← Anterior</button>
+     <button id="dash-next-page" ${dashPage >= totalPages ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">Siguiente →</button>
+    </div>
+   </div>
+  `;
  }
 
- // Agregar el botón para vaciar base de datos al final
+ // Agregar el panel inferior para importar, vaciar base de datos + cloud sync
  listHtml += `
-  <div style="margin-top:40px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:24px;width:100%;">
+  <div style="margin-top:32px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:24px;width:100%;">
    <button id="btn-import-backup" class="btn-ghost-custom"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #0056b3;
            border-radius:10px;color:#0056b3;font-weight:700;
@@ -140,10 +189,54 @@ async function renderDashboard(): Promise<void> {
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
      Vaciar Base de Datos
    </button>
+   <button id="btn-cloud-upload" class="btn-ghost-custom"
+       style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #22c55e;
+           border-radius:10px;color:#22c55e;font-weight:700;
+           cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
+       title="Subir base de datos local a la nube (Supabase)">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+     Subir a la Nube
+   </button>
+   <button id="btn-cloud-download" class="btn-ghost-custom"
+       style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #3b82f6;
+           border-radius:10px;color:#3b82f6;font-weight:700;
+           cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
+       title="Bajar datos oficiales de la nube a este dispositivo">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+     Bajar de la Nube
+   </button>
   </div>`;
 
- // Renderizar al DOM una sola vez
+ // Renderizar al DOM
  container.innerHTML = listHtml;
+
+ // Bind filtro de búsqueda
+ const searchInp = container.querySelector('#dash-search-input') as HTMLInputElement;
+ searchInp?.addEventListener('input', () => {
+  dashSearchQuery = searchInp.value;
+  dashPage = 1;
+  renderDashboard();
+ });
+
+ // Bind ordenamiento
+ const sortSel = container.querySelector('#dash-sort-select') as HTMLSelectElement;
+ sortSel?.addEventListener('change', () => {
+  dashSortBy = sortSel.value as any;
+  renderDashboard();
+ });
+
+ // Bind paginador
+ container.querySelector('#dash-prev-page')?.addEventListener('click', () => {
+  if (dashPage > 1) { dashPage--; renderDashboard(); }
+ });
+ container.querySelector('#dash-next-page')?.addEventListener('click', () => {
+  if (dashPage < totalPages) { dashPage++; renderDashboard(); }
+ });
+
+ // Bind Padrón Maestro button
+ container.querySelector('#btn-open-master-padron')?.addEventListener('click', () => {
+  renderMasterCompetitorsModal();
+ });
 
  // Vincular eventos a las tarjetas de eventos
  if (events.length > 0) {
@@ -151,6 +244,7 @@ async function renderDashboard(): Promise<void> {
    const card = el as HTMLElement;
    const onClick = (e: Event) => {
     if ((e.target as HTMLElement).closest('[data-delete-id]')) return;
+    if ((e.target as HTMLElement).closest('[data-edit-event-id]')) return;
     navigate(`/event/${card.dataset.eventId}`);
    };
    card.addEventListener('click', onClick);
@@ -189,6 +283,15 @@ async function renderDashboard(): Promise<void> {
     }
    });
   });
+
+  // Vincular botón de editar evento
+  container.querySelectorAll('[data-edit-event-id]').forEach((el) => {
+   el.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const eid = Number((e.currentTarget as HTMLElement).dataset.editEventId);
+    await showEditEventModal(eid, () => renderDashboard());
+   });
+  });
  }
 
  // Vincular botón de importar backup
@@ -222,14 +325,17 @@ async function renderDashboard(): Promise<void> {
 
     showToast('Base de datos restablecida con éxito.', 'success');
     renderDashboard();
-  } catch (err) {
-   console.error('[DB] Error restableciendo:', err);
-   showToast('Error al limpiar la base de datos.', 'error');
-  }
+   } catch (err) {
+    console.error('[DB] Error restableciendo:', err);
+    showToast('Error al limpiar la base de datos.', 'error');
+   }
  });
 
  const btnNew = document.getElementById('btn-new-event');
  if (btnNew) btnNew.onclick = () => navigate('/new');
+
+ // Re-configurar cloud sync (botones en dashboard)
+ setupCloudSync();
 }
 
 // ── Nuevo Evento ──────────────────────────────────────────────────────────
@@ -270,6 +376,14 @@ async function renderNewEvent(): Promise<void> {
          value="${today}" required />
     </div>
     <div class="field-group">
+     <label class="field-label" for="field-champ-date">
+      Fecha del Campeonato <span style="font-weight:400;color:#475569;">(ej: 1ª Fecha .22 LR)</span>
+     </label>
+     <input type="text" id="field-champ-date" name="championshipDate" class="field-input"
+         placeholder="Ej: 1ª Fecha .22 LR"
+         maxlength="80" autocomplete="off" />
+    </div>
+    <div class="field-group">
      <label class="field-label" for="field-location">
       Ubicación <span style="font-weight:400;color:#475569;">(opcional)</span>
      </label>
@@ -298,11 +412,12 @@ async function renderNewEvent(): Promise<void> {
   e.preventDefault();
   const name   = (document.getElementById('field-name') as HTMLInputElement).value.trim();
   const date   = (document.getElementById('field-date') as HTMLInputElement).value;
+  const championshipDate = (document.getElementById('field-champ-date') as HTMLInputElement).value.trim();
   const location = (document.getElementById('field-location') as HTMLInputElement).value.trim();
   if (!name || !date) { showToast('Completá nombre y fecha.', 'error'); return; }
   if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Guardando…'; }
   try {
-   const eid = await db.events.add({ name, date, location, createdAt: Date.now() });
+   const eid = await db.events.add({ name, date, location, championshipDate, createdAt: Date.now() });
    navigate(`/event/${eid}`);
   } catch (err) {
    console.error('[DB] Error creando evento:', err);
@@ -403,7 +518,11 @@ async function renderEvent(eventId: string): Promise<void> {
     </div>
     <div style="font-size:0.72rem;color:#475569;margin-top:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
      <span>Asignación de número aleatoria al inscribir.</span>
-     <div style="display:flex;gap:6px;">
+     <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button id="btn-padron-selector" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(0,86,179,0.35);color:#0056b3;"
+          title="Seleccionar tirador del Padrón Maestro" ${participants.length >= 32 ? 'disabled' : ''}>
+        Padrón Maestro
+      </button>
       <button id="btn-seed-participants" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);">
         Cargar Tiradores Demo
       </button>
@@ -423,14 +542,28 @@ async function renderEvent(eventId: string): Promise<void> {
        Sorteo de Puestos
       </h3>
       <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">
-       Sortea aleatoriamente en 8 Tandas (Spots 1-4).
+       Sortea aleatoriamente en 8 Tandas (Spots 1-4). Reglas especiales de la organización aplicadas automáticamente.
       </p>
      </div>
-     <button id="btn-shuffle-sorteo" class="btn-primary-custom" 
-         style="background:#d97706;color:#ffffff;border-color:#d97706;padding:12px 20px;"
-         ${participants.length === 0 ? 'disabled' : ''}>
-       Sortear Posiciones
-     </button>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="btn-shuffle-sorteo" class="btn-primary-custom" 
+          style="background:#d97706;color:#ffffff;border-color:#d97706;padding:12px 20px;"
+          ${participants.length === 0 ? 'disabled' : ''}>
+        Sortear Posiciones
+      </button>
+      <button id="btn-reorder-heats" class="btn-ghost-custom"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(245,158,11,0.35);color:#d97706;"
+          ${participants.length === 0 ? 'disabled' : ''}
+          title="Reasignar tandas manualmente">
+        Reordenar Manual
+      </button>
+      <button id="btn-undo-sorteo" class="btn-ghost-custom"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
+          ${participants.some(p => p.tanda !== undefined) ? '' : 'disabled'}
+          title="Deshacer sorteo y limpiar todas las asignaciones de tandas">
+        Deshacer Sorteo
+      </button>
+     </div>
     </div>
    </div>
 
@@ -500,6 +633,11 @@ async function renderEvent(eventId: string): Promise<void> {
  });
 
  // --- RENDER DE LISTA DE INSCRITOS ---
+ let pFilterTanda = 'all';
+ let pFilterStatus = 'all';
+ let pFilterPayment = 'all';
+ let pSortBy = 'num';
+
  function renderListaInscritos(): void {
   const listEl = document.getElementById('lista-inscritos');
   if (!listEl) return;
@@ -510,26 +648,136 @@ async function renderEvent(eventId: string): Promise<void> {
    return;
   }
 
-  listEl.innerHTML = participants.map((p) => `
-   <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-         background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
-    <div style="display:flex;align-items:center;gap:10px;">
-     <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
-            background:#f1f5f9;padding:4px 8px;border-radius:6px;color:#0056b3;">
-      #${p.competitorNumber}
-     </span>
-     <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>${p.category ? `<span style="font-size:0.75rem;color:#64748b;margin-left:4px;">(${esc(p.category)})</span>` : ''}
-     ${p.tanda ? `
-      <span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;
-             padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">
-       T${p.tanda} · P${p.spot}
-      </span>` : ''}
+  // Filtrar
+  let displayed = [...participants];
+  if (pFilterTanda !== 'all') {
+   if (pFilterTanda === 'none') {
+    displayed = displayed.filter(p => p.tanda === undefined);
+   } else {
+    displayed = displayed.filter(p => p.tanda === Number(pFilterTanda));
+   }
+  }
+  if (pFilterStatus !== 'all') {
+   displayed = displayed.filter(p => (p.status || 'active') === pFilterStatus);
+  }
+  if (pFilterPayment !== 'all') {
+   displayed = displayed.filter(p => (p.paymentStatus || 'paid') === pFilterPayment);
+  }
+
+  // Ordenar
+  displayed.sort((a, b) => {
+   if (pSortBy === 'name') return a.name.localeCompare(b.name);
+   if (pSortBy === 'tanda') return (a.tanda ?? 99) - (b.tanda ?? 99);
+   if (pSortBy === 'payment') return (a.paymentStatus || 'paid').localeCompare(b.paymentStatus || 'paid');
+   return a.competitorNumber - b.competitorNumber;
+  });
+
+  const filterBarHtml = `
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;background:#f8fafc;padding:10px;border-radius:10px;border:1px solid #e2e8f0;">
+    <div style="display:flex;align-items:center;gap:4px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Tanda:</label>
+     <select id="p-filter-tanda" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+      <option value="all" ${pFilterTanda === 'all' ? 'selected' : ''}>Todas</option>
+      ${Array.from({ length: 8 }, (_, i) => `<option value="${i + 1}" ${pFilterTanda === String(i + 1) ? 'selected' : ''}>Tanda ${i + 1}</option>`).join('')}
+      <option value="none" ${pFilterTanda === 'none' ? 'selected' : ''}>Sin Tanda</option>
+     </select>
     </div>
-    <button class="btn-danger-custom" data-remove-participant="${p.id}"
-        aria-label="Desinscribir a ${esc(p.name)}" style="padding:6px;">
-     
-    </button>
-   </div>`).join('');
+
+    <div style="display:flex;align-items:center;gap:4px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Estado:</label>
+     <select id="p-filter-status" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+      <option value="all" ${pFilterStatus === 'all' ? 'selected' : ''}>Todos</option>
+      <option value="active" ${pFilterStatus === 'active' ? 'selected' : ''}>Activos</option>
+      <option value="dq" ${pFilterStatus === 'dq' ? 'selected' : ''}>DQ</option>
+      <option value="dns" ${pFilterStatus === 'dns' ? 'selected' : ''}>DNS</option>
+     </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:4px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Pago:</label>
+     <select id="p-filter-payment" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+      <option value="all" ${pFilterPayment === 'all' ? 'selected' : ''}>Todos</option>
+      <option value="paid" ${pFilterPayment === 'paid' ? 'selected' : ''}>Abonados</option>
+      <option value="pending" ${pFilterPayment === 'pending' ? 'selected' : ''}>Pendientes</option>
+     </select>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Orden:</label>
+     <select id="p-sort-by" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+      <option value="num" ${pSortBy === 'num' ? 'selected' : ''}>Nº Competidor</option>
+      <option value="name" ${pSortBy === 'name' ? 'selected' : ''}>Nombre (A-Z)</option>
+      <option value="tanda" ${pSortBy === 'tanda' ? 'selected' : ''}>Por Tanda</option>
+      <option value="payment" ${pSortBy === 'payment' ? 'selected' : ''}>Estado de Pago</option>
+     </select>
+    </div>
+   </div>
+  `;
+
+  const rowsHtml = displayed.length > 0
+   ? displayed.map((p) => {
+    const statusBadge = p.status === 'dq'
+     ? `<span style="font-size:0.65rem;background:#fee2e2;color:#b7201c;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #fca5a5;">DQ</span>`
+     : p.status === 'dns'
+     ? `<span style="font-size:0.65rem;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #fde68a;">DNS</span>`
+     : '';
+    const payBadge = p.paymentStatus === 'pending'
+     ? `<span style="font-size:0.65rem;background:#fff7ed;color:#ea580c;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #fed7aa;">$ Pendiente</span>`
+     : p.paymentStatus === 'paid'
+     ? `<span style="font-size:0.65rem;background:#f0fdf4;color:#16a34a;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #bbf7d0;">$ Abonado</span>`
+     : '';
+    return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+          background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
+     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
+             background:#f1f5f9;padding:4px 8px;border-radius:6px;color:#0056b3;">
+       #${p.competitorNumber}
+      </span>
+      <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
+      ${p.category ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
+      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · P${p.spot}</span>` : ''}
+      ${statusBadge}${payBadge}
+     </div>
+     <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+      <select data-set-status="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado del competidor">
+       <option value="active" ${!p.status || p.status === 'active' ? 'selected' : ''}>Activo</option>
+       <option value="dq" ${p.status === 'dq' ? 'selected' : ''}>DQ (Descalif.)</option>
+       <option value="dns" ${p.status === 'dns' ? 'selected' : ''}>DNS (No se presentó)</option>
+      </select>
+      <select data-set-payment="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado de pago">
+       <option value="paid" ${!p.paymentStatus || p.paymentStatus === 'paid' ? 'selected' : ''}>$ Abonado</option>
+       <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
+       <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
+      </select>
+      <button class="btn-danger-custom" data-remove-participant="${p.id}"
+          aria-label="Desinscribir a ${esc(p.name)}" style="padding:6px;">
+       🗑️
+      </button>
+     </div>
+    </div>`;
+   }).join('')
+   : `<div style="text-align:center;padding:16px;color:#94a3b8;font-size:0.85rem;">No se encontraron competidores con los filtros seleccionados.</div>`;
+
+  listEl.innerHTML = filterBarHtml + `<div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>`;
+
+  // Bind dropdown filters
+  (listEl.querySelector('#p-filter-tanda') as HTMLSelectElement)?.addEventListener('change', (e) => {
+   pFilterTanda = (e.target as HTMLSelectElement).value;
+   renderListaInscritos();
+  });
+  (listEl.querySelector('#p-filter-status') as HTMLSelectElement)?.addEventListener('change', (e) => {
+   pFilterStatus = (e.target as HTMLSelectElement).value;
+   renderListaInscritos();
+  });
+  (listEl.querySelector('#p-filter-payment') as HTMLSelectElement)?.addEventListener('change', (e) => {
+   pFilterPayment = (e.target as HTMLSelectElement).value;
+   renderListaInscritos();
+  });
+  (listEl.querySelector('#p-sort-by') as HTMLSelectElement)?.addEventListener('change', (e) => {
+   pSortBy = (e.target as HTMLSelectElement).value as any;
+   renderListaInscritos();
+  });
 
   // Bind desinscribir
   listEl.querySelectorAll('[data-remove-participant]').forEach((btn) => {
@@ -560,6 +808,33 @@ async function renderEvent(eventId: string): Promise<void> {
      console.error('[DB] Error desinscribiendo:', err);
      showToast('Error al eliminar la inscripción', 'error');
     }
+   });
+  });
+
+  // Bind cambio de estado (DQ / DNS / Active)
+  listEl.querySelectorAll('[data-set-status]').forEach((sel) => {
+   sel.addEventListener('change', async (e) => {
+    const pid = Number((e.currentTarget as HTMLElement).dataset.setStatus);
+    const val = (e.currentTarget as HTMLSelectElement).value as 'active' | 'dq' | 'dns';
+    await db.participants.update(pid, { status: val });
+    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+    renderListaInscritos();
+    renderListaSeries();
+    showToast(val === 'dq' ? 'Competidor DQ (Descalificado)' : val === 'dns' ? 'Competidor DNS (No se presentó)' : 'Competidor reactivado', val === 'active' ? 'success' : 'info');
+   });
+  });
+
+  // Bind cambio de estado de pago
+  listEl.querySelectorAll('[data-set-payment]').forEach((sel) => {
+   sel.addEventListener('change', async (e) => {
+    const pid = Number((e.currentTarget as HTMLElement).dataset.setPayment);
+    const val = (e.currentTarget as HTMLSelectElement).value as 'paid' | 'pending' | 'exempt';
+    await db.participants.update(pid, { paymentStatus: val });
+    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+    renderListaInscritos();
+    showToast(val === 'paid' ? 'Pago registrado como Abonado' : val === 'pending' ? 'Pago marcado como Pendiente' : 'Competidor marcado como Exento', 'info');
    });
   });
  }
@@ -803,8 +1078,13 @@ async function renderEvent(eventId: string): Promise<void> {
     category: categoryVal || undefined,
     competitorNumber: chosenNumber,
     tanda: freeSpot?.tanda,
-    spot: freeSpot?.spot
+    spot: freeSpot?.spot,
+    status: 'active',
+    paymentStatus: 'paid'
    });
+
+   // Agregar al Padrón Maestro silenciosamente (sin duplicar)
+   addMasterCompetitor(name, categoryVal).catch(err => console.warn('[Padrón] No se pudo agregar:', err));
 
    input.value = '';
    catInput.value = '';
@@ -827,6 +1107,19 @@ async function renderEvent(eventId: string): Promise<void> {
    console.error('[DB] Error inscribiendo competidor:', err);
    showToast('Error al guardar la inscripción.', 'error');
   }
+ });
+
+ // --- HANDLER: PADRÓN MAESTRO SELECTOR ---
+ document.getElementById('btn-padron-selector')?.addEventListener('click', async () => {
+  if (participants.length >= 32) { showToast('Capacidad máxima alcanzada.', 'error'); return; }
+  await renderMasterCompetitorsModal(async (mc) => {
+   // Pre-fill the name input from Padrón selection
+   const nameInput = document.getElementById('field-participant-name') as HTMLInputElement | null;
+   const catInput2 = document.getElementById('field-participant-category') as HTMLInputElement | null;
+   if (nameInput) nameInput.value = mc.name;
+   if (catInput2) catInput2.value = mc.category || '';
+   showToast(`Tirador "${mc.name}" seleccionado del Padrón. Presioná Inscribir para confirmar.`, 'info', 3500);
+  });
  });
 
  // --- HANDLER: POBLAR tiradores DEMO ---
@@ -889,10 +1182,13 @@ async function renderEvent(eventId: string): Promise<void> {
      list[i].spot = spot as 1 | 2 | 3 | 4;
     }
 
-   // 4. Guardar en Dexie
+   // 4. Aplicar reglas especiales de la familia Domínguez (Ángel y Facundo)
+   applySpecialFamilySeedingRules(list);
+
+   // 5. Guardar en Dexie
    await Promise.all(list.map(p => db.participants.put(p)));
 
-   showToast('¡Sorteo completado con éxito! ', 'success');
+   showToast('¡Sorteo completado! Reglas especiales de la organización aplicadas.', 'success');
 
    // recargar
    participants = await db.participants.where('eventId').equals(id).toArray();
@@ -904,6 +1200,27 @@ async function renderEvent(eventId: string): Promise<void> {
    console.error('[DB] Error ejecutando sorteo:', err);
    showToast('Error al guardar el sorteo.', 'error');
   }
+ });
+
+ // --- HANDLER: REORDENAR TANDAS MANUALMENTE ---
+ document.getElementById('btn-reorder-heats')?.addEventListener('click', async () => {
+  if (participants.length === 0) { showToast('No hay competidores inscritos.', 'error'); return; }
+  await showManualHeatsReorderModal(id, async () => {
+   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+   renderListaInscritos();
+   renderCuadroSorteo();
+  });
+ });
+
+ // --- HANDLER: DESHACER SORTEO ---
+ document.getElementById('btn-undo-sorteo')?.addEventListener('click', async () => {
+  await resetEventSeeding(id, async () => {
+   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+   renderListaInscritos();
+   renderCuadroSorteo();
+  });
  });
 
   // --- HANDLER: RESOLVER DESEMPATES TÁCTICO ---

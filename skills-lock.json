@@ -5,6 +5,12 @@
       "source": "smithery.ai",
       "sourceType": "well-known",
       "computedHash": "13a1fd45e77663436fe430b6acb7e4882e0a5fd04884b94f3f27497dbbe658c7"
+    },
+    "supabase-server": {
+      "source": "supabase/server",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-server/SKILL.md",
+      "computedHash": "de3068fa3b606fa50a661992ab7e3a8570d310d793b7b8a7e6ddb1a9b716b1a6"
     }
   }
 }

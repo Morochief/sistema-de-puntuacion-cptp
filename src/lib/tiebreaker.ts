@@ -86,38 +86,38 @@ export function showTieBreakerModal(
   const modalOverlay = document.createElement('div');
   modalOverlay.style.cssText = `
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(8, 13, 22, 0.9); backdrop-filter: blur(8px);
+    background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px);
     z-index: 1000; display: flex; align-items: center; justify-content: center;
     padding: 16px; font-family: 'Rajdhani', sans-serif;
   `;
 
   const modalBox = document.createElement('div');
   modalBox.style.cssText = `
-    background: #0f1724; border: 2px solid #3b82f6; border-radius: 16px;
+    background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 5px solid #b7201c; border-radius: 16px;
     width: 100%; max-width: 520px; max-height: 90vh; display: flex;
-    flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    overflow: hidden;
+    flex-direction: column; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+    overflow: hidden; color: #0f172a;
   `;
 
   const header = document.createElement('div');
   header.style.cssText = `
-    padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
-    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+    display: flex; justify-content: space-between; align-items: center; background: #f8fafc;
   `;
   header.innerHTML = `
-    <h3 style="margin:0;font-size:1.3rem;font-weight:700;color:#3b82f6;">Resolver Desempates</h3>
-    <span style="font-size:0.75rem;background:rgba(59,130,246,0.1);color:#3b82f6;padding:4px 8px;border-radius:4px;">Táctico</span>
+    <h3 style="margin:0;font-size:1.2rem;font-weight:800;color:#0056b3;font-family:'Orbitron',sans-serif;">Resolver Desempates</h3>
+    <span style="font-size:0.75rem;background:#eff6ff;color:#0056b3;padding:4px 8px;border-radius:4px;font-weight:700;">CPTP .22 LR</span>
   `;
 
   const body = document.createElement('div');
   body.style.cssText = `
-    padding: 16px; overflow-y: auto; flex: 1;
-    display: flex; flex-direction: column; gap: 20px;
+    padding: 16px 20px; overflow-y: auto; flex: 1;
+    display: flex; flex-direction: column; gap: 16px; background: #ffffff;
   `;
 
   const footer = document.createElement('div');
   footer.style.cssText = `
-    padding: 16px; border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 16px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;
     display: flex; justify-content: flex-end; gap: 12px;
   `;
 
@@ -125,12 +125,14 @@ export function showTieBreakerModal(
   btnCancel.className = 'btn-ghost-custom';
   btnCancel.textContent = 'Cancelar';
   btnCancel.style.padding = '8px 16px';
-  btnCancel.onclick = () => document.body.removeChild(modalOverlay);
+  btnCancel.onclick = () => {
+    if (modalOverlay.parentNode) modalOverlay.parentNode.removeChild(modalOverlay);
+  };
 
   const btnSave = document.createElement('button');
   btnSave.className = 'btn-primary-custom';
   btnSave.textContent = 'Aplicar Posiciones';
-  btnSave.style.padding = '8px 20px';
+  btnSave.style.cssText = 'padding:8px 20px;background:#0056b3;color:#ffffff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;';
 
   footer.appendChild(btnCancel);
   footer.appendChild(btnSave);
@@ -147,7 +149,6 @@ export function showTieBreakerModal(
     
     // Calcular el ranking general temporal en base al orden actual en el modal
     const tempRankings = participants.map(p => {
-      // Buscar si el participante está en algún grupo de trabajo del modal
       let matchedRow = null;
       let groupRef = null;
       let groupIndex = -1;
@@ -197,13 +198,13 @@ export function showTieBreakerModal(
     workingGroups.forEach((group, gIdx) => {
       const groupContainer = document.createElement('div');
       groupContainer.style.cssText = `
-        background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 12px; padding: 12px;
+        background: #f8fafc; border: 1px solid #e2e8f0;
+        border-radius: 12px; padding: 12px 14px;
       `;
 
       const groupTitle = document.createElement('div');
       groupTitle.style.cssText = `
-        font-size: 0.95rem; font-weight: 700; color: #f59e0b;
+        font-size: 0.95rem; font-weight: 700; color: #b7201c;
         margin-bottom: 10px; display: flex; justify-content: space-between;
       `;
       groupTitle.innerHTML = `
@@ -216,23 +217,22 @@ export function showTieBreakerModal(
       itemsList.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
 
       group.rows.forEach((row, rIdx) => {
-        // Encontrar la posición general del competidor
         const overallPos = tempRankings.findIndex(item => item.participant.id === row.participant.id) + 1;
 
         const item = document.createElement('div');
         item.style.cssText = `
           display: flex; align-items: center; justify-content: space-between;
-          background: #080c14; padding: 8px 12px; border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.03);
+          background: #ffffff; padding: 8px 12px; border-radius: 8px;
+          border: 1px solid #cbd5e1;
         `;
 
         const leftSide = document.createElement('div');
         leftSide.style.cssText = 'display:flex;align-items:center;gap:10px;';
         leftSide.innerHTML = `
-          <span style="font-family:monospace;font-size:0.8rem;background:#1a2436;color:#3b82f6;padding:2px 6px;border-radius:4px;" title="Posición general proyectada">
-            ${overallPos}° Lugar General
+          <span style="font-family:monospace;font-size:0.8rem;background:#eff6ff;color:#0056b3;padding:2px 6px;border-radius:4px;font-weight:bold;" title="Posición general proyectada">
+            ${overallPos}° Lugar
           </span>
-          <span style="font-weight:600;font-size:0.9rem;color:#e2e8f0;">
+          <span style="font-weight:700;font-size:0.9rem;color:#0f172a;">
             #${row.participant.competitorNumber} — ${row.participant.name}
           </span>
         `;
@@ -241,12 +241,11 @@ export function showTieBreakerModal(
         rightSide.style.cssText = 'display:flex;gap:6px;';
 
         const btnUp = document.createElement('button');
-        btnUp.style.cssText = 'background:#1a2436;color:#e2e8f0;border:none;border-radius:4px;width:28px;height:28px;cursor:pointer;font-weight:bold;';
+        btnUp.style.cssText = 'background:#e2e8f0;color:#0f172a;border:none;border-radius:4px;width:30px;height:30px;cursor:pointer;font-weight:bold;';
         btnUp.innerHTML = '▲';
         btnUp.disabled = rIdx === 0;
         if (rIdx === 0) btnUp.style.opacity = '0.3';
         btnUp.onclick = () => {
-          // Intercambiar posiciones
           const temp = group.rows[rIdx];
           group.rows[rIdx] = group.rows[rIdx - 1];
           group.rows[rIdx - 1] = temp;
@@ -254,12 +253,11 @@ export function showTieBreakerModal(
         };
 
         const btnDown = document.createElement('button');
-        btnDown.style.cssText = 'background:#1a2436;color:#e2e8f0;border:none;border-radius:4px;width:28px;height:28px;cursor:pointer;font-weight:bold;';
+        btnDown.style.cssText = 'background:#e2e8f0;color:#0f172a;border:none;border-radius:4px;width:30px;height:30px;cursor:pointer;font-weight:bold;';
         btnDown.innerHTML = '▼';
         btnDown.disabled = rIdx === group.rows.length - 1;
         if (rIdx === group.rows.length - 1) btnDown.style.opacity = '0.3';
         btnDown.onclick = () => {
-          // Intercambiar posiciones
           const temp = group.rows[rIdx];
           group.rows[rIdx] = group.rows[rIdx + 1];
           group.rows[rIdx + 1] = temp;
@@ -287,23 +285,22 @@ export function showTieBreakerModal(
       btnSave.disabled = true;
       btnSave.textContent = 'Guardando...';
 
-      // Actualizar el tieRank de cada participante en la DB
       for (const group of workingGroups) {
         for (let i = 0; i < group.rows.length; i++) {
           const participant = group.rows[i].participant;
-          // Guardar orden relativo (1, 2, 3...)
           await db.participants.update(participant.id!, { tieRank: i + 1 });
         }
       }
 
       showToast('Posiciones de desempate aplicadas con éxito.', 'success');
-      document.body.removeChild(modalOverlay);
-      onSaveCallback();
     } catch (err) {
       console.error('[tiebreaker] Error guardando desempates:', err);
       showToast('Error al guardar las posiciones.', 'error');
-      btnSave.disabled = false;
-      btnSave.textContent = 'Aplicar Posiciones';
+    } finally {
+      if (modalOverlay.parentNode) {
+        modalOverlay.parentNode.removeChild(modalOverlay);
+      }
+      onSaveCallback();
     }
   };
 }

@@ -683,15 +683,17 @@ body {
 }
 
 .cptp-modal-content {
-  background: linear-gradient(135deg, #0f1724 0%, #1a2436 100%);
-  border: 1.5px solid rgba(59, 130, 246, 0.2);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-top: 5px solid #b7201c;
   border-radius: 16px;
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
   transform: scale(var(--modal-scale));
   transition: transform var(--modal-open-dur) var(--modal-ease);
+  color: #0f172a;
 }
 .cptp-modal-backdrop.is-open .cptp-modal-content {
   transform: scale(1);
@@ -720,28 +722,22 @@ body {
     display: none !important;
   }
   .navbar-title {
-    display: none !important; /* Esconde el texto CPTP .22 LR para ganar espacio */
+    font-size: 0.95rem !important;
+  }
+  .navbar-subtitle {
+    font-size: 0.58rem !important;
   }
   .logo-right {
-    height: 38px !important; /* Achica el logo de Long Range */
+    height: 36px !important;
     width: auto !important;
   }
   .logo-left {
-    height: 38px !important; /* Achica el logo de CPTP */
+    height: 36px !important;
     width: auto !important;
   }
   .app-navbar-container {
-    height: 58px !important; /* Cabecera un poco más delgada */
+    height: 60px !important;
     gap: 4px !important;
     padding: 0 8px !important;
-  }
-  #btn-cloud-upload,
-  #btn-cloud-download {
-    padding: 4px 5px !important;
-    gap: 2px !important;
-  }
-  #btn-cloud-upload span,
-  #btn-cloud-download span {
-    font-size: 0.62rem !important;
   }
 }

@@ -285,7 +285,7 @@ function getSeriesColumnHtml(
        <span class="field-lbl">Evento</span>
        <span class="field-lbl-r">Fecha</span>
        <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-end;">
-        <span class="field-val" style="max-width:110px;overflow:hidden;">${event.name}</span>
+        <span class="field-val" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${event.name}${event.championshipDate ? ` · ${event.championshipDate}` : ''}</span>
         <span class="field-date">${formatDate(event.date)}</span>
        </div>
       </div>
@@ -489,10 +489,7 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (!win) { alert('Habilitá las ventanas emergentes para generar la planilla.'); return; }
-  win.document.write(html);
-  win.document.close();
+  openPrintModal(html, `Planilla CPTP — ${participant.name}`);
 }
 
 /** Genera y abre una planilla única que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
@@ -520,10 +517,7 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (!win) { alert('Habilitá las ventanas emergentes para generar las planillas.'); return; }
-  win.document.write(html);
-  win.document.close();
+  openPrintModal(html, `Todas las Planillas — ${event.name}`);
 }
 
 export function printRankingCard(event: ShootingEvent, rankings: { participant: Participant, totalScore: number }[]): void {
@@ -533,21 +527,29 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
    const pos = i + 1;
    const p = r.participant;
    const isTop3 = pos <= 3;
-   const posHtml = isTop3 
+   const isDq = p.status === 'dq';
+   const isDns = p.status === 'dns';
+
+   const posHtml = isDq
+    ? `<div style="font-size:12px;font-weight:900;color:#b7201c;background:#fee2e2;padding:4px 8px;border-radius:4px;display:inline-block;">DQ</div>`
+    : isDns
+    ? `<div style="font-size:12px;font-weight:900;color:#d97706;background:#fef3c7;padding:4px 8px;border-radius:4px;display:inline-block;">DNS</div>`
+    : isTop3 
     ? `<div class="pos-badge top-${pos}">${pos}</div>`
     : `<div class="pos-number">${pos}</div>`;
-    
+     
    const laneLabel = p.tanda ? `Tanda ${p.tanda} · Puesto ${p.spot}` : 'Sin posición';
+   const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
    return `
     <tr class="rank-row">
      <td class="td-pos">${posHtml}</td>
      <td class="td-name">
       <div class="name-text">${p.name.toUpperCase()}</div>
-      <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel}</div>
+      <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
      </td>
      <td class="td-score">
-      <div class="score-val">${r.totalScore}</div>
+      <div class="score-val">${scoreDisplay}</div>
      </td>
     </tr>`;
   }).join('');
@@ -648,9 +650,9 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
    </div>
 
    <div class="header-left" style="flex:1;margin-left:8px;">
-    <span class="category">Resultados Oficiales</span>
+    <span class="category">Campeonato Nacional Long Range</span>
     <h1 class="title-main">TABLA DE POSICIONES</h1>
-    <span class="event-name">${event.name.toUpperCase()}</span>
+    <span class="event-name">${event.name.toUpperCase()} ${event.championshipDate ? `· ${event.championshipDate.toUpperCase()}` : ''}</span>
    </div>
    
    <div class="header-right" style="margin-right:8px;">
@@ -685,8 +687,70 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (!win) { alert('Habilitá las ventanas emergentes.'); return; }
-  win.document.write(html);
-  win.document.close();
+  openPrintModal(html, `Ranking — ${event.name}`);
+}
+
+/**
+ * Modal táctico interno de vista previa e impresión en pantalla
+ * Reemplaza window.open para evitar bloqueos de popups en navegadores móviles.
+ */
+function openPrintModal(htmlContent: string, title: string): void {
+  const existing = document.getElementById('cptp-print-modal');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'cptp-print-modal';
+  backdrop.className = 'cptp-modal-backdrop no-print';
+  backdrop.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
+    z-index: 2500; display: flex; flex-direction: column;
+    padding: 12px; box-sizing: border-box;
+  `;
+
+  backdrop.innerHTML = `
+    <div style="background:#0f172a;border-bottom:1px solid #334155;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1rem;color:#ffffff;">🖨️ Vista Previa de Impresión</span>
+        <span style="font-size:0.78rem;color:#94a3b8;font-weight:600;">${title}</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button id="btn-do-print" class="btn-primary-custom" style="padding:8px 18px;background:#0056b3;color:#ffffff;font-weight:bold;border-radius:8px;font-size:0.88rem;cursor:pointer;">
+          🖨️ Imprimir
+        </button>
+        <button id="btn-close-print" class="btn-ghost-custom" style="padding:8px 14px;color:#cbd5e1;border-color:#475569;font-weight:bold;font-size:0.88rem;cursor:pointer;">
+          ✕ Cerrar
+        </button>
+      </div>
+    </div>
+    <div style="flex:1;background:#ffffff;border-radius:0 0 12px 12px;overflow:hidden;position:relative;">
+      <iframe id="print-iframe" style="width:100%;height:100%;border:none;background:#ffffff;" title="Planilla de impresión"></iframe>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+  void backdrop.offsetWidth;
+  backdrop.classList.add('is-open');
+
+  const iframe = backdrop.querySelector('#print-iframe') as HTMLIFrameElement;
+  const iframeWin = iframe.contentWindow;
+  if (iframeWin) {
+    iframeWin.document.open();
+    iframeWin.document.write(htmlContent);
+    iframeWin.document.close();
+  }
+
+  const triggerPrint = () => {
+    if (iframeWin) {
+      iframeWin.focus();
+      iframeWin.print();
+    }
+  };
+
+  backdrop.querySelector('#btn-do-print')?.addEventListener('click', triggerPrint);
+  backdrop.querySelector('#btn-close-print')?.addEventListener('click', () => {
+    backdrop.classList.remove('is-open');
+    backdrop.classList.add('is-closing');
+    setTimeout(() => backdrop.remove(), 150);
+  });
 }

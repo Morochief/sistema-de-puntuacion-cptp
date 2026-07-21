@@ -1,26 +1,26 @@
 export type ToastKind = 'success' | 'error' | 'info';
 
 export function esc(s: string): string {
- return String(s)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 export function showToast(message: string, kind: ToastKind = 'info', ms = 3000): void {
- const container = document.getElementById('toast-container');
- if (!container) return;
- const icons: Record<ToastKind, string> = { success: 'OK', error: 'ERROR', info: 'INFO' };
- const toast = document.createElement('div');
- toast.className = `toast-item ${kind}`;
- toast.innerHTML = `<span aria-hidden="true">${icons[kind]}</span><span>${esc(message)}</span>`;
- container.appendChild(toast);
- setTimeout(() => {
-  toast.classList.add('toast-out');
-  toast.addEventListener('animationend', () => toast.remove(), { once: true });
- }, ms);
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const icons: Record<ToastKind, string> = { success: '✓', error: '✕', info: 'ℹ' };
+  const toast = document.createElement('div');
+  toast.className = `toast-item ${kind}`;
+  toast.innerHTML = `<span aria-hidden="true" style="font-weight:bold;">${icons[kind]}</span><span>${esc(message)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-out');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }, ms);
 }
 
 export function showConfirm(title: string, message: string): Promise<boolean> {
@@ -29,11 +29,11 @@ export function showConfirm(title: string, message: string): Promise<boolean> {
     backdrop.className = 'cptp-modal-backdrop';
     backdrop.innerHTML = `
       <div class="cptp-modal-content">
-        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#e2e8f0;margin:0 0 10px;">${esc(title)}</h2>
-        <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin:0 0 20px;">${esc(message)}</p>
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0 0 10px;">${esc(title)}</h2>
+        <p style="font-size:0.92rem;color:#334155;line-height:1.5;margin:0 0 20px;">${esc(message)}</p>
         <div style="display:flex;gap:12px;justify-content:flex-end;">
           <button id="modal-cancel-btn" class="btn-ghost-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Cancelar</button>
-          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Confirmar</button>
+          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;background:#0056b3;color:#ffffff;">Confirmar</button>
         </div>
       </div>
     `;
@@ -61,12 +61,12 @@ export function showPrompt(title: string, message: string, defaultValue: string)
     backdrop.className = 'cptp-modal-backdrop';
     backdrop.innerHTML = `
       <div class="cptp-modal-content">
-        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#e2e8f0;margin:0 0 10px;">${esc(title)}</h2>
-        <p style="font-size:0.92rem;color:#94a3b8;line-height:1.5;margin:0 0 16px;">${esc(message)}</p>
-        <input type="text" id="modal-prompt-input" class="field-input" value="${esc(defaultValue)}" style="margin-bottom:20px;" autofocus />
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0 0 10px;">${esc(title)}</h2>
+        <p style="font-size:0.92rem;color:#334155;line-height:1.5;margin:0 0 16px;">${esc(message)}</p>
+        <input type="text" id="modal-prompt-input" class="field-input" value="${esc(defaultValue)}" style="margin-bottom:20px;border:1px solid #cbd5e1;padding:8px 12px;border-radius:6px;width:100%;font-size:0.95rem;" autofocus />
         <div style="display:flex;gap:12px;justify-content:flex-end;">
           <button id="modal-cancel-btn" class="btn-ghost-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Cancelar</button>
-          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Aceptar</button>
+          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;background:#0056b3;color:#ffffff;">Aceptar</button>
         </div>
       </div>
     `;
