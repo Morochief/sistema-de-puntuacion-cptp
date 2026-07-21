@@ -70,10 +70,12 @@ function formatDate(isoDate: string): string {
  } catch { return isoDate; }
 }
 
-// ── Router ────�let dashSearchQuery = '';
+// ── Dashboard State ──────────────────────────────────────────────────────
+let dashSearchQuery = '';
 let dashSortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' = 'date_desc';
 let dashPage = 1;
 const DASH_ITEMS_PER_PAGE = 6;
+
 
 async function renderDashboard(): Promise<void> {
  const container = document.getElementById('event-list-container');
