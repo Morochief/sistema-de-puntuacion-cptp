@@ -212,9 +212,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         }
 
         const scoreVal = item.score;
-        let displayVal = String(scoreVal);
+        let displayVal = String(item.score);
         if (item.status === 'dq') displayVal = 'DQ';
-        if (item.status === 'dns') displayVal = 'DNS';
 
         const cellClass = item.taken ? 'cell-taken' : 'cell-discarded';
         const style = item.taken
@@ -331,7 +330,6 @@ function exportChampionshipToExcel(year: number, events: ShootingEvent[], rows: 
         } else {
           let val = String(item.score);
           if (item.status === 'dq') val = 'DQ';
-          if (item.status === 'dns') val = 'DNS';
           line.push(item.taken ? `${val} (Tomado)` : `${val} (Descarte)`);
         }
       });
@@ -383,7 +381,6 @@ function printChampionshipPreview(year: number, events: ShootingEvent[], rows: C
       
       let displayVal = String(item.score);
       if (item.status === 'dq') displayVal = 'DQ';
-      if (item.status === 'dns') displayVal = 'DNS';
 
       const style = item.taken
         ? 'font-weight:bold;background:#ffffff;color:#000000;'
