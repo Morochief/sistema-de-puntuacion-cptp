@@ -20,7 +20,7 @@ import type { ShootingEvent, Participant, Series, Shot } from './types';
 import { printSeriesCard, printEventCards, printRankingCard } from './print';
 import html2canvas from 'html2canvas';
 import { getFilteredEvents, showEditEventModal } from './eventsManager';
-import { renderMasterCompetitorsModal, addMasterCompetitor } from './masterCompetitors';
+import { renderMasterCompetitorsModal, addMasterCompetitor, migrateParticipantsToPadron } from './masterCompetitors';
 import { applySpecialFamilySeedingRules, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
 
 (window as any).downloadElementAsPng = async (el: HTMLElement, filename: string) => {
@@ -105,7 +105,7 @@ async function renderDashboard(): Promise<void> {
   <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <input type="text" id="dash-search-input" value="${esc(dashSearchQuery)}"
-        placeholder="🔍 Buscar por nombre, ubicación o fecha de campeonato…"
+        placeholder="Buscar por nombre, ubicación o fecha de campeonato…"
         class="field-input" style="flex:2;min-width:200px;padding:9px 14px;font-size:0.9rem;" />
     
     <select id="dash-sort-select" style="padding:9px 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:0.88rem;background:#ffffff;color:#0f172a;font-weight:600;">
@@ -118,7 +118,7 @@ async function renderDashboard(): Promise<void> {
     <button id="btn-open-master-padron" class="btn-ghost-custom"
         style="padding:9px 16px;border:1.5px solid #0056b3;color:#0056b3;font-weight:700;border-radius:10px;background:#ffffff;"
         title="Administrar el Padrón Maestro de Tiradores">
-      🎯 Padrón Maestro
+      Padrón Maestro
     </button>
    </div>
   </div>
@@ -148,7 +148,7 @@ async function renderDashboard(): Promise<void> {
       <button class="btn-ghost-custom" data-edit-event-id="${e.id}"
           aria-label="Editar evento ${esc(e.name)}"
           onclick="event.stopPropagation()"
-          style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">✏️ Editar</button>
+          style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">Editar</button>
       <button class="btn-danger-custom" data-delete-id="${e.id}"
           aria-label="Eliminar evento ${esc(e.name)}"
           onclick="event.stopPropagation()">
@@ -753,8 +753,8 @@ async function renderEvent(eventId: string): Promise<void> {
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
       <button class="btn-danger-custom" data-remove-participant="${p.id}"
-          aria-label="Desinscribir a ${esc(p.name)}" style="padding:6px;">
-       🗑️
+          aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;">
+       Eliminar
       </button>
      </div>
     </div>`;
@@ -1742,7 +1742,23 @@ window.addEventListener('load', () => {
       }
     }, 1200);
   }
+
+  // Migrar participantes existentes al Padrón Maestro (silencioso, idempotente)
+  setTimeout(async () => {
+    try {
+      const added = await migrateParticipantsToPadron();
+      if (added > 0) {
+        console.log(`[Padron] Migracion completada: ${added} tiradores nuevos agregados al Padron Maestro.`);
+        showToast(`${added} tiradores migrados al Padron Maestro.`, 'info', 3000);
+      } else {
+        console.log('[Padron] Padron ya actualizado, sin nuevos tiradores para migrar.');
+      }
+    } catch (err) {
+      console.error('[Padron] Error en migracion silenciosa:', err);
+    }
+  }, 2000);
 });
+
 
 window.addEventListener('hashchange', () => {
   setTimeout(setupCloudSync, 100);

@@ -141,7 +141,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
           <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Tandas Manualmente</h2>
           <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Control Total del Organizador del Evento</span>
         </div>
-        <button id="close-heats-modal" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#64748b;">✕</button>
+        <button id="close-heats-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;">X</button>
       </div>
 
       <div style="padding:16px 20px;max-height:60vh;overflow-y:auto;background:#ffffff;">

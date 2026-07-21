@@ -2,6 +2,7 @@
  * masterCompetitors.ts
  * Módulo independiente para la gestión del Padrón Maestro de Tiradores (Competidores).
  * Incluye CRUD completo, filtros, ordenamiento, paginación y autocompletado para inscripciones.
+ * Incluye migración automática de participantes existentes.
  */
 
 import { db } from './db';
@@ -38,6 +39,50 @@ export async function deleteMasterCompetitor(id: number): Promise<void> {
   await db.masterCompetitors.delete(id);
 }
 
+/**
+ * Migra todos los participantes únicos de todos los eventos existentes al Padrón Maestro.
+ * Se llama en la inicialización de la app. Es idempotente (no duplica).
+ * Retorna la cantidad de nuevos tiradores agregados.
+ */
+export async function migrateParticipantsToPadron(): Promise<number> {
+  try {
+    const allParticipants = await db.participants.toArray();
+    if (allParticipants.length === 0) return 0;
+
+    let added = 0;
+
+    // Procesar en batch, agrupando por nombre único (case-insensitive)
+    const seen = new Set<string>();
+
+    for (const p of allParticipants) {
+      const nameLower = p.name.trim().toLowerCase();
+      if (!nameLower || seen.has(nameLower)) continue;
+      seen.add(nameLower);
+
+      // Verificar si ya existe en el padrón
+      const existing = await db.masterCompetitors
+        .where('name')
+        .equalsIgnoreCase(p.name.trim())
+        .first();
+
+      if (!existing) {
+        await db.masterCompetitors.add({
+          name: p.name.trim(),
+          category: p.category?.trim() || '',
+          phone: '',
+          createdAt: Date.now()
+        });
+        added++;
+      }
+    }
+
+    return added;
+  } catch (err) {
+    console.error('[Padron] Error en migracion:', err);
+    return 0;
+  }
+}
+
 // ── Modal de Gestión del Padrón Maestro ──────────────────────────────────────
 
 let currentPage = 1;
@@ -62,8 +107,8 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
     // 1. Filtrado
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      all = all.filter(c => 
-        c.name.toLowerCase().includes(q) || 
+      all = all.filter(c =>
+        c.name.toLowerCase().includes(q) ||
         (c.category && c.category.toLowerCase().includes(q)) ||
         (c.phone && c.phone.includes(q))
       );
@@ -96,8 +141,8 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
           <td style="padding:10px 14px;text-align:right;">
             <div style="display:flex;gap:6px;justify-content:flex-end;">
               ${onSelectCallback ? `<button class="btn-primary-custom" data-select-mc="${c.id}" style="padding:4px 10px;font-size:0.75rem;">Seleccionar</button>` : ''}
-              <button class="btn-ghost-custom" data-edit-mc="${c.id}" title="Editar" style="padding:4px 8px;font-size:0.75rem;">✏️</button>
-              <button class="btn-danger-custom" data-delete-mc="${c.id}" title="Eliminar" style="padding:4px 8px;font-size:0.75rem;">🗑️</button>
+              <button class="btn-ghost-custom" data-edit-mc="${c.id}" title="Editar" style="padding:4px 8px;font-size:0.75rem;">Editar</button>
+              <button class="btn-danger-custom" data-delete-mc="${c.id}" title="Eliminar" style="padding:4px 8px;font-size:0.75rem;">Eliminar</button>
             </div>
           </td>
         </tr>
@@ -107,29 +152,29 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
     modalBox.innerHTML = `
       <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Padrón Maestro de Tiradores</h2>
+          <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Padron Maestro de Tiradores</h2>
           <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Base de datos de tiradores registrados (${totalItems} en total)</span>
         </div>
-        <button id="close-mc-modal" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#64748b;">✕</button>
+        <button id="close-mc-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;">X</button>
       </div>
 
       <div style="padding:16px 20px;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
         <!-- Barra de Alta Rápida -->
         <form id="form-new-mc" style="display:flex;gap:8px;flex-wrap:wrap;background:#f1f5f9;padding:12px;border-radius:10px;border:1px solid #cbd5e1;">
           <input type="text" id="mc-new-name" placeholder="Nombre del Tirador *" required class="field-input" style="flex:2;min-width:180px;background:#fff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;" />
-          <input type="text" id="mc-new-cat" placeholder="Categoría (Opcional)" class="field-input" style="flex:1;min-width:120px;background:#fff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;" />
-          <button type="submit" class="btn-primary-custom" style="padding:8px 16px;background:#0056b3;color:#fff;border-radius:6px;font-weight:bold;">+ Agregar al Padrón</button>
+          <input type="text" id="mc-new-cat" placeholder="Categoria (Opcional)" class="field-input" style="flex:1;min-width:120px;background:#fff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;" />
+          <button type="submit" class="btn-primary-custom" style="padding:8px 16px;background:#0056b3;color:#fff;border-radius:6px;font-weight:bold;">+ Agregar al Padron</button>
         </form>
 
         <!-- Filtros y Ordenamiento -->
         <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="mc-search-input" value="${esc(searchQuery)}" placeholder="🔍 Buscar tirador por nombre o categoría..." style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;" />
-          
+          <input type="text" id="mc-search-input" value="${esc(searchQuery)}" placeholder="Buscar tirador por nombre o categoria..." style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;" />
+
           <select id="mc-sort-select" style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.88rem;background:#fff;color:#0f172a;font-weight:600;">
             <option value="name_asc" ${sortBy === 'name_asc' ? 'selected' : ''}>Nombre (A-Z)</option>
             <option value="name_desc" ${sortBy === 'name_desc' ? 'selected' : ''}>Nombre (Z-A)</option>
-            <option value="category" ${sortBy === 'category' ? 'selected' : ''}>Por Categoría</option>
-            <option value="created" ${sortBy === 'created' ? 'selected' : ''}>Más Recientes</option>
+            <option value="category" ${sortBy === 'category' ? 'selected' : ''}>Por Categoria</option>
+            <option value="created" ${sortBy === 'created' ? 'selected' : ''}>Mas Recientes</option>
           </select>
         </div>
 
@@ -139,8 +184,8 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
             <thead>
               <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#0056b3;text-align:left;font-family:'Rajdhani',sans-serif;font-weight:700;">
                 <th style="padding:8px 14px;">Nombre</th>
-                <th style="padding:8px 14px;">Categoría</th>
-                <th style="padding:8px 14px;">Teléfono</th>
+                <th style="padding:8px 14px;">Categoria</th>
+                <th style="padding:8px 14px;">Telefono</th>
                 <th style="padding:8px 14px;text-align:right;">Acciones</th>
               </tr>
             </thead>
@@ -152,10 +197,10 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
 
         <!-- Paginador -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;font-size:0.85rem;color:#64748b;">
-          <span>Página <b>${currentPage}</b> de <b>${totalPages}</b></span>
+          <span>Pagina <b>${currentPage}</b> de <b>${totalPages}</b></span>
           <div style="display:flex;gap:6px;">
-            <button id="mc-prev-page" ${currentPage === 1 ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">← Anterior</button>
-            <button id="mc-next-page" ${currentPage === totalPages ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">Siguiente →</button>
+            <button id="mc-prev-page" ${currentPage === 1 ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">Anterior</button>
+            <button id="mc-next-page" ${currentPage === totalPages ? 'disabled style="opacity:0.4;"' : ''} class="btn-ghost-custom" style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-weight:bold;">Siguiente</button>
           </div>
         </div>
       </div>
@@ -173,7 +218,7 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
       if (!nEl.value.trim()) return;
       try {
         await addMasterCompetitor(nEl.value.trim(), cEl.value.trim());
-        showToast('Tirador agregado al Padrón Maestro.', 'success');
+        showToast('Tirador agregado al Padron Maestro.', 'success');
         nEl.value = '';
         cEl.value = '';
         await renderContent();
@@ -206,9 +251,9 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
     modalBox.querySelectorAll('[data-delete-mc]').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = Number((e.currentTarget as HTMLElement).dataset.deleteMc);
-        if (await showConfirm('Eliminar del Padrón', '¿Confirma eliminar este tirador del Padrón Maestro?')) {
+        if (await showConfirm('Eliminar del Padron', 'Confirma eliminar este tirador del Padron Maestro?')) {
           await deleteMasterCompetitor(id);
-          showToast('Tirador eliminado del Padrón.', 'info');
+          showToast('Tirador eliminado del Padron.', 'info');
           renderContent();
         }
       });
@@ -222,7 +267,7 @@ export async function renderMasterCompetitorsModal(onSelectCallback?: (mc: Maste
 
         const newName = await showPrompt('Editar Tirador', 'Ingrese el nuevo nombre:', comp.name);
         if (newName && newName.trim()) {
-          const newCat = await showPrompt('Editar Categoría', 'Ingrese la categoría:', comp.category || '');
+          const newCat = await showPrompt('Editar Categoria', 'Ingrese la categoria:', comp.category || '');
           await updateMasterCompetitor(id, { name: newName.trim(), category: (newCat || '').trim() });
           showToast('Tirador actualizado.', 'success');
           renderContent();
