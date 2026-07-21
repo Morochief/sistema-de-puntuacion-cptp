@@ -95,7 +95,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         event_id: toDeterministicUuid(p.eventId, 0),
         name: p.name,
         competitor_number: p.competitorNumber,
-        category: p.category || null,
+        category: `${p.category || ''}::${p.paymentStatus || 'paid'}::${p.status || 'active'}`,
         tanda: p.tanda || null,
         spot: p.spot || null,
         tie_rank: p.tieRank || null
@@ -201,15 +201,23 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       for (const p of cloudParticipants) {
         const localId = fromDeterministicUuid(p.id);
         const localEventId = fromDeterministicUuid(p.event_id);
+        const catStr = p.category || '';
+        const parts = catStr.split('::');
+        const rawCategory = parts[0] || '';
+        const rawPaymentStatus = (parts[1] as any) || 'paid';
+        const rawStatus = (parts[2] as any) || 'active';
+
         await db.participants.put({
           id: localId,
           eventId: localEventId,
           name: p.name,
           competitorNumber: p.competitor_number,
-          category: p.category || '',
+          category: rawCategory,
           tanda: p.tanda || undefined,
           spot: p.spot || undefined,
-          tieRank: p.tie_rank || undefined
+          tieRank: p.tie_rank || undefined,
+          paymentStatus: rawPaymentStatus,
+          status: rawStatus
         });
 
         // ─ Alimentar Padrón Maestro local silenciosamente ─
@@ -218,7 +226,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           if (!existing) {
             await db.masterCompetitors.add({
               name: p.name,
-              category: p.category || 'General',
+              category: rawCategory || 'General',
               createdAt: Date.now()
             });
           }
