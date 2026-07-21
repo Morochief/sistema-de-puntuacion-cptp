@@ -22,6 +22,7 @@ import html2canvas from 'html2canvas';
 import { getFilteredEvents, showEditEventModal } from './eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor, migrateParticipantsToPadron } from './masterCompetitors';
 import { applySpecialFamilySeedingRules, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
+import { renderChampionshipPanel } from './championship';
 
 (window as any).downloadElementAsPng = async (el: HTMLElement, filename: string) => {
  showToast('Generando imagen de alta calidad…', 'info', 4000);
@@ -526,8 +527,8 @@ async function renderEvent(eventId: string): Promise<void> {
           title="Seleccionar tirador del Padrón Maestro" ${participants.length >= 32 ? 'disabled' : ''}>
         Padrón Maestro
       </button>
-      <button id="btn-seed-participants" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);">
-        Cargar Tiradores Demo
+      <button id="btn-seed-participants" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);" title="Importar tiradores registrados en el Padrón Maestro que falten en este evento">
+        Importar Padrón en Lote
       </button>
       <button id="btn-seed-scores" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(34,197,94,0.25);color:#22c55e;"
           ${participants.length === 0 ? 'disabled' : ''}>
@@ -1769,9 +1770,52 @@ window.addEventListener('load', () => {
       console.error('[Padron] Error en migracion silenciosa:', err);
     }
   }, 2000);
+
+  // Inicializar pestañas del Dashboard principal
+  setupDashboardTabs();
 });
 
+function setupDashboardTabs() {
+  const btnEventos = document.getElementById('dash-tab-btn-eventos');
+  const btnCampeonato = document.getElementById('dash-tab-btn-campeonato');
+  const panelEventos = document.getElementById('dash-panel-eventos');
+  const panelCampeonato = document.getElementById('dash-panel-campeonato');
+  const dashTitle = document.getElementById('dashboard-title');
+  const btnNewEvent = document.getElementById('btn-new-event');
+
+  if (!btnEventos || !btnCampeonato || !panelEventos || !panelCampeonato) return;
+
+  // Evitar duplicar listeners
+  if ((btnEventos as any)._hasTabListener) return;
+  (btnEventos as any)._hasTabListener = true;
+
+  btnEventos.addEventListener('click', () => {
+    btnEventos.classList.add('tab-active');
+    btnCampeonato.classList.remove('tab-active');
+    panelEventos.classList.remove('hidden');
+    panelCampeonato.classList.add('hidden');
+    if (dashTitle) dashTitle.textContent = 'Mis Eventos';
+    if (btnNewEvent) btnNewEvent.style.display = 'inline-flex';
+    renderDashboard();
+  });
+
+  btnCampeonato.addEventListener('click', () => {
+    btnCampeonato.classList.add('tab-active');
+    btnEventos.classList.remove('tab-active');
+    panelCampeonato.classList.remove('hidden');
+    panelEventos.classList.add('hidden');
+    if (dashTitle) dashTitle.textContent = 'Campeonato General';
+    if (btnNewEvent) btnNewEvent.style.display = 'none';
+    const container = document.getElementById('championship-container');
+    if (container) {
+      renderChampionshipPanel(container);
+    }
+  });
+}
 
 window.addEventListener('hashchange', () => {
-  setTimeout(setupCloudSync, 100);
+  setTimeout(() => {
+    setupCloudSync();
+    setupDashboardTabs();
+  }, 100);
 });

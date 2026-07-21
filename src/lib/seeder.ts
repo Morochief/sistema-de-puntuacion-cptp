@@ -2,70 +2,109 @@ import { db } from './db';
 import type { Participant, Series, Shot } from './types';
 import { showToast, showConfirm, showPrompt } from './modals';
 
-// --- HANDLER: POBLAR tiradores DEMO ---
- export async function handleSeedParticipants(id: string, participants: Participant[], findFirstFreeSpot: (pts: Participant[]) => any, onComplete: () => Promise<void>) {
+export async function handleSeedParticipants(id: number, participants: Participant[], findFirstFreeSpot: (pts: Participant[]) => any, onComplete: () => Promise<void>) {
   const currentCount = participants.length;
   if (currentCount >= 32) {
-   showToast('Límite de 32 competidores ya alcanzado.', 'error');
-   return;
+    showToast('Límite de 32 competidores ya alcanzado.', 'error');
+    return;
   }
+
+  // 1. Obtener tiradores reales del Padrón Maestro
+  let padronTiradores = [];
+  try {
+    padronTiradores = await db.masterCompetitors.toArray();
+  } catch (err) {
+    console.warn('[Seeder] Error leyendo Padrón Maestro:', err);
+  }
+
+  // Filtrar tiradores del padrón que ya están inscritos en este evento (comparación de nombres case-insensitive)
+  const registeredNames = new Set(participants.map(p => p.name.trim().toLowerCase()));
+  const availableFromPadron = padronTiradores.filter(mc => !registeredNames.has(mc.name.trim().toLowerCase()));
 
   const spaceLeft = 32 - currentCount;
-  const defaultVal = Math.min(20, spaceLeft);
-   const countStr = await showPrompt('Cargar Tiradores Demo', `¿Cuántos competidores demo deseas cargar? (Disponibles: ${spaceLeft})`, String(defaultVal));
-   if (countStr === null) return; // Cancelado
+  let countToLoad = Math.min(availableFromPadron.length, spaceLeft);
+  let usingFictional = false;
 
-  const count = parseInt(countStr.trim(), 10);
-  if (isNaN(count) || count <= 0) {
-   showToast('Por favor, ingresá un número válido mayor a 0.', 'error');
-   return;
+  // Si no hay tiradores en el padrón o ya están todos inscritos, preguntar si carga ficticios
+  if (countToLoad === 0) {
+    const confirmFictional = await showConfirm(
+      'Padrón Vacío o Completo',
+      'No hay tiradores en el Padrón Maestro disponibles para inscribir (están todos inscritos o el padrón está vacío). ¿Deseas cargar tiradores ficticios de demostración?'
+    );
+    if (!confirmFictional) return;
+    usingFictional = true;
+    countToLoad = Math.min(20, spaceLeft);
   }
 
-  const finalCount = Math.min(count, spaceLeft);
+  let namesToSeed: { name: string; category?: string }[] = [];
 
-  // Generador de nombres aleatorios realistas
-  const firstNames = ["Carlos", "Jorge", "Alejandro", "Daniel", "Eduardo", "Federico", "Gustavo", "Hernán", "Ignacio", "Lucas", "Martín", "Nicolás", "Oscar", "Pablo", "Ricardo", "Santiago", "Tomás", "Walter", "Víctor", "Hugo", "Luis", "José", "Juan", "Pedro", "Miguel", "Ángel", "Francisco", "Javier", "Andrés", "Diego", "Fernando", "Gabriel"];
-  const lastNames = ["Giménez", "Ramos", "Rossi", "López", "Benítez", "Silva", "Fernández", "Díaz", "Martínez", "González", "Sosa", "Romero", "Álvarez", "Torres", "Acosta", "Maidana", "Cardozo", "Gómez", "Sánchez", "Pérez", "Duarte", "Peralta", "Ayala", "Cáceres", "Rojas", "Galeano", "Miranda", "Rios", "Franco", "Sotomayor", "Gorostuaga", "Cardozo"];
-
-  const shuffledFirst = [...firstNames].sort(() => Math.random() - 0.5);
-  const shuffledLast = [...lastNames].sort(() => Math.random() - 0.5);
-  const generatedNames = Array.from({ length: 32 }, (_, idx) => `${shuffledFirst[idx]} ${shuffledLast[idx]}`);
-
-  const namesToSeed = generatedNames.slice(0, finalCount);
+  if (usingFictional) {
+    const firstNames = ["Carlos", "Jorge", "Alejandro", "Daniel", "Eduardo", "Federico", "Gustavo", "Hernán", "Ignacio", "Lucas", "Martín", "Nicolás", "Oscar", "Pablo", "Ricardo", "Santiago", "Tomás", "Walter", "Víctor", "Hugo", "Luis", "José", "Juan", "Pedro", "Miguel", "Ángel", "Francisco", "Javier", "Andrés", "Diego", "Fernando", "Gabriel"];
+    const lastNames = ["Giménez", "Ramos", "Rossi", "López", "Benítez", "Silva", "Fernández", "Díaz", "Martínez", "González", "Sosa", "Romero", "Álvarez", "Torres", "Acosta", "Maidana", "Cardozo", "Gómez", "Sánchez", "Pérez", "Duarte", "Peralta", "Ayala", "Cáceres", "Rojas", "Galeano", "Miranda", "Rios", "Franco", "Sotomayor", "Gorostuaga", "Cardozo"];
+    const shuffledFirst = [...firstNames].sort(() => Math.random() - 0.5);
+    const shuffledLast = [...lastNames].sort(() => Math.random() - 0.5);
+    const categories = ["Senior", "Damas", "Junior", "Promocional"];
+    namesToSeed = Array.from({ length: countToLoad }, (_, idx) => ({
+      name: `${shuffledFirst[idx % shuffledFirst.length]} ${shuffledLast[idx % shuffledLast.length]}`,
+      category: categories[Math.floor(Math.random() * categories.length)]
+    }));
+  } else {
+    // Preguntar cuántos del padrón quiere cargar
+    const countStr = await showPrompt(
+      'Cargar desde Padrón',
+      `¿Cuántos tiradores del Padrón Maestro deseas inscribir? (Disponibles: ${availableFromPadron.length})`,
+      String(countToLoad)
+    );
+    if (countStr === null) return;
+    const requested = parseInt(countStr.trim(), 10);
+    if (isNaN(requested) || requested <= 0) {
+      showToast('Ingresá un número válido.', 'error');
+      return;
+    }
+    const finalRequest = Math.min(requested, availableFromPadron.length, spaceLeft);
+    namesToSeed = availableFromPadron.slice(0, finalRequest).map(mc => ({
+      name: mc.name,
+      category: mc.category
+    }));
+  }
 
   try {
+    const bulkData: Participant[] = [];
+    const tempParticipants = [...participants];
+    let currentMax = participants.length > 0 ? Math.max(...participants.map(p => p.competitorNumber)) : 0;
 
-   const bulkData: Participant[] = [];
-   const tempParticipants = [...participants];
-   let currentMax = participants.length > 0 ? Math.max(...participants.map(p => p.competitorNumber)) : 0;
-   const categories = ["Senior", "Damas", "Junior", "Promocional"];
+    for (let i = 0; i < namesToSeed.length; i++) {
+      currentMax++;
+      const freeSpot = findFirstFreeSpot(tempParticipants);
+      const newParticipant: Participant = {
+        eventId: id,
+        name: namesToSeed[i].name,
+        competitorNumber: currentMax,
+        tanda: freeSpot?.tanda,
+        sector: freeSpot?.sector,
+        spot: freeSpot?.spot,
+        category: namesToSeed[i].category || 'General',
+        status: 'active',
+        paymentStatus: 'paid'
+      };
+      bulkData.push(newParticipant);
+      tempParticipants.push(newParticipant);
+    }
 
-   for (let i = 0; i < namesToSeed.length; i++) {
-    currentMax++;
-    const freeSpot = findFirstFreeSpot(tempParticipants);
-    const rndCat = categories[Math.floor(Math.random() * categories.length)];
-    const newParticipant: Participant = {
-     eventId: id,
-     name: namesToSeed[i],
-     competitorNumber: currentMax,
-     tanda: freeSpot?.tanda,
-     sector: freeSpot?.sector,
-     spot: freeSpot?.spot,
-     category: rndCat
-    };
-    bulkData.push(newParticipant);
-    tempParticipants.push(newParticipant);
-   }
+    await db.participants.bulkAdd(bulkData);
+    showToast(
+      usingFictional 
+        ? `Se inscribieron ${bulkData.length} competidores ficticios.` 
+        : `Se inscribieron ${bulkData.length} competidores reales desde el Padrón.`,
+      'success'
+    );
 
-   await db.participants.bulkAdd(bulkData);
-   showToast(`Se inscribieron ${bulkData.length} competidores demo`, 'success');
-
-   await onComplete();
+    await onComplete();
   } catch (err) {
-   console.error('[DB] Error al poblar tiradores:', err);
-   showToast('Error al cargar competidores demo.', 'error');
+    console.error('[DB] Error al poblar tiradores:', err);
+    showToast('Error al cargar competidores.', 'error');
   }
- }
+}
 
  // --- HANDLER: SIMULAR RESULTADOS (SERIES Y PUNTUACIONES DEMO) ---
  export async function handleSeedScores(id: string, participants: Participant[], onComplete: () => Promise<void>) {

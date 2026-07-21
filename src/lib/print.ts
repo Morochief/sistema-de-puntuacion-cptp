@@ -694,7 +694,8 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
  * Modal táctico interno de vista previa e impresión en pantalla
  * Reemplaza window.open para evitar bloqueos de popups en navegadores móviles.
  */
-function openPrintModal(htmlContent: string, title: string): void {
+export function openPrintModal(htmlContent: string, title: string): void {
+  (window as any).cptpOpenPrintModalGlobal = openPrintModal;
   const existing = document.getElementById('cptp-print-modal');
   if (existing) existing.remove();
 

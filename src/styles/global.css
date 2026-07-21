@@ -741,3 +741,27 @@ body {
     padding: 0 8px !important;
   }
 }
+
+/* ── Campeonato General Styles ───────────────────────────── */
+.cell-taken {
+  position: relative;
+  overflow: hidden;
+}
+.cell-taken::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: #22c55e;
+}
+.cell-discarded {
+  position: relative;
+}
+.cell-discarded::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 15%; right: 15%; height: 1px;
+  background: rgba(148, 163, 184, 0.4);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+

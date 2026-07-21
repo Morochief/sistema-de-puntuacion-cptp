@@ -14,7 +14,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <div style="font-family:'Rajdhani',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#475569;margin-bottom:2px;">
               Sistema de Puntuación
             </div>
-            <h1 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.9rem;font-weight:700;color:#e2e8f0;letter-spacing:0.01em;">
+            <h1 id="dashboard-title" style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.9rem;font-weight:700;color:#e2e8f0;letter-spacing:0.01em;">
               Mis Eventos
             </h1>
           </div>
@@ -27,10 +27,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
 
-      <!-- Lista de eventos (poblada por JS) -->
-      <section id="event-list-container" aria-label="Lista de eventos de tiro">
-        <!-- JS renderiza aquí -->
-      </section>
+      <!-- TABS DE NAVEGACIÓN DASHBOARD -->
+      <div class="tabs tabs-boxed mb-6" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;margin-bottom:20px;">
+        <button id="dash-tab-btn-eventos" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;">
+          Mis Eventos
+        </button>
+        <button id="dash-tab-btn-campeonato" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;">
+          Campeonato General
+        </button>
+      </div>
+
+      <!-- Panel 1: Lista de eventos (poblada por JS) -->
+      <div id="dash-panel-eventos">
+        <section id="event-list-container" aria-label="Lista de eventos de tiro">
+          <!-- JS renderiza aquí -->
+        </section>
+      </div>
+
+      <!-- Panel 2: Campeonato General -->
+      <div id="dash-panel-campeonato" class="hidden">
+        <section id="championship-container" aria-label="Tabla de Campeonato General">
+          <!-- JS renderiza aquí -->
+        </section>
+      </div>
     </div>
 
     <!-- ── Vista: Nuevo Evento ────────────────────────────── -->
