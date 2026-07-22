@@ -48,7 +48,7 @@ export async function getChampionshipData(year: number): Promise<{
   // 4. Extraer lista única de competidores a partir de los participantes reales de los eventos
   const uniqueCompetitorsMap = new Map<string, { name: string; category: string }>();
   for (const p of allParticipants) {
-    const norm = p.name.trim().toLowerCase();
+    const norm = p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     if (!uniqueCompetitorsMap.has(norm)) {
       uniqueCompetitorsMap.set(norm, { name: p.name.trim(), category: p.category || 'General' });
     } else {
@@ -66,7 +66,7 @@ export async function getChampionshipData(year: number): Promise<{
   const rows: ChampionshipRow[] = [];
 
   for (const mc of uniqueCompetitors) {
-    const mcNameLower = mc.name.toLowerCase();
+    const mcNameLower = mc.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
     const scores: Record<number, { score: number; status?: 'active' | 'dq' | 'dns'; taken: boolean }> = {};
     const scoresList: { eventId: number; score: number; status: 'active' | 'dq' | 'dns' }[] = [];
 
@@ -74,7 +74,7 @@ export async function getChampionshipData(year: number): Promise<{
 
     for (const event of yearEvents) {
       // Buscar si el competidor participó en este evento específico (por coincidencia de nombre exacto)
-      const part = allParticipants.find(p => p.eventId === event.id && p.name.trim().toLowerCase() === mcNameLower);
+      const part = allParticipants.find(p => p.eventId === event.id && p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === mcNameLower);
 
       if (part) {
         hasParticipated = true;

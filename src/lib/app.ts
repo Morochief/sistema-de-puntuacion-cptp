@@ -1114,7 +1114,8 @@ async function renderEvent(eventId: string): Promise<void> {
    return;
   }
 
-  if (participants.some(p => p.name.trim().toLowerCase() === name.toLowerCase())) {
+  const normalizedNewName = name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  if (participants.some(p => p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === normalizedNewName)) {
    showToast(`El tirador "${name}" ya está inscrito en este evento.`, 'error');
    return;
   }

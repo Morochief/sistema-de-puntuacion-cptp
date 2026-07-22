@@ -19,7 +19,7 @@ export async function addMasterCompetitor(name: string, category = '', phone = '
 
   // Verificar si ya existe en el padrón (búsqueda case-insensitive en memoria)
   const all = await db.masterCompetitors.toArray();
-  const existing = all.find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
+  const existing = all.find(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === trimmedName.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase());
   if (existing) {
     return existing.id!;
   }
@@ -54,14 +54,14 @@ export async function migrateParticipantsToPadron(): Promise<number> {
     // Cargar el padrón actual una sola vez
     const currentPadron = await db.masterCompetitors.toArray();
     console.log(`[Padron] Padron actual tiene ${currentPadron.length} entradas.`);
-    const padronNames = new Set(currentPadron.map(c => c.name.toLowerCase()));
+    const padronNames = new Set(currentPadron.map(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()));
 
     let added = 0;
     const seenInBatch = new Set<string>();
 
     for (const p of allParticipants) {
       const nameTrimmed = p.name.trim();
-      const nameLower = nameTrimmed.toLowerCase();
+      const nameLower = nameTrimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
       if (!nameLower || seenInBatch.has(nameLower) || padronNames.has(nameLower)) continue;
 
       seenInBatch.add(nameLower);

@@ -18,8 +18,8 @@ export async function handleSeedParticipants(id: number, participants: Participa
   }
 
   // Filtrar tiradores del padrón que ya están inscritos en este evento (comparación de nombres case-insensitive)
-  const registeredNames = new Set(participants.map(p => p.name.trim().toLowerCase()));
-  const availableFromPadron = padronTiradores.filter(mc => !registeredNames.has(mc.name.trim().toLowerCase()));
+  const registeredNames = new Set(participants.map(p => p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()));
+  const availableFromPadron = padronTiradores.filter(mc => !registeredNames.has(mc.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()));
 
   const spaceLeft = 32 - currentCount;
   let countToLoad = Math.min(availableFromPadron.length, spaceLeft);
