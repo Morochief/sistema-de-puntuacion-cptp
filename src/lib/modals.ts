@@ -27,6 +27,7 @@ export function showConfirm(title: string, message: string): Promise<boolean> {
   return new Promise((resolve) => {
     const backdrop = document.createElement('div');
     backdrop.className = 'cptp-modal-backdrop';
+    backdrop.style.zIndex = '99999';
     backdrop.innerHTML = `
       <div class="cptp-modal-content">
         <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0 0 10px;">${esc(title)}</h2>
@@ -59,6 +60,7 @@ export function showPrompt(title: string, message: string, defaultValue: string)
   return new Promise((resolve) => {
     const backdrop = document.createElement('div');
     backdrop.className = 'cptp-modal-backdrop';
+    backdrop.style.zIndex = '99999';
     backdrop.innerHTML = `
       <div class="cptp-modal-content">
         <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0 0 10px;">${esc(title)}</h2>
