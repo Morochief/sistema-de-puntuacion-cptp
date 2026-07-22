@@ -40,26 +40,40 @@ export async function getChampionshipData(year: number): Promise<{
     return { rows: [], events: [] };
   }
 
-  // 2. Obtener todos los participantes del Padrón Maestro para tener la lista de tiradores oficiales
-  const padron = await db.masterCompetitors.toArray();
-
   // 3. Obtener todas las series y participantes inscritos de estos eventos
   const eventIds = yearEvents.map(e => e.id!);
   const allParticipants = await db.participants.where('eventId').anyOf(eventIds).toArray();
   const allSeries = await db.series.where('eventId').anyOf(eventIds).toArray();
 
-  // 4. Calcular puntajes para cada tirador del Padrón
+  // 4. Extraer lista única de competidores a partir de los participantes reales de los eventos
+  const uniqueCompetitorsMap = new Map<string, { name: string; category: string }>();
+  for (const p of allParticipants) {
+    const norm = p.name.trim().toLowerCase();
+    if (!uniqueCompetitorsMap.has(norm)) {
+      uniqueCompetitorsMap.set(norm, { name: p.name.trim(), category: p.category || 'General' });
+    } else {
+      // Preferir una categoría específica en lugar de 'General' si el tirador la tiene en otro evento
+      const existing = uniqueCompetitorsMap.get(norm)!;
+      if (existing.category === 'General' && p.category && p.category !== 'General') {
+        existing.category = p.category;
+      }
+    }
+  }
+
+  const uniqueCompetitors = Array.from(uniqueCompetitorsMap.values());
+
+  // 5. Calcular puntajes para cada tirador único
   const rows: ChampionshipRow[] = [];
 
-  for (const mc of padron) {
-    const mcNameLower = mc.name.trim().toLowerCase();
+  for (const mc of uniqueCompetitors) {
+    const mcNameLower = mc.name.toLowerCase();
     const scores: Record<number, { score: number; status?: 'active' | 'dq' | 'dns'; taken: boolean }> = {};
     const scoresList: { eventId: number; score: number; status: 'active' | 'dq' | 'dns' }[] = [];
 
     let hasParticipated = false;
 
     for (const event of yearEvents) {
-      // Buscar si el competidor del padrón participó en este evento específico (por coincidencia de nombre exacto)
+      // Buscar si el competidor participó en este evento específico (por coincidencia de nombre exacto)
       const part = allParticipants.find(p => p.eventId === event.id && p.name.trim().toLowerCase() === mcNameLower);
 
       if (part) {
