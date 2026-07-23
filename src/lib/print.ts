@@ -293,8 +293,8 @@ function getSeriesColumnHtml(
       <div class="field-box" style="min-height:30px;">
        <span class="field-lbl">Participante</span>
        <span class="field-val">
-        #${participant.competitorNumber} — ${participant.name} 
-        ${participant.tanda ? ` (Tanda ${participant.tanda} · Puesto ${participant.spot})` : ''}
+        ${participant.name} 
+        ${participant.tanda ? ` (Tanda ${participant.tanda} · Mesa ${participant.spot})` : ''}
        </span>
       </div>
      </div>
@@ -564,7 +564,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        ? `<div class="pos-badge top-${pos}">${pos}</div>`
        : `<div class="pos-number">${pos}</div>`;
         
-      const laneLabel = p.tanda ? `Tanda ${p.tanda} · Puesto ${p.spot}` : 'Sin posición';
+      const laneLabel = p.tanda ? `Tanda ${p.tanda} · Mesa ${p.spot}` : 'Sin posición';
       const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
       return `
@@ -572,7 +572,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
         <td class="td-pos">${posHtml}</td>
         <td class="td-name">
          <div class="name-text">${p.name.toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
+         <div class="sub-text">COMPETIDOR · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val">${scoreDisplay}</div>
@@ -613,7 +613,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
         <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
         <td class="td-name">
          <div class="name-text">${p.name.toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${p.category}` : ''}</div>
+         <div class="sub-text">COMPETIDOR ${p.category ? `· ${p.category}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>

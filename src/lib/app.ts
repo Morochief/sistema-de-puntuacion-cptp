@@ -549,7 +549,7 @@ async function renderEvent(eventId: string): Promise<void> {
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
       <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#d97706;margin:0;">
-       Sorteo de Puestos
+       Sorteo de Mesas
       </h3>
       <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">
        Sortea aleatoriamente en 8 Tandas (Spots 1-4). Reglas especiales de la organización aplicadas automáticamente.
@@ -566,6 +566,12 @@ async function renderEvent(eventId: string): Promise<void> {
           ${participants.length === 0 ? 'disabled' : ''}
           title="Reasignar tandas manualmente">
         Reordenar Manual
+      </button>
+      <button id="btn-seed-late" class="btn-ghost-custom"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(16,185,129,0.35);color:#10b981;"
+          ${participants.some(p => p.tanda === undefined && p.presentForRaffle !== false) ? '' : 'disabled'}
+          title="Asignar competidores marcados para sorteo a los espacios libres en mesas">
+        Asignar Rezagados
       </button>
       <button id="btn-undo-sorteo" class="btn-ghost-custom"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
@@ -776,10 +782,7 @@ async function renderEvent(eventId: string): Promise<void> {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
           background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;flex-wrap:wrap;gap:10px;">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
-             background:#f1f5f9;padding:4px 8px;border-radius:6px;color:#0056b3;">
-       #${p.competitorNumber}
-      </span>
+      
       <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
       ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
       ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · P${p.spot}</span>` : ''}
@@ -863,7 +866,7 @@ async function renderEvent(eventId: string): Promise<void> {
      renderCuadroSorteo();
      renderListaSeries();
      // actualizar contador en el tab
-     if (btnTiradores) btnTiradores.textContent = `Sorteo y Puestos (${participants.length}/32)`;
+     if (btnTiradores) btnTiradores.textContent = `Sorteo y Mesas (${participants.length}/32)`;
      
      // Actualizar estado del botón de sorteo
      const btnShuffle = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
@@ -1011,7 +1014,7 @@ async function renderEvent(eventId: string): Promise<void> {
    return `
     <div style="border:1px dashed #cbd5e1;border-radius:8px;padding:8px;
           text-align:center;font-size:0.75rem;color:#64748b;">
-     Puesto ${spotNum}: [Libre]
+     Mesa ${spotNum}: [Libre]
     </div>`;
   }
   return `
@@ -1095,7 +1098,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category.split('::')[0])})</span>` : ''}
       </div>
       <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
-       ${p.tanda ? `Tanda ${p.tanda} — Puesto ${p.spot}` : 'Posición no sorteada'}
+       ${p.tanda ? `Tanda ${p.tanda} — Mesa ${p.spot}` : 'Posición no sorteada'}
        ${pSeries.length > 0 ? `· Acumulado: <strong style="color:#22c55e;">${totalScore} pts</strong>` : ''}
       </div>
      </div>
@@ -1241,7 +1244,7 @@ async function renderEvent(eventId: string): Promise<void> {
           <td style="padding:10px 8px;text-align:center;width:40px;">${posHtml}</td>
           <td style="padding:10px 8px;">
             <div style="font-weight:700;color:#0f172a;font-size:0.85rem;text-transform:uppercase;">${esc(p.name)}</div>
-            <div style="font-size:0.7rem;color:#64748b;">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category.split('::')[0])}` : ''}</div>
+            <div style="font-size:0.7rem;color:#64748b;">COMPETIDOR ${p.category ? `· ${esc(p.category.split('::')[0])}` : ''}</div>
           </td>
           <td style="padding:10px 8px;text-align:right;width:80px;">
             <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#16a34a;">${scoreDisplay}</span>
@@ -1285,7 +1288,7 @@ async function renderEvent(eventId: string): Promise<void> {
         <td style="padding:10px 8px;text-align:center;width:40px;"><span style="color:#d97706;font-size:1.1rem;">★</span></td>
         <td style="padding:10px 8px;">
           <div style="font-weight:700;color:#0f172a;font-size:0.85rem;text-transform:uppercase;">${esc(p.name)}</div>
-          <div style="font-size:0.7rem;color:#64748b;">#${p.competitorNumber}</div>
+          
         </td>
         <td style="padding:10px 8px;text-align:right;">
           <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:900;color:#d97706;">${reason.join(' / ')}</span>
@@ -1394,7 +1397,7 @@ async function renderEvent(eventId: string): Promise<void> {
    renderListaSeries();
 
    // actualizar contador en el tab
-   if (btnTiradores) btnTiradores.textContent = `Sorteo y Puestos (${participants.length}/32)`;
+   if (btnTiradores) btnTiradores.textContent = `Sorteo y Mesas (${participants.length}/32)`;
 
 
     // Actualizar estado de los botones de sorteo
@@ -1433,7 +1436,7 @@ async function renderEvent(eventId: string): Promise<void> {
    renderListaInscritos();
    renderCuadroSorteo();
    renderListaSeries();
-   if (btnTiradores) btnTiradores.textContent = `Sorteo y Puestos (${participants.length}/32)`;
+   if (btnTiradores) btnTiradores.textContent = `Sorteo y Mesas (${participants.length}/32)`;
    const btnShuffle = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
    if (btnShuffle) btnShuffle.disabled = participants.length === 0;
    const btnSeedScores = document.getElementById('btn-seed-scores') as HTMLButtonElement | null;
@@ -1449,6 +1452,53 @@ async function renderEvent(eventId: string): Promise<void> {
   });
  });
  // --- HANDLER: REALIZAR SORTEO ALEATORIO ---
+
+ document.getElementById('btn-seed-late')?.addEventListener('click', async () => {
+  const lateArrivals = participants.filter(p => p.tanda === undefined && p.presentForRaffle !== false);
+  if (lateArrivals.length === 0) {
+   showToast('No hay competidores rezagados marcados para el sorteo.', 'info');
+   return;
+  }
+
+  // Encontrar puestos ocupados
+  const occupied = new Set<string>();
+  participants.forEach(p => {
+   if (p.tanda !== undefined && p.spot !== undefined) {
+    occupied.add(`${p.tanda}-${p.spot}`);
+   }
+  });
+
+  // Iterar tandas desde 1 hasta 8, buscando espacios libres consecutivamente
+  let assignedCount = 0;
+  for (const p of lateArrivals) {
+   let found = false;
+   for (let t = 1; t <= 8; t++) {
+    for (let s = 1; s <= 4; s++) {
+     if (!occupied.has(`${t}-${s}`)) {
+      p.tanda = t;
+      p.spot = s as 1|2|3|4;
+      occupied.add(`${t}-${s}`);
+      found = true;
+      assignedCount++;
+      break;
+     }
+    }
+    if (found) break;
+   }
+   if (found) {
+    await db.participants.put(p);
+   }
+  }
+
+  if (assignedCount < lateArrivals.length) {
+   showToast(`Se asignaron ${assignedCount} tiradores, pero faltó espacio para ${lateArrivals.length - assignedCount} tiradores (Máx 32).`, 'warning');
+  } else {
+   showToast(`Se asignaron ${assignedCount} rezagados a mesas libres con éxito.`, 'success');
+  }
+
+  renderEvent(String(event!.id!));
+ });
+
  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
   if (participants.length === 0) {
    showToast('No hay competidores inscritos para sortear.', 'error');

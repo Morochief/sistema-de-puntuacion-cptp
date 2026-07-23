@@ -23,22 +23,52 @@ export function applySpecialFamilySeedingRules(participants: Participant[]): Par
     const angel = participants[angelIndex];
 
     if (facundo.tanda !== undefined && angel.tanda !== undefined) {
-      if (facundo.tanda >= angel.tanda) {
-        if (facundo.tanda > angel.tanda) {
-          // Si Facundo tiene una tanda mayor a Ángel, simplemente intercambiar sus puestos y tandas
-          const tempT = facundo.tanda;
-          const tempS = facundo.spot;
-          facundo.tanda = angel.tanda;
-          facundo.spot = angel.spot;
-          angel.tanda = tempT;
-          angel.spot = tempS;
-        } else {
-          // Si coinciden en la misma tanda, mover a Facundo a una tanda anterior o a Ángel a una posterior
-          if (angel.tanda < 8) {
-            angel.tanda = angel.tanda + 1;
+      // Regla 1: Nunca en tanda 1. Deben estar entre 2 y 4. (Solo permitimos 2, 3 o 4)
+      const allowedTandas = [2, 3, 4];
+      
+      const enforceAllowedTanda = (p: Participant, otherId: number) => {
+        if (!allowedTandas.includes(p.tanda!)) {
+          // Buscar a alguien en tandas 2, 3 o 4 para intercambiar
+          const candidate = participants.find(x => 
+            x.id !== p.id && 
+            x.id !== otherId && 
+            x.tanda !== undefined && 
+            allowedTandas.includes(x.tanda)
+          );
+          if (candidate) {
+            const tempT = p.tanda;
+            const tempS = p.spot;
+            p.tanda = candidate.tanda;
+            p.spot = candidate.spot;
+            candidate.tanda = tempT;
+            candidate.spot = tempS;
           } else {
-            facundo.tanda = Math.max(1, facundo.tanda - 1);
+            // Si no hay nadie para intercambiar (raro), forzar a tanda 2
+            p.tanda = 2;
           }
+        }
+      };
+
+      enforceAllowedTanda(facundo, angel.id!);
+      enforceAllowedTanda(angel, facundo.id!);
+
+      // Regla 2: Facundo debe tener un número de tanda menor que Ángel. O al menos igual.
+      // Si Ángel tiene un número menor, los intercambiamos
+      if (facundo.tanda > angel.tanda!) {
+        const tempT = facundo.tanda;
+        const tempS = facundo.spot;
+        facundo.tanda = angel.tanda;
+        facundo.spot = angel.spot;
+        angel.tanda = tempT;
+        angel.spot = tempS;
+      }
+      
+      // Regla 3: Facundo y Ángel NO deben estar en la misma tanda
+      if (facundo.tanda === angel.tanda) {
+        if (angel.tanda < 4) {
+          angel.tanda = angel.tanda + 1;
+        } else {
+          facundo.tanda = facundo.tanda - 1;
         }
       }
     }
@@ -64,12 +94,12 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
     });
   }
 
-  showToast('Sorteo deshecho con éxito. Puestos y tandas limpiadas.', 'info');
+  showToast('Sorteo deshecho con éxito. Mesas y tandas limpiadas.', 'info');
   onSaveCallback();
 }
 
 /**
- * Modal táctico para cambiar el orden de las tandas y puestos manualmente (Control Total del Organizador).
+ * Modal táctico para cambiar el orden de las tandas y mesas manualmente (Control Total del Organizador).
  */
 export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void): Promise<void> {
   const participants = await db.participants.where('eventId').equals(eventId).toArray();
@@ -110,7 +140,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;gap:8px;">
           <div style="min-width:0;flex:1;">
             <span style="font-weight:700;color:#0f172a;font-size:0.9rem;">#${p.competitorNumber} — ${esc(p.name)}</span>
-            <span style="font-size:0.75rem;color:#64748b;display:block;">${esc(p.category || 'General')} ${p.sector ? `· Sector ${p.sector}` : ''} ${p.spot ? `· Puesto ${p.spot}` : ''}</span>
+            <span style="font-size:0.75rem;color:#64748b;display:block;">${esc(p.category || 'General')} ${p.sector ? `· Sector ${p.sector}` : ''} ${p.spot ? `· Mesa ${p.spot}` : ''}</span>
           </div>
 
           <div style="display:flex;gap:6px;align-items:center;">
