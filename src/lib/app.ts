@@ -567,12 +567,7 @@ async function renderEvent(eventId: string): Promise<void> {
           title="Reasignar tandas manualmente">
         Reordenar Manual
       </button>
-      <button id="btn-seed-late" class="btn-ghost-custom"
-          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(16,185,129,0.35);color:#10b981;"
-          
-          title="Asignar competidores marcados para sorteo a los espacios libres en mesas">
-        Asignar Rezagados
-      </button>
+      
       <button id="btn-undo-sorteo" class="btn-ghost-custom"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
           ${participants.some(p => p.tanda !== undefined) ? '' : 'disabled'}
@@ -783,7 +778,7 @@ async function renderEvent(eventId: string): Promise<void> {
           background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;flex-wrap:wrap;gap:10px;">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       
-      <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span> <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
       ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
       ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · M${p.spot}</span>` : ''}
       ${statusBadge}${payBadge}
@@ -803,6 +798,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
+            ${p.tanda === undefined && p.presentForRaffle !== false ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
       <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">
        Editar
       </button>
@@ -816,6 +812,46 @@ async function renderEvent(eventId: string): Promise<void> {
    : `<div style="text-align:center;padding:16px;color:#94a3b8;font-size:0.85rem;">No se encontraron competidores con los filtros seleccionados.</div>`;
 
   listEl.innerHTML = filterBarHtml + `<div style="display:flex;flex-direction:column;gap:8px;">${rowsHtml}</div>`;
+
+
+  listEl.querySelectorAll('[data-assign-late]').forEach(btn => {
+   btn.addEventListener('click', async (e) => {
+    const id = Number((e.currentTarget as HTMLElement).dataset.assignLate);
+    const p = participants.find(x => x.id === id);
+    if (!p) return;
+
+    // Encontrar puestos ocupados
+    const occupied = new Set<string>();
+    participants.forEach(x => {
+     if (x.tanda !== undefined && x.spot !== undefined) {
+      occupied.add(`${x.tanda}-${x.spot}`);
+     }
+    });
+
+    // Encontrar el primer espacio libre
+    let found = false;
+    for (let t = 1; t <= 8; t++) {
+     for (let s = 1; s <= 4; s++) {
+      if (!occupied.has(`${t}-${s}`)) {
+       p.tanda = t;
+       p.spot = s as 1|2|3|4;
+       p.presentForRaffle = true;
+       found = true;
+       break;
+      }
+     }
+     if (found) break;
+    }
+
+    if (found) {
+     await db.participants.put(p);
+     showToast(`Se asignó a ${p.name} a Tanda ${p.tanda} Mesa ${p.spot}.`, 'success');
+     renderEvent(String(event!.id!));
+    } else {
+     showToast('No hay mesas libres disponibles (Capacidad máxima alcanzada).', 'error');
+    }
+   });
+  });
 
   // Bind dropdown filters
   (listEl.querySelector('#p-filter-tanda') as HTMLSelectElement)?.addEventListener('change', (e) => {
@@ -1243,7 +1279,7 @@ async function renderEvent(eventId: string): Promise<void> {
           <td style="padding:10px 8px;text-align:center;width:40px;">${posHtml}</td>
           <td style="padding:10px 8px;">
             <div style="font-weight:700;color:#0f172a;font-size:0.85rem;text-transform:uppercase;">${esc(p.name)}</div>
-            <div style="font-size:0.7rem;color:#64748b;">COMPETIDOR ${p.category ? `· ${esc(p.category.split('::')[0])}` : ''}</div>
+            <div style="font-size:0.7rem;color:#64748b;">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category.split('::')[0])}` : ''}</div>
           </td>
           <td style="padding:10px 8px;text-align:right;width:80px;">
             <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#16a34a;">${scoreDisplay}</span>
@@ -1452,53 +1488,6 @@ async function renderEvent(eventId: string): Promise<void> {
  });
  // --- HANDLER: REALIZAR SORTEO ALEATORIO ---
 
- document.getElementById('btn-seed-late')?.addEventListener('click', async () => {
-  const lateArrivals = participants.filter(p => p.tanda === undefined);
-  if (lateArrivals.length === 0) {
-   showToast('No hay competidores sin asignar.', 'info');
-   return;
-  }
-
-  // Encontrar puestos ocupados
-  const occupied = new Set<string>();
-  participants.forEach(p => {
-   if (p.tanda !== undefined && p.spot !== undefined) {
-    occupied.add(`${p.tanda}-${p.spot}`);
-   }
-  });
-
-  // Iterar tandas desde 1 hasta 8, buscando espacios libres consecutivamente
-  let assignedCount = 0;
-  for (const p of lateArrivals) {
-   let found = false;
-   for (let t = 1; t <= 8; t++) {
-    for (let s = 1; s <= 4; s++) {
-     if (!occupied.has(`${t}-${s}`)) {
-      p.tanda = t;
-      p.spot = s as 1|2|3|4;
-      p.presentForRaffle = true; // Automáticamente los marcamos como presentes
-      occupied.add(`${t}-${s}`);
-      found = true;
-      assignedCount++;
-      break;
-     }
-    }
-    if (found) break;
-   }
-   if (found) {
-    await db.participants.put(p);
-   }
-  }
-
-  if (assignedCount < lateArrivals.length) {
-   showToast(`Se asignaron ${assignedCount} tiradores, pero faltó espacio para ${lateArrivals.length - assignedCount} tiradores (Máx 32).`, 'warning');
-  } else {
-   showToast(`Se asignaron ${assignedCount} rezagados a mesas libres con éxito.`, 'success');
-  }
-
-  renderEvent(String(event!.id!));
- });
-
  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
   if (participants.length === 0) {
    showToast('No hay competidores inscritos para sortear.', 'error');
@@ -1538,7 +1527,6 @@ async function renderEvent(eventId: string): Promise<void> {
     const tanda = Math.floor(i / 4) + 1;
     const spot = (i % 4) + 1;
 
-    list[i].competitorNumber = compNumbers[i];
     list[i].tanda = tanda;
     list[i].sector = undefined;
     list[i].spot = spot;

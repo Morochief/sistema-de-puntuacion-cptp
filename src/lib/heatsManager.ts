@@ -139,7 +139,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       const itemsHtml = group.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;gap:8px;">
           <div style="min-width:0;flex:1;">
-            <span style="font-weight:700;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
+            <span style="font-weight:700;color:#0f172a;font-size:0.9rem;">#${p.competitorNumber} — ${esc(p.name)}</span>
             <span style="font-size:0.75rem;color:#64748b;display:block;">${esc(p.category || 'General')} ${p.sector ? `· Sector ${p.sector}` : ''} ${p.spot ? `· Mesa ${p.spot}` : ''}</span>
           </div>
 

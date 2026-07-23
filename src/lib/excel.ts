@@ -43,7 +43,7 @@ export function exportRankingToExcel(
 
   // Cabecera de columnas
   rows.push([
-    'Pos', 'Nombre', 'Categoría', 'Tanda', 'Mesa', 'Serie',
+    'Pos', 'Competidor #', 'Nombre', 'Categoría', 'Tanda', 'Mesa', 'Serie',
     'D1 (15")', 'D2 (10")', 'D3 (5")',
     'D4 (Ad)', 'D5 (Ad)', 'D6 (Ad)', 'D7 (Ad)', 'D8 (Ad)', 'D9 (Ad)', 'D10 (Ad)',
     'Total Serie', 'Total General'

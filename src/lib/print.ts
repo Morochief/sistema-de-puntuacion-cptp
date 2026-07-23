@@ -613,7 +613,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
         <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
         <td class="td-name">
          <div class="name-text">${p.name.toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR ${p.category ? `· ${p.category}` : ''}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${p.category}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>
