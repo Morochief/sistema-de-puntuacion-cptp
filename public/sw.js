@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cptp-scoring-cache-v10';
+const CACHE_NAME = 'cptp-scoring-cache-v11';
 
 const ASSETS_TO_CACHE = [
   '/',

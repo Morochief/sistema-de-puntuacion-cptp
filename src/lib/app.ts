@@ -1002,7 +1002,15 @@ async function renderEvent(eventId: string): Promise<void> {
 
   const validParticipants = participants.filter(p => 
     p.tanda !== undefined || allSeries.some(s => s.participantId === p.id)
-  );
+  ).sort((a, b) => {
+    const tA = a.tanda ?? 999;
+    const tB = b.tanda ?? 999;
+    if (tA !== tB) return tA - tB;
+    const sA = a.spot ?? 999;
+    const sB = b.spot ?? 999;
+    if (sA !== sB) return sA - sB;
+    return a.competitorNumber - b.competitorNumber;
+  });
 
   if (validParticipants.length === 0) {
    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">
