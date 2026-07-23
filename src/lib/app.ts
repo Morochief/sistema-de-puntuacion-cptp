@@ -1000,7 +1000,9 @@ async function renderEvent(eventId: string): Promise<void> {
   const containerEl = document.getElementById('lista-series-por-tirador');
   if (!containerEl) return;
 
-  const validParticipants = participants.filter(p => p.tanda !== undefined);
+  const validParticipants = participants.filter(p => 
+    p.tanda !== undefined || allSeries.some(s => s.participantId === p.id)
+  );
 
   if (validParticipants.length === 0) {
    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">
