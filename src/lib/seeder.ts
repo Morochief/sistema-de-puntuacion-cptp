@@ -85,7 +85,8 @@ export async function handleSeedParticipants(id: number, participants: Participa
         spot: freeSpot?.spot,
         category: namesToSeed[i].category || 'General',
         status: 'active',
-        paymentStatus: 'paid'
+        paymentStatus: 'paid',
+        presentForRaffle: true
       };
       bulkData.push(newParticipant);
       tempParticipants.push(newParticipant);

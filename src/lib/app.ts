@@ -725,6 +725,7 @@ async function renderEvent(eventId: string): Promise<void> {
 
   const rowsHtml = displayed.length > 0
    ? displayed.map((p) => {
+    const cleanCategory = (p.category || '').split('::')[0];
     const statusBadge = p.status === 'dq'
      ? `<span style="font-size:0.65rem;background:#fee2e2;color:#b7201c;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #fca5a5;">DQ</span>`
      : p.status === 'dns'
@@ -735,6 +736,7 @@ async function renderEvent(eventId: string): Promise<void> {
      : p.paymentStatus === 'paid'
      ? `<span style="font-size:0.65rem;background:#f0fdf4;color:#16a34a;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #bbf7d0;">$ Abonado</span>`
      : '';
+    const isRaffleChecked = p.presentForRaffle !== false;
     return `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
           background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
@@ -744,11 +746,11 @@ async function renderEvent(eventId: string): Promise<void> {
        #${p.competitorNumber}
       </span>
       <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
-      ${p.category ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
+      ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
       ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · P${p.spot}</span>` : ''}
       ${statusBadge}${payBadge}
       <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
-       <input type="checkbox" data-set-raffle="${p.id}" ${p.presentForRaffle ? 'checked' : ''} style="cursor:pointer;" />
+       <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} style="cursor:pointer;" />
        <span>Sorteo</span>
       </label>
      </div>
@@ -791,7 +793,7 @@ async function renderEvent(eventId: string): Promise<void> {
    renderListaInscritos();
   });
   (listEl.querySelector('#p-sort-by') as HTMLSelectElement)?.addEventListener('change', (e) => {
-   pSortBy = (e.target as HTMLSelectElement).value as any;
+   pSortBy = (e.target as HTMLSortBy) === 'sort-by' ? (e.target as HTMLSelectElement).value as any : pSortBy;
    renderListaInscritos();
   });
 
@@ -836,6 +838,83 @@ async function renderEvent(eventId: string): Promise<void> {
      showToast('Error al eliminar la inscripción', 'error');
     }
    });
+  });
+
+  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
+   if (participants.length === 0) {
+    showToast('No hay competidores inscritos para sortear.', 'error');
+    return;
+   }
+
+   const presentList = participants.filter(p => p.presentForRaffle !== false);
+   const absentList = participants.filter(p => p.presentForRaffle === false);
+
+   if (presentList.length === 0) {
+    showToast('No hay competidores marcados como "Sorteo". Por favor, marcá la casilla Sorteo en los tiradores presentes.', 'error');
+    return;
+   }
+
+   if (!await showConfirm('Realizar Sorteo', `¿Realizar el sorteo aleatorio de posiciones para los ${presentList.length} competidores presentes? (${absentList.length} ausentes quedarán sin tanda)`)) return;
+
+   try {
+    // Limpiar tandas y puestos de ausentes
+    for (const p of absentList) {
+     p.tanda = undefined;
+     p.spot = undefined;
+     p.sector = undefined;
+    }
+
+    const list = [...presentList];
+    const N = list.length;
+
+    // 1. Generar números de competidor del 1 al N y mezclarlos
+    const compNumbers = Array.from({ length: N }, (_, i) => i + 1);
+    for (let i = compNumbers.length - 1; i > 0; i--) {
+     const j = Math.floor(Math.random() * (i + 1));
+     [compNumbers[i], compNumbers[j]] = [compNumbers[j], compNumbers[i]];
+    }
+
+    // 2. Mezclar el orden de los participantes presentes
+    for (let i = list.length - 1; i > 0; i--) {
+     const j = Math.floor(Math.random() * (i + 1));
+     [list[i], list[j]] = [list[j], list[i]];
+    }
+
+    // 3. Asignar los números de competidor mezclados y las posiciones físicas (4 por Tanda)
+    for (let i = 0; i < list.length; i++) {
+     const tanda = Math.floor(i / 4) + 1; // 1 a 8
+     const spot = (i % 4) + 1;            // Spot 1, 2, 3, 4
+
+     list[i].competitorNumber = compNumbers[i];
+     list[i].tanda = tanda;
+     list[i].sector = undefined;
+     list[i].spot = spot as 1 | 2 | 3 | 4;
+    }
+
+    // Renumerar los ausentes al final
+    let absNum = N + 1;
+    for (const p of absentList) {
+     p.competitorNumber = absNum++;
+    }
+
+    // 4. Aplicar reglas especiales de la familia Domínguez (Ángel y Facundo)
+    applySpecialFamilySeedingRules(list);
+
+    // 5. Guardar en Dexie todos (presentes y ausentes)
+    await Promise.all([...list, ...absentList].map(p => db.participants.put(p)));
+
+    showToast(`¡Sorteo completado! ${presentList.length} competidores asignados a tandas.`, 'success');
+
+    // recargar
+    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+    renderListaInscritos();
+    renderCuadroSorteo();
+    renderListaSeries();
+   } catch (err) {
+    console.error('[DB] Error ejecutando sorteo:', err);
+    showToast('Error al guardar el sorteo.', 'error');
+   }
   });
 
   // Bind cambio de estado (DQ / DNS / Active)
@@ -1028,7 +1107,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#0056b3;font-weight:700;">
         #${p.competitorNumber}
        </span>
-       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
+       <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category.split('::')[0])})</span>` : ''}
       </div>
       <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
        ${p.tanda ? `Tanda ${p.tanda} — Puesto ${p.spot}` : 'Posición no sorteada'}

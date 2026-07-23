@@ -95,10 +95,10 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         event_id: toDeterministicUuid(p.eventId, 0),
         name: p.name,
         competitor_number: p.competitorNumber,
-        category: p.category || '',
+        category: (p.category || '').split('::')[0],
         payment_status: p.paymentStatus || 'paid',
         status: p.status || 'active',
-        present_for_raffle: !!p.presentForRaffle,
+        present_for_raffle: p.presentForRaffle !== undefined ? !!p.presentForRaffle : true,
         tanda: p.tanda || null,
         spot: p.spot || null,
         tie_rank: p.tieRank || null
@@ -204,18 +204,26 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       for (const p of cloudParticipants) {
         const localId = fromDeterministicUuid(p.id);
         const localEventId = fromDeterministicUuid(p.event_id);
+        const catParts = (p.category || '').split('::');
+        const rawCategory = catParts[0] || '';
+        const rawPaymentStatus = p.payment_status || (catParts[1] as any) || 'paid';
+        const rawStatus = p.status || (catParts[2] as any) || 'active';
+        const rawRaffle = p.present_for_raffle !== null && p.present_for_raffle !== undefined 
+          ? !!p.present_for_raffle 
+          : (catParts[3] === '1' || catParts.length === 1);
+
         await db.participants.put({
           id: localId,
           eventId: localEventId,
           name: p.name,
           competitorNumber: p.competitor_number,
-          category: p.category || '',
+          category: rawCategory,
           tanda: p.tanda || undefined,
           spot: p.spot || undefined,
           tieRank: p.tie_rank || undefined,
-          paymentStatus: p.payment_status || 'paid',
-          status: p.status || 'active',
-          presentForRaffle: !!p.present_for_raffle
+          paymentStatus: rawPaymentStatus,
+          status: rawStatus,
+          presentForRaffle: rawRaffle
         });
 
         // ─ Alimentar Padrón Maestro local silenciosamente ─
