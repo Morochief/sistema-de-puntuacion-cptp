@@ -1320,12 +1320,13 @@ async function renderEvent(eventId: string): Promise<void> {
       applySpecialFamilySeedingRules(list);
    }
 
+   let nextNumber = list.length + 1;
    const listAusentes = participants.filter(p => p.presentForRaffle === false);
    for (const p of listAusentes) {
      p.tanda = undefined;
      p.sector = undefined;
      p.spot = undefined;
-     
+     p.competitorNumber = nextNumber++;
    }
 
    await Promise.all(list.map(p => db.participants.put(p)));
@@ -1365,10 +1366,13 @@ async function renderEvent(eventId: string): Promise<void> {
     newBtnUndo.addEventListener('click', async () => {
       if (!await showConfirm('Deshacer Sorteo', '¿Estás seguro de deshacer el sorteo? Se borrarán todas las tandas y puestos asignados.')) return;
       try {
+        participants.sort((a, b) => (a.id || 0) - (b.id || 0));
+        let num = 1;
         for (const p of participants) {
           p.tanda = undefined;
           p.spot = undefined;
           p.sector = undefined;
+          p.competitorNumber = num++;
           
           await db.participants.put(p);
         }
