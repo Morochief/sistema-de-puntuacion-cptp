@@ -295,7 +295,19 @@ async function renderDashboard(): Promise<void> {
     await showEditEventModal(eid, () => renderDashboard());
    });
   });
+
+  // Update button states whenever the cuadro is rendered
+  const btnUndoState = document.getElementById('btn-undo-sorteo');
+  if (btnUndoState) {
+    const hasRaffle = participants.some(p => p.tanda !== undefined);
+    btnUndoState.disabled = !hasRaffle;
+  }
+  const btnShuffle = document.getElementById('btn-shuffle-sorteo');
+  if (btnShuffle) {
+    btnShuffle.disabled = participants.length === 0;
+  }
  }
+
 
  // Vincular botón de importar backup
  document.getElementById('btn-import-backup')?.addEventListener('click', () => {
@@ -1308,7 +1320,7 @@ async function renderEvent(eventId: string): Promise<void> {
      p.tanda = undefined;
      p.sector = undefined;
      p.spot = undefined;
-     p.competitorNumber = 999;
+     
    }
 
    await Promise.all(list.map(p => db.participants.put(p)));
@@ -1352,7 +1364,7 @@ async function renderEvent(eventId: string): Promise<void> {
           p.tanda = undefined;
           p.spot = undefined;
           p.sector = undefined;
-          p.competitorNumber = 999;
+          
           await db.participants.put(p);
         }
         showToast('Sorteo deshecho. Tandas y puestos restablecidos.', 'info');
