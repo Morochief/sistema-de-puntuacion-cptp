@@ -233,7 +233,7 @@ export function showTieBreakerModal(
             ${overallPos}° Lugar
           </span>
           <span style="font-weight:700;font-size:0.9rem;color:#0f172a;">
-            #${row.participant.competitorNumber} — ${row.participant.name}
+            ${row.participant.name}
           </span>
         `;
 

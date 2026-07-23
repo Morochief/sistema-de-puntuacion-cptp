@@ -569,7 +569,7 @@ async function renderEvent(eventId: string): Promise<void> {
       </button>
       <button id="btn-seed-late" class="btn-ghost-custom"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(16,185,129,0.35);color:#10b981;"
-          ${participants.some(p => p.tanda === undefined && p.presentForRaffle !== false) ? '' : 'disabled'}
+          
           title="Asignar competidores marcados para sorteo a los espacios libres en mesas">
         Asignar Rezagados
       </button>
@@ -785,7 +785,7 @@ async function renderEvent(eventId: string): Promise<void> {
       
       <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
       ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
-      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · P${p.spot}</span>` : ''}
+      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · M${p.spot}</span>` : ''}
       ${statusBadge}${payBadge}
       <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
        <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} style="cursor:pointer;" />
@@ -1022,8 +1022,7 @@ async function renderEvent(eventId: string): Promise<void> {
       style="background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;
          padding:8px 10px;font-size:0.75rem;cursor:pointer;
          display:flex;align-items:center;gap:6px;transition:border-color 0.2s;">
-    <span style="font-weight:900;color:#64748b;">P${spotNum}</span>
-    <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span>
+    <span style="font-weight:900;color:#64748b;">M${spotNum}</span>
     <span style="font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">
      ${esc(p.name)}
     </span>
@@ -1093,7 +1092,7 @@ async function renderEvent(eventId: string): Promise<void> {
      <div>
       <div style="display:flex;align-items:center;gap:6px;">
        <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#0056b3;font-weight:700;">
-        #${p.competitorNumber}
+        
        </span>
        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category.split('::')[0])})</span>` : ''}
       </div>
