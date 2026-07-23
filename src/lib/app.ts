@@ -842,27 +842,6 @@ async function renderEvent(eventId: string): Promise<void> {
 
 
 
-  // --- HANDLER: DESHACER SORTEO ---
-  document.getElementById('btn-undo-sorteo')?.addEventListener('click', async () => {
-   if (!await showConfirm('Deshacer Sorteo', '¿Estás seguro de deshacer el sorteo? Se borrarán todas las tandas y puestos asignados.')) return;
-   try {
-    for (const p of participants) {
-     p.tanda = undefined;
-     p.spot = undefined;
-     p.sector = undefined;
-     await db.participants.put(p);
-    }
-    showToast('Sorteo deshecho. Tandas y puestos restablecidos.', 'info');
-    participants = await db.participants.where('eventId').equals(id).toArray();
-    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
-    renderListaInscritos();
-    renderCuadroSorteo();
-    renderListaSeries();
-   } catch (err) {
-    console.error('[DB] Error deshaciendo sorteo:', err);
-    showToast('Error al deshacer el sorteo.', 'error');
-   }
-  });
 
   // Bind cambio de estado (DQ / DNS / Active)
   listEl.querySelectorAll('[data-set-status]').forEach((sel) => {
@@ -1222,9 +1201,16 @@ async function renderEvent(eventId: string): Promise<void> {
    // actualizar contador en el tab
    if (btnTiradores) btnTiradores.textContent = `Sorteo y Puestos (${participants.length}/32)`;
 
-   // Actualizar estado del botón de sorteo
-   const btnShuffle = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
-   if (btnShuffle) btnShuffle.disabled = participants.length === 0;
+
+    // Actualizar estado de los botones de sorteo
+    const btnShuffle = document.getElementById('btn-shuffle-sorteo');
+    if (btnShuffle) btnShuffle.disabled = participants.length === 0;
+    const btnUndoState = document.getElementById('btn-undo-sorteo');
+    if (btnUndoState) {
+      const hasRaffle = participants.some(p => p.tanda !== undefined);
+      btnUndoState.disabled = !hasRaffle;
+    }
+
   } catch (err) {
    console.error('[DB] Error inscribiendo competidor:', err);
    showToast('Error al guardar la inscripción.', 'error');
@@ -1352,15 +1338,35 @@ async function renderEvent(eventId: string): Promise<void> {
   });
  });
 
- // --- HANDLER: DESHACER SORTEO ---
- document.getElementById('btn-undo-sorteo')?.addEventListener('click', async () => {
-  await resetEventSeeding(id, async () => {
-   participants = await db.participants.where('eventId').equals(id).toArray();
-   participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
-   renderListaInscritos();
-   renderCuadroSorteo();
-  });
- });
+
+  // --- HANDLER: DESHACER SORTEO ---
+  const btnUndo = document.getElementById('btn-undo-sorteo');
+  if (btnUndo) {
+    // Prevent duplicate listeners if this is run multiple times by replacing the element
+    const newBtnUndo = btnUndo.cloneNode(true);
+    btnUndo.parentNode?.replaceChild(newBtnUndo, btnUndo);
+    newBtnUndo.addEventListener('click', async () => {
+      if (!await showConfirm('Deshacer Sorteo', '¿Estás seguro de deshacer el sorteo? Se borrarán todas las tandas y puestos asignados.')) return;
+      try {
+        for (const p of participants) {
+          p.tanda = undefined;
+          p.spot = undefined;
+          p.sector = undefined;
+          p.competitorNumber = 999;
+          await db.participants.put(p);
+        }
+        showToast('Sorteo deshecho. Tandas y puestos restablecidos.', 'info');
+        participants = await db.participants.where('eventId').equals(id).toArray();
+        participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+        renderListaInscritos();
+        renderCuadroSorteo();
+        renderListaSeries();
+      } catch (err) {
+        console.error('[DB] Error deshaciendo sorteo:', err);
+        showToast('Error al deshacer el sorteo', 'error');
+      }
+    });
+  }
 
   // --- HANDLER: RESOLVER DESEMPATES TÁCTICO ---
   document.getElementById('btn-resolve-ties')?.addEventListener('click', () => {
