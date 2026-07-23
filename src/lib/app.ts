@@ -988,13 +988,15 @@ async function renderEvent(eventId: string): Promise<void> {
   const containerEl = document.getElementById('lista-series-por-tirador');
   if (!containerEl) return;
 
-  if (participants.length === 0) {
+  const validParticipants = participants.filter(p => p.tanda !== undefined);
+
+  if (validParticipants.length === 0) {
    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">
-    Inscribí competidores para poder cargarles series de tiro.</div>`;
+    Debe realizar el sorteo de tandas primero para poder cargar puntuaciones a los competidores.</div>`;
    return;
   }
 
-  containerEl.innerHTML = participants.map((p) => {
+  containerEl.innerHTML = validParticipants.map((p) => {
    // Filtrar series de este participante
    const pSeries = allSeries.filter(s => s.participantId === p.id);
    const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
