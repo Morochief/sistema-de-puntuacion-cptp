@@ -491,13 +491,16 @@ async function renderEvent(eventId: string): Promise<void> {
    </p>
   </div>
 
-  <!-- TABS DE NAVEGACIÓN -->
+    <!-- TABS DE NAVEGACIÓN -->
   <div class="tabs tabs-boxed mb-6" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;">
-   <button id="tab-btn-tiradores" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;">
-    Sorteo y Puestos (${participants.length}/32)
+   <button id="tab-btn-tiradores" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;font-size:0.8rem;">
+    Sorteo (${participants.length}/32)
    </button>
-   <button id="tab-btn-series" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;">
-    Series y Puntuación
+   <button id="tab-btn-series" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;font-size:0.8rem;">
+    Series
+   </button>
+   <button id="tab-btn-posiciones" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;font-size:0.8rem;">
+    Posiciones
    </button>
   </div>
 
@@ -626,22 +629,38 @@ async function renderEvent(eventId: string): Promise<void> {
  // --- ELEMENTOS DE LA INTERFAZ ---
  const btnTiradores = document.getElementById('tab-btn-tiradores');
  const btnSeries = document.getElementById('tab-btn-series');
+ const btnPosiciones = document.getElementById('tab-btn-posiciones');
  const panelTiradores = document.getElementById('tab-panel-tiradores');
  const panelSeries = document.getElementById('tab-panel-series');
+ const panelPosiciones = document.getElementById('tab-panel-posiciones');
 
  // --- LÓGICA DE TABS ---
  btnTiradores?.addEventListener('click', () => {
   btnTiradores.classList.add('tab-active');
   btnSeries?.classList.remove('tab-active');
+  btnPosiciones?.classList.remove('tab-active');
   panelTiradores?.classList.remove('hidden');
   panelSeries?.classList.add('hidden');
+  panelPosiciones?.classList.add('hidden');
  });
 
  btnSeries?.addEventListener('click', () => {
   btnSeries.classList.add('tab-active');
   btnTiradores?.classList.remove('tab-active');
+  btnPosiciones?.classList.remove('tab-active');
   panelSeries?.classList.remove('hidden');
   panelTiradores?.classList.add('hidden');
+  panelPosiciones?.classList.add('hidden');
+ });
+
+ btnPosiciones?.addEventListener('click', () => {
+  btnPosiciones.classList.add('tab-active');
+  btnTiradores?.classList.remove('tab-active');
+  btnSeries?.classList.remove('tab-active');
+  panelPosiciones?.classList.remove('hidden');
+  panelTiradores?.classList.add('hidden');
+  panelSeries?.classList.add('hidden');
+  renderPosicionesTab();
  });
 
  // --- RENDER DE LISTA DE INSCRITOS ---
@@ -1154,6 +1173,142 @@ async function renderEvent(eventId: string): Promise<void> {
   });
  }
 
+
+ function renderPosicionesTab(): void {
+  const container = document.getElementById('posiciones-container');
+  if (!container) return;
+
+  if (participants.length === 0) {
+   container.innerHTML = `<div style="text-align:center;padding:24px;color:#64748b;font-size:0.85rem;">No hay competidores inscritos.</div>`;
+   return;
+  }
+
+  // Generate ranking data
+  const getRanking = (seriesNum: number | null) => {
+    const data = participants.map(p => {
+      let score = 0;
+      if (seriesNum === null) {
+        const pSeries = allSeries.filter(s => s.participantId === p.id);
+        score = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
+      } else {
+        const s = allSeries.find(s => s.participantId === p.id && s.seriesNumber === seriesNum);
+        if (s) score = s.totalScore;
+      }
+      return { participant: p, totalScore: score };
+    });
+    data.sort(sortRanking);
+    return data;
+  };
+
+  const rankTotal = getRanking(null);
+  const rankS1 = getRanking(1);
+  const rankS2 = getRanking(2);
+
+  // Helper to build table
+  const buildTable = (title: string, rankings: any[]) => {
+    const rowsHtml = rankings.map((r, i) => {
+      const p = r.participant;
+      const isTop3 = i < 3;
+      const isDq = p.status === 'dq';
+      const isDns = p.status === 'dns';
+      
+      let posHtml = `<span style="font-weight:700;color:#64748b;">${i + 1}</span>`;
+      if (isDq) posHtml = `<span style="font-size:0.65rem;background:#fee2e2;color:#b7201c;padding:2px 4px;border-radius:4px;font-weight:700;">DQ</span>`;
+      else if (isDns) posHtml = `<span style="font-size:0.65rem;background:#fef3c7;color:#d97706;padding:2px 4px;border-radius:4px;font-weight:700;">DNS</span>`;
+      else if (isTop3) {
+        posHtml = `<span style="display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;
+                  background:${i === 0 ? 'linear-gradient(135deg,#fbbf24,#f59e0b)' : i === 1 ? '#cbd5e1' : '#f59e0b'};
+                  color:${i === 0 ? '#000000' : i === 1 ? '#0f172a' : '#ffffff'};">${i + 1}</span>`;
+      }
+
+      const scoreDisplay = isDq ? '<span style="color:#ef4444;font-size:0.8rem;">DQ</span>' : isDns ? '<span style="color:#f59e0b;font-size:0.8rem;">DNS</span>' : r.totalScore;
+
+      return `
+        <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:10px 8px;text-align:center;width:40px;">${posHtml}</td>
+          <td style="padding:10px 8px;">
+            <div style="font-weight:700;color:#0f172a;font-size:0.85rem;text-transform:uppercase;">${esc(p.name)}</div>
+            <div style="font-size:0.7rem;color:#64748b;">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category.split('::')[0])}` : ''}</div>
+          </td>
+          <td style="padding:10px 8px;text-align:right;width:80px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#16a34a;">${scoreDisplay}</span>
+          </td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="background:#f8fafc;padding:12px 16px;border-bottom:1px solid #e2e8f0;">
+          <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;font-size:1.1rem;text-transform:uppercase;">${title}</h4>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  };
+
+  // Perfect Scores
+  const perfectScores = participants.map(p => {
+    const pSeries = allSeries.filter(s => s.participantId === p.id);
+    const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
+    const s1 = pSeries.find(s => s.seriesNumber === 1)?.totalScore || 0;
+    const s2 = pSeries.find(s => s.seriesNumber === 2)?.totalScore || 0;
+    return { p, s1, s2, totalScore };
+  }).filter(x => x.s1 === 67 || x.s2 === 67 || x.totalScore === 134);
+  
+  perfectScores.sort((a, b) => b.totalScore - a.totalScore);
+
+  let perfectRowsHtml = perfectScores.map(r => {
+    let reason = [];
+    if (r.s1 === 67) reason.push("S1: 67 pts");
+    if (r.s2 === 67) reason.push("S2: 67 pts");
+    if (r.totalScore === 134) reason = ["Evento Perfecto (134)"];
+
+    const p = r.p;
+    if (p.status === 'dq' || p.status === 'dns') return '';
+
+    return `
+      <tr style="border-bottom:1px solid #fef3c7;background:#fffbeb;">
+        <td style="padding:10px 8px;text-align:center;width:40px;"><span style="color:#d97706;font-size:1.1rem;">★</span></td>
+        <td style="padding:10px 8px;">
+          <div style="font-weight:700;color:#0f172a;font-size:0.85rem;text-transform:uppercase;">${esc(p.name)}</div>
+          <div style="font-size:0.7rem;color:#64748b;">#${p.competitorNumber}</div>
+        </td>
+        <td style="padding:10px 8px;text-align:right;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:900;color:#d97706;">${reason.join(' / ')}</span>
+        </td>
+      </tr>`;
+  }).join('');
+
+  if (perfectRowsHtml === '') {
+    perfectRowsHtml = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8;font-size:0.8rem;">Ningún tirador alcanzó puntaje perfecto (67 o 134).</td></tr>`;
+  }
+
+  const perfectTable = `
+    <div style="background:#ffffff;border:1px solid #fde68a;border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 4px rgba(245,158,11,0.1);">
+      <div style="background:#fef3c7;padding:12px 16px;border-bottom:1px solid #fde68a;display:flex;align-items:center;gap:8px;">
+        <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;color:#b45309;font-size:1.1rem;text-transform:uppercase;">Premios Especiales (67/134)</h4>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tbody>${perfectRowsHtml}</tbody>
+      </table>
+    </div>`;
+
+  container.innerHTML = `
+    ${buildTable('Total del Evento', rankTotal)}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;">
+      ${buildTable('Serie 1', rankS1)}
+      ${buildTable('Serie 2', rankS2)}
+    </div>
+    ${perfectTable}
+  `;
+
+  // Imprimir Button in Tab
+  document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => {
+    printRankingCard(event!, participants, allSeries);
+  });
+ }
+
  // --- HELPER: ENCONTRAR PRIMER PUESTO LIBRE EN EL CUADRO DE SORTEO ---
  function findFirstFreeSpot(existingParticipants: Participant[]): { tanda: number, spot: 1 | 2 | 3 | 4 } | null {
   const hasBeenSorted = existingParticipants.some(p => p.tanda !== undefined);
@@ -1453,6 +1608,7 @@ async function renderEvent(eventId: string): Promise<void> {
  renderListaInscritos();
  renderCuadroSorteo();
  renderListaSeries();
+ renderPosicionesTab();
 
  // --- HANDLER: VOLVER AL INICIO (DASHBOARD) ---
  document.getElementById('btn-back-event')?.addEventListener('click', () => {
