@@ -1425,17 +1425,7 @@ async function renderEvent(eventId: string): Promise<void> {
   const freshParticipants = await db.participants.where('eventId').equals(Number(id)).toArray();
   if (freshParticipants.length === 0) { showToast('No hay competidores inscritos.', 'info'); return; }
 
-  // Calcular acumulado
-  const rankingData = freshParticipants.map(p => {
-   const pSeries = allSeries.filter(s => s.participantId === p.id);
-   const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
-   return { participant: p, totalScore };
-  });
-
-  // Ordenar por puntaje total y desempates manuales
-  rankingData.sort(sortRanking);
-
-  printRankingCard(event!, rankingData);
+  printRankingCard(event!, freshParticipants, allSeries);
  });
 
  // --- IMPRIMIR TODO EL EVENTO ---

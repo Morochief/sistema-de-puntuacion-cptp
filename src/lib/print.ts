@@ -8,6 +8,7 @@
 import type { Series, ShootingEvent, Shot, Participant } from './types';
 import { SCORING_TABLES } from './scoring';
 import { db } from './db';
+import { sortRanking } from './tiebreaker';
 
 function formatDate(isoDate: string): string {
   try {
@@ -520,39 +521,159 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
   openPrintModal(html, `Todas las Planillas — ${event.name}`);
 }
 
-export function printRankingCard(event: ShootingEvent, rankings: { participant: Participant, totalScore: number }[]): void {
+export function printRankingCard(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
   const year = new Date(event.date + 'T12:00:00').getFullYear();
+
+  // Helper to calculate ranking for a specific series (or total if seriesNum is null)
+  const getRanking = (seriesNum: number | null) => {
+    const data = participants.map(p => {
+      let score = 0;
+      if (seriesNum === null) {
+        const pSeries = seriesList.filter(s => s.participantId === p.id);
+        score = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
+      } else {
+        const s = seriesList.find(s => s.participantId === p.id && s.seriesNumber === seriesNum);
+        if (s) score = s.totalScore;
+      }
+      return { participant: p, totalScore: score };
+    });
+    // Remove people with 0 points if we are filtering? No, let's keep everyone who has > 0 points or all?
+    // Actually, it's better to show everyone, but if they have 0, they rank at the bottom.
+    data.sort(sortRanking);
+    return data;
+  };
+
+  const rankTotal = getRanking(null);
+  const rankS1 = getRanking(1);
+  const rankS2 = getRanking(2);
+
+  // Helper to build table rows
+  const buildRows = (rankings: { participant: Participant, totalScore: number }[]) => {
+    return rankings.map((r, i) => {
+      const pos = i + 1;
+      const p = r.participant;
+      const isTop3 = pos <= 3;
+      const isDq = p.status === 'dq';
+      const isDns = p.status === 'dns';
+
+      const posHtml = isDq
+       ? `<div style="font-size:12px;font-weight:900;color:#b7201c;background:#fee2e2;padding:4px 8px;border-radius:4px;display:inline-block;">DQ</div>`
+       : isDns
+       ? `<div style="font-size:12px;font-weight:900;color:#d97706;background:#fef3c7;padding:4px 8px;border-radius:4px;display:inline-block;">DNS</div>`
+       : isTop3 
+       ? `<div class="pos-badge top-${pos}">${pos}</div>`
+       : `<div class="pos-number">${pos}</div>`;
+        
+      const laneLabel = p.tanda ? `Tanda ${p.tanda} · Puesto ${p.spot}` : 'Sin posición';
+      const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
+
+      return `
+       <tr class="rank-row">
+        <td class="td-pos">${posHtml}</td>
+        <td class="td-name">
+         <div class="name-text">${p.name.toUpperCase()}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
+        </td>
+        <td class="td-score">
+         <div class="score-val">${scoreDisplay}</div>
+        </td>
+       </tr>`;
+    }).join('');
+  };
+
+  const rowsTotalHtml = buildRows(rankTotal);
+  const rowsS1Html = buildRows(rankS1);
+  const rowsS2Html = buildRows(rankS2);
+
+  // Calculate perfect scores
+  const perfectScores = participants.map(p => {
+    const pSeries = seriesList.filter(s => s.participantId === p.id);
+    const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
+    const s1 = pSeries.find(s => s.seriesNumber === 1)?.totalScore || 0;
+    const s2 = pSeries.find(s => s.seriesNumber === 2)?.totalScore || 0;
+    return { p, s1, s2, totalScore };
+  }).filter(x => x.s1 === 67 || x.s2 === 67 || x.totalScore === 134);
   
-  const rowsHtml = rankings.map((r, i) => {
-   const pos = i + 1;
-   const p = r.participant;
-   const isTop3 = pos <= 3;
-   const isDq = p.status === 'dq';
-   const isDns = p.status === 'dns';
+  // Sort perfect scores by total
+  perfectScores.sort((a, b) => b.totalScore - a.totalScore);
 
-   const posHtml = isDq
-    ? `<div style="font-size:12px;font-weight:900;color:#b7201c;background:#fee2e2;padding:4px 8px;border-radius:4px;display:inline-block;">DQ</div>`
-    : isDns
-    ? `<div style="font-size:12px;font-weight:900;color:#d97706;background:#fef3c7;padding:4px 8px;border-radius:4px;display:inline-block;">DNS</div>`
-    : isTop3 
-    ? `<div class="pos-badge top-${pos}">${pos}</div>`
-    : `<div class="pos-number">${pos}</div>`;
-     
-   const laneLabel = p.tanda ? `Tanda ${p.tanda} · Puesto ${p.spot}` : 'Sin posición';
-   const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
+  let perfectRowsHtml = perfectScores.map(r => {
+    let reason = [];
+    if (r.s1 === 67) reason.push("Serie 1 (67 pts)");
+    if (r.s2 === 67) reason.push("Serie 2 (67 pts)");
+    if (r.totalScore === 134) reason = ["Evento Perfecto (134 pts)"]; // overriding for max impact
 
-   return `
-    <tr class="rank-row">
-     <td class="td-pos">${posHtml}</td>
-     <td class="td-name">
-      <div class="name-text">${p.name.toUpperCase()}</div>
-      <div class="sub-text">COMPETIDOR #${p.competitorNumber} · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
-     </td>
-     <td class="td-score">
-      <div class="score-val">${scoreDisplay}</div>
-     </td>
-    </tr>`;
+    const p = r.p;
+    const isDq = p.status === 'dq';
+    const isDns = p.status === 'dns';
+    if (isDq || isDns) return '';
+
+    return `
+      <tr class="rank-row" style="background:#fffbeb;">
+        <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
+        <td class="td-name">
+         <div class="name-text">${p.name.toUpperCase()}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${p.category}` : ''}</div>
+        </td>
+        <td class="td-score">
+         <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>
+        </td>
+      </tr>`;
   }).join('');
+
+  if (perfectRowsHtml.trim() === '') {
+    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">Ningún tirador alcanzó puntaje perfecto (67 o 134).</td></tr>`;
+  }
+
+  // Helper to build a page
+  const buildPage = (titleExtra: string, tableHtml: string, isLast: boolean = false) => `
+  <div class="a4-page" ${!isLast ? 'style="page-break-after: always; break-after: page;"' : ''}>
+    <div class="layout-border-red"></div>
+    <div class="layout-border-blue"></div>
+    <div class="layout-border-white"></div>
+
+    <header class="header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:20px;gap:12px;">
+     <!-- Logo Izquierdo (CPTP) -->
+     <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:45px;flex-shrink:0;">
+      <img src="/logo-cptp.svg" alt="CPTP Logo" style="height:38px;width:38px;object-fit:contain;" />
+     </div>
+
+     <div class="header-left" style="flex:1;margin-left:8px;">
+      <span class="category">Campeonato Nacional Long Range</span>
+      <h1 class="title-main">TABLA DE POSICIONES</h1>
+      <span class="event-name">${event.name.toUpperCase()} ${titleExtra ? `· <span style="color:#0056b3;font-weight:900;">${titleExtra.toUpperCase()}</span>` : ''}</span>
+     </div>
+     
+     <div class="header-right" style="margin-right:8px;">
+      <div class="year">${year}</div>
+      <div class="date">${formatDate(event.date)}</div>
+     </div>
+
+     <!-- Logo Derecho (Long Range) -->
+     <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:55px;flex-shrink:0;">
+      <img src="/logo-long-range.svg" alt="Long Range .22 LR" style="height:38px;width:48px;object-fit:contain;" />
+     </div>
+    </header>
+
+    <table class="ranking-table">
+     <thead>
+      <tr>
+       <th>Pos</th>
+       <th>Tirador</th>
+       <th class="th-score">Puntaje</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${tableHtml}
+     </tbody>
+    </table>
+
+    <footer class="footer">
+     <div>Club Paraguayo de Tiro de Long Range · Planilla Oficial</div>
+     <div class="footer-right">CPTP Scoring</div>
+    </footer>
+  </div>
+  `;
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -569,14 +690,21 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
    color: #0f172a;
    padding: 0;
    margin: 0;
-   min-height: 297mm;
    position: relative;
+  }
+
+  /* El div.page-container oculta todo el body si usamos margin:0, asi que usamos gap */
+  .pages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 0;
+    align-items: center;
   }
 
   .a4-page {
    width: 210mm;
    min-height: 297mm;
-   margin: 0 auto;
    background: #ffffff;
    padding: 24px 28px 24px 52px;
    position: relative;
@@ -586,6 +714,7 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
 
   @media print {
    body { background: none; }
+   .pages-container { padding: 0; gap: 0; display: block; }
    .a4-page { margin: 0; padding: 24px 24px 24px 40px; box-shadow: none; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
    .no-print { display: none !important; }
   }
@@ -637,63 +766,20 @@ export function printRankingCard(event: ShootingEvent, rankings: { participant: 
  </style>
 </head>
 <body>
- <button class="print-btn no-print" onclick="window.print()">Imprimir Ranking</button>
- <div class="a4-page">
-  <div class="layout-border-red"></div>
-  <div class="layout-border-blue"></div>
-  <div class="layout-border-white"></div>
-
-  <header class="header" style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:20px;gap:12px;">
-   <!-- Logo Izquierdo (CPTP) -->
-   <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:45px;flex-shrink:0;">
-    <img src="/logo-cptp.svg" alt="CPTP Logo" style="height:38px;width:38px;object-fit:contain;" />
-   </div>
-
-   <div class="header-left" style="flex:1;margin-left:8px;">
-    <span class="category">Campeonato Nacional Long Range</span>
-    <h1 class="title-main">TABLA DE POSICIONES</h1>
-    <span class="event-name">${event.name.toUpperCase()} ${event.championshipDate ? `· ${event.championshipDate.toUpperCase()}` : ''}</span>
-   </div>
-   
-   <div class="header-right" style="margin-right:8px;">
-    <div class="year">${year}</div>
-    <div class="date">${formatDate(event.date)}</div>
-   </div>
-
-   <!-- Logo Derecho (Long Range) -->
-   <div style="background:#ffffff;border-radius:6px;padding:2px;display:flex;align-items:center;justify-content:center;height:45px;width:55px;flex-shrink:0;">
-    <img src="/logo-long-range.svg" alt="Long Range .22 LR" style="height:38px;width:48px;object-fit:contain;" />
-   </div>
-  </header>
-
-  <table class="ranking-table">
-   <thead>
-    <tr>
-     <th>Pos</th>
-     <th>Tirador</th>
-     <th class="th-score">Puntaje</th>
-    </tr>
-   </thead>
-   <tbody>
-    ${rowsHtml}
-   </tbody>
-  </table>
-
-  <footer class="footer">
-   <div>Club Paraguayo de Tiro de Long Range · Planilla Oficial</div>
-   <div class="footer-right">CPTP Scoring</div>
-  </footer>
+ <div class="no-print" style="text-align:center; padding:10px; background:#e2e8f0; border-bottom:1px solid #cbd5e1;">
+   <button class="print-btn" onclick="window.print()" style="display:inline-block; margin:0;">Imprimir Reportes Completos</button>
+ </div>
+ <div class="pages-container">
+   ${buildPage('Total Evento', rowsTotalHtml)}
+   ${buildPage('Serie 1', rowsS1Html)}
+   ${buildPage('Serie 2', rowsS2Html)}
+   ${buildPage('Reporte de Premios (67 / 134 pts)', perfectRowsHtml, true)}
  </div>
 </body>
 </html>`;
 
   openPrintModal(html, `Ranking — ${event.name}`);
 }
-
-/**
- * Modal táctico interno de vista previa e impresión en pantalla
- * Reemplaza window.open para evitar bloqueos de popups en navegadores móviles.
- */
 export function openPrintModal(htmlContent: string, title: string): void {
   (window as any).cptpOpenPrintModalGlobal = openPrintModal;
   const existing = document.getElementById('cptp-print-modal');
