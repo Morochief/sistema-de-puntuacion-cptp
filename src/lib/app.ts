@@ -296,16 +296,7 @@ async function renderDashboard(): Promise<void> {
    });
   });
 
-  // Update button states whenever the cuadro is rendered
-  const btnUndoState = document.getElementById('btn-undo-sorteo');
-  if (btnUndoState) {
-    const hasRaffle = participants.some(p => p.tanda !== undefined);
-    btnUndoState.disabled = !hasRaffle;
-  }
-  const btnShuffle = document.getElementById('btn-shuffle-sorteo');
-  if (btnShuffle) {
-    btnShuffle.disabled = participants.length === 0;
-  }
+
  }
 
 
