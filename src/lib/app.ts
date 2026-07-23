@@ -1453,9 +1453,9 @@ async function renderEvent(eventId: string): Promise<void> {
  // --- HANDLER: REALIZAR SORTEO ALEATORIO ---
 
  document.getElementById('btn-seed-late')?.addEventListener('click', async () => {
-  const lateArrivals = participants.filter(p => p.tanda === undefined && p.presentForRaffle !== false);
+  const lateArrivals = participants.filter(p => p.tanda === undefined);
   if (lateArrivals.length === 0) {
-   showToast('No hay competidores rezagados marcados para el sorteo.', 'info');
+   showToast('No hay competidores sin asignar.', 'info');
    return;
   }
 
@@ -1476,6 +1476,7 @@ async function renderEvent(eventId: string): Promise<void> {
      if (!occupied.has(`${t}-${s}`)) {
       p.tanda = t;
       p.spot = s as 1|2|3|4;
+      p.presentForRaffle = true; // Automáticamente los marcamos como presentes
       occupied.add(`${t}-${s}`);
       found = true;
       assignedCount++;
