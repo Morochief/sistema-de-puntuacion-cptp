@@ -751,7 +751,7 @@ async function renderEvent(eventId: string): Promise<void> {
     const isRaffleChecked = p.presentForRaffle !== false;
     return `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-          background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;">
+          background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;flex-wrap:wrap;gap:10px;">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
              background:#f1f5f9;padding:4px 8px;border-radius:6px;color:#0056b3;">
@@ -766,7 +766,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <span>Sorteo</span>
       </label>
      </div>
-     <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
       <select data-set-status="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado del competidor">
        <option value="active" ${!p.status || p.status === 'active' ? 'selected' : ''}>Activo</option>
        <option value="dq" ${p.status === 'dq' ? 'selected' : ''}>DQ (Descalif.)</option>
