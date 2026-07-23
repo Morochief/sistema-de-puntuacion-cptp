@@ -840,80 +840,27 @@ async function renderEvent(eventId: string): Promise<void> {
    });
   });
 
-  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
-   if (participants.length === 0) {
-    showToast('No hay competidores inscritos para sortear.', 'error');
-    return;
-   }
 
-   const presentList = participants.filter(p => p.presentForRaffle !== false);
-   const absentList = participants.filter(p => p.presentForRaffle === false);
 
-   if (presentList.length === 0) {
-    showToast('No hay competidores marcados como "Sorteo". Por favor, marcá la casilla Sorteo en los tiradores presentes.', 'error');
-    return;
-   }
-
-   if (!await showConfirm('Realizar Sorteo', `¿Realizar el sorteo aleatorio de posiciones para los ${presentList.length} competidores presentes? (${absentList.length} ausentes quedarán sin tanda)`)) return;
-
+  // --- HANDLER: DESHACER SORTEO ---
+  document.getElementById('btn-undo-sorteo')?.addEventListener('click', async () => {
+   if (!await showConfirm('Deshacer Sorteo', '¿Estás seguro de deshacer el sorteo? Se borrarán todas las tandas y puestos asignados.')) return;
    try {
-    // Limpiar tandas y puestos de ausentes
-    for (const p of absentList) {
+    for (const p of participants) {
      p.tanda = undefined;
      p.spot = undefined;
      p.sector = undefined;
+     await db.participants.put(p);
     }
-
-    const list = [...presentList];
-    const N = list.length;
-
-    // 1. Generar números de competidor del 1 al N y mezclarlos
-    const compNumbers = Array.from({ length: N }, (_, i) => i + 1);
-    for (let i = compNumbers.length - 1; i > 0; i--) {
-     const j = Math.floor(Math.random() * (i + 1));
-     [compNumbers[i], compNumbers[j]] = [compNumbers[j], compNumbers[i]];
-    }
-
-    // 2. Mezclar el orden de los participantes presentes
-    for (let i = list.length - 1; i > 0; i--) {
-     const j = Math.floor(Math.random() * (i + 1));
-     [list[i], list[j]] = [list[j], list[i]];
-    }
-
-    // 3. Asignar los números de competidor mezclados y las posiciones físicas (4 por Tanda)
-    for (let i = 0; i < list.length; i++) {
-     const tanda = Math.floor(i / 4) + 1; // 1 a 8
-     const spot = (i % 4) + 1;            // Spot 1, 2, 3, 4
-
-     list[i].competitorNumber = compNumbers[i];
-     list[i].tanda = tanda;
-     list[i].sector = undefined;
-     list[i].spot = spot as 1 | 2 | 3 | 4;
-    }
-
-    // Renumerar los ausentes al final
-    let absNum = N + 1;
-    for (const p of absentList) {
-     p.competitorNumber = absNum++;
-    }
-
-    // 4. Aplicar reglas especiales de la familia Domínguez (Ángel y Facundo)
-    applySpecialFamilySeedingRules(list);
-
-    // 5. Guardar en Dexie todos (presentes y ausentes)
-    await Promise.all([...list, ...absentList].map(p => db.participants.put(p)));
-
-    showToast(`¡Sorteo completado! ${presentList.length} competidores asignados a tandas.`, 'success');
-
-    // recargar
+    showToast('Sorteo deshecho. Tandas y puestos restablecidos.', 'info');
     participants = await db.participants.where('eventId').equals(id).toArray();
     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
     renderListaInscritos();
     renderCuadroSorteo();
     renderListaSeries();
    } catch (err) {
-    console.error('[DB] Error ejecutando sorteo:', err);
-    showToast('Error al guardar el sorteo.', 'error');
+    console.error('[DB] Error deshaciendo sorteo:', err);
+    showToast('Error al deshacer el sorteo.', 'error');
    }
   });
 
@@ -1320,52 +1267,69 @@ async function renderEvent(eventId: string): Promise<void> {
    await renderEvent(String(id));
   });
  });
- // --- HANDLER: REALIZAR SORTEO ALEATORIO (32 competidores / 8 Tandas) ---
+ // --- HANDLER: REALIZAR SORTEO ALEATORIO ---
  document.getElementById('btn-shuffle-sorteo')?.addEventListener('click', async () => {
   if (participants.length === 0) {
    showToast('No hay competidores inscritos para sortear.', 'error');
    return;
   }
 
-   if (!await showConfirm('Realizar Sorteo', '¿Realizar el sorteo aleatorio de posiciones? Esto reasignará a todos los competidores actuales.')) return;
+  const presentes = participants.filter(p => p.presentForRaffle !== false);
+  const ausentes = participants.length - presentes.length;
+
+  if (presentes.length === 0) {
+   showToast('No hay competidores marcados como presentes para el sorteo.', 'error');
+   return;
+  }
+
+  const msg = ausentes > 0 
+    ? `¿Realizar el sorteo aleatorio de posiciones para los ${presentes.length} competidores presentes? (${ausentes} ausentes quedarán sin tanda)`
+    : '¿Realizar el sorteo aleatorio de posiciones? Esto reasignará a todos los competidores actuales.';
+
+  if (!await showConfirm('Realizar Sorteo', msg)) return;
 
   try {
-   const list = [...participants];
+   const list = [...presentes];
    const N = list.length;
 
-   // 1. Generar números de competidor del 1 al N y mezclarlos
    const compNumbers = Array.from({ length: N }, (_, i) => i + 1);
    for (let i = compNumbers.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [compNumbers[i], compNumbers[j]] = [compNumbers[j], compNumbers[i]];
    }
 
-   // 2. Mezclar el orden de los participantes
    for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [list[i], list[j]] = [list[j], list[i]];
    }
 
-    // 3. Asignar los números de competidor mezclados y las posiciones físicas (4 por Tanda)
-    for (let i = 0; i < list.length; i++) {
-     const tanda = Math.floor(i / 4) + 1; // 1 a 8
-     const spot = (i % 4) + 1;            // Spot 1, 2, 3, 4
+   for (let i = 0; i < list.length; i++) {
+    const tanda = Math.floor(i / 4) + 1;
+    const spot = (i % 4) + 1;
 
-     list[i].competitorNumber = compNumbers[i];
-     list[i].tanda = tanda;
-     list[i].sector = undefined;
-     list[i].spot = spot as 1 | 2 | 3 | 4;
-    }
+    list[i].competitorNumber = compNumbers[i];
+    list[i].tanda = tanda;
+    list[i].sector = undefined;
+    list[i].spot = spot;
+   }
 
-   // 4. Aplicar reglas especiales de la familia Domínguez (Ángel y Facundo)
-   applySpecialFamilySeedingRules(list);
+   if (typeof applySpecialFamilySeedingRules === 'function') {
+      applySpecialFamilySeedingRules(list);
+   }
 
-   // 5. Guardar en Dexie
+   const listAusentes = participants.filter(p => p.presentForRaffle === false);
+   for (const p of listAusentes) {
+     p.tanda = undefined;
+     p.sector = undefined;
+     p.spot = undefined;
+     p.competitorNumber = 999;
+   }
+
    await Promise.all(list.map(p => db.participants.put(p)));
+   await Promise.all(listAusentes.map(p => db.participants.put(p)));
 
-   showToast('¡Sorteo completado! Reglas especiales de la organización aplicadas.', 'success');
+   showToast('¡Sorteo completado! Reglas aplicadas.', 'success');
 
-   // recargar
    participants = await db.participants.where('eventId').equals(id).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
