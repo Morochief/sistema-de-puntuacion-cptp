@@ -798,7 +798,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
-            ${p.tanda === undefined && p.presentForRaffle !== false ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+            ${p.tanda === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
       <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">
        Editar
       </button>
