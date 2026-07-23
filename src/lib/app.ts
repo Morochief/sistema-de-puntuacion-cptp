@@ -960,7 +960,19 @@ async function renderEvent(eventId: string): Promise<void> {
     }, 100);
    });
   });
+
+  // Update button states
+  const btnUndoState = document.getElementById('btn-undo-sorteo') as HTMLButtonElement | null;
+  if (btnUndoState) {
+    const hasRaffle = participants.some(p => p.tanda !== undefined);
+    btnUndoState.disabled = !hasRaffle;
+  }
+  const btnShuffleState = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
+  if (btnShuffleState) {
+    btnShuffleState.disabled = participants.length === 0;
+  }
  }
+
 
  function renderSpotCell(spotNum: number, p: Participant | undefined): string {
   if (!p) {
