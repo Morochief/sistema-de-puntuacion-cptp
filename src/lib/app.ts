@@ -624,6 +624,19 @@ async function renderEvent(eventId: string): Promise<void> {
     </div>
    </div>
    <div id="lista-series-por-tirador" style="display:flex;flex-direction:column;gap:16px;"></div>
+  </div>
+
+  <!-- PANEL 3: POSICIONES -->
+  <div id="tab-panel-posiciones" class="tab-panel hidden">
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
+    <div>
+     <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;">
+       Imprimir Reportes
+     </button>
+    </div>
+   </div>
+   <div id="posiciones-container"></div>
   </div>`;
 
  // --- ELEMENTOS DE LA INTERFAZ ---
