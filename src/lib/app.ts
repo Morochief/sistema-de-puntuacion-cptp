@@ -747,6 +747,10 @@ async function renderEvent(eventId: string): Promise<void> {
       ${p.category ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(p.category)})</span>` : ''}
       ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · P${p.spot}</span>` : ''}
       ${statusBadge}${payBadge}
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
+       <input type="checkbox" data-set-raffle="${p.id}" ${p.presentForRaffle ? 'checked' : ''} style="cursor:pointer;" />
+       <span>Sorteo</span>
+      </label>
      </div>
      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
       <select data-set-status="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado del competidor">
@@ -759,6 +763,9 @@ async function renderEvent(eventId: string): Promise<void> {
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
+      <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">
+       Editar
+      </button>
       <button class="btn-danger-custom" data-remove-participant="${p.id}"
           aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;">
        Eliminar
@@ -853,8 +860,38 @@ async function renderEvent(eventId: string): Promise<void> {
     await db.participants.update(pid, { paymentStatus: val });
     participants = await db.participants.where('eventId').equals(id).toArray();
     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
-    renderListaInscritos();
-    showToast(val === 'paid' ? 'Pago registrado como Abonado' : val === 'pending' ? 'Pago marcado como Pendiente' : 'Competidor marcado como Exento', 'info');
+     renderListaInscritos();
+     showToast(val === 'paid' ? 'Pago registrado como Abonado' : val === 'pending' ? 'Pago marcado como Pendiente' : 'Competidor marcado como Exento', 'info');
+    });
+   });
+
+  // Bind edit participant name
+  listEl.querySelectorAll('[data-edit-participant]').forEach((btn) => {
+   btn.addEventListener('click', async (e) => {
+    const pid = Number((e.currentTarget as HTMLElement).dataset.editParticipant);
+    const p = participants.find(x => x.id === pid);
+    if (!p) return;
+    const newName = await showPrompt('Editar Competidor', 'Nuevo nombre del competidor:', p.name);
+    if (newName !== null && newName.trim() !== '') {
+     await db.participants.update(pid, { name: newName.trim() });
+     participants = await db.participants.where('eventId').equals(id).toArray();
+     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+     renderListaInscritos();
+     renderCuadroSorteo();
+     renderListaSeries();
+     showToast('Nombre actualizado con éxito', 'success');
+    }
+   });
+  });
+
+  // Bind present for raffle checkbox
+  listEl.querySelectorAll('[data-set-raffle]').forEach((chk) => {
+   chk.addEventListener('change', async (e) => {
+    const pid = Number((e.currentTarget as HTMLElement).dataset.setRaffle);
+    const checked = (e.currentTarget as HTMLInputElement).checked;
+    await db.participants.update(pid, { presentForRaffle: checked });
+    participants = await db.participants.where('eventId').equals(id).toArray();
+    showToast(checked ? 'Marcado Presente para sorteo' : 'Marcado Ausente para sorteo', 'info');
    });
   });
  }
@@ -1004,10 +1041,11 @@ async function renderEvent(eventId: string): Promise<void> {
           style="font-size:0.7rem;padding:6px 10px;border-color:rgba(239,68,68,0.25);color:#ef4444;" aria-label="Limpiar series para ${esc(p.name)}" title="Eliminar las series de este tirador">
        Vaciar
       </button>` : ''}
+      ${pSeries.length < 2 ? `
       <button class="btn-primary-custom" data-add-series-for="${p.id}"
           style="font-size:0.7rem;padding:6px 10px;" aria-label="Nueva serie para ${esc(p.name)}">
        + Serie
-      </button>
+      </button>` : ''}
      </div>
     </div>
     <div>
@@ -1029,6 +1067,12 @@ async function renderEvent(eventId: string): Promise<void> {
 
     try {
      const existingSeries = allSeries.filter(s => s.participantId === pid);
+     if (existingSeries.length >= 2) {
+      showToast('Límite alcanzado: Máximo 2 series por participante.', 'error');
+      btnEl.disabled = false;
+      btnEl.textContent = '+ Serie';
+      return;
+     }
      const nextNum = existingSeries.length > 0
       ? Math.max(...existingSeries.map(s => s.seriesNumber)) + 1
       : 1;

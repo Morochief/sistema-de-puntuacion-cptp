@@ -17,6 +17,7 @@ export interface Participant {
   tieRank?: number;
   status?: 'active' | 'dq' | 'dns'; // Estado del competidor (Activo, Descalificado, No presentado)
   paymentStatus?: 'paid' | 'pending' | 'exempt'; // Estado de inscripción (Abonado, Pendiente, Exento)
+  presentForRaffle?: boolean;
 }
 
 export interface Series {
