@@ -364,8 +364,8 @@ function getSeriesColumnHtml(
          const colN = i + 1;
          return renderScoreCell(colN, v, series ? hit15?.shotNumber : undefined, miss15);
         }).join('')}
-        <td class="td-puntos" rowspan="3">${series ? (mainPts || '—') : '—'}</td>
-        <td class="td-adicional" rowspan="3">${series ? addPts : '—'}</td>
+        <td class="td-puntos" rowspan="3">${series ? (mainPts || '') : ''}</td>
+        <td class="td-adicional" rowspan="3">${series ? addPts : ''}</td>
        </tr>
 
        <!-- ROW 10" — columna 1 vacía, columnas 2 a 10 -->
@@ -394,8 +394,8 @@ function getSeriesColumnHtml(
        <!-- FILA DE TOTAL HIGHLIGHTED (PIE DE TABLA) -->
        <tr class="total-footer-row">
         <td colspan="11" style="text-align:right; font-weight:bold; font-size:8px; padding-right:8px; background:#fafafa; border-right:1px solid #000;">TOTAL:</td>
-        <td colspan="2" style="font-size:12px; font-weight:900; background:#000; color:#fff; text-align:center; border:2.5px solid #000; padding:4px;">
-         ${series ? `${total} / 67` : '— / 67'}
+        <td colspan="2" style="font-size:12px; font-weight:900; background:${series ? '#000' : '#fff'}; color:${series ? '#fff' : '#000'}; text-align:center; border:2.5px solid #000; padding:4px;">
+         ${series ? `${total} / 67` : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / 67'}
         </td>
        </tr>
 
