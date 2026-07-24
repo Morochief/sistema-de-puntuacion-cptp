@@ -14,7 +14,6 @@ import { esc, showToast, showConfirm } from './modals';
  * 2. Facundo Domínguez debe tirar SIEMPRE en una tanda ANTERIOR (menor número) que Ángel Domínguez.
  */
 export function applySpecialFamilySeedingRules(participants: Participant[]): Participant[] {
-  // Buscar participantes de la familia Domínguez
   const facundoIndex = participants.findIndex(p => p.name.toLowerCase().includes('facundo domínguez') || p.name.toLowerCase().includes('facundo dominguez'));
   const angelIndex = participants.findIndex(p => p.name.toLowerCase().includes('ángel domínguez') || p.name.toLowerCase().includes('angel dominguez'));
 
@@ -23,53 +22,97 @@ export function applySpecialFamilySeedingRules(participants: Participant[]): Par
     const angel = participants[angelIndex];
 
     if (facundo.tanda !== undefined && angel.tanda !== undefined) {
-      // Regla 1: Nunca en tanda 1. Deben estar entre 2 y 4. (Solo permitimos 2, 3 o 4)
       const allowedTandas = [2, 3, 4];
       
+      const swapWithCandidate = (p: Participant, candidate: Participant) => {
+        const tempT = p.tanda;
+        const tempS = p.spot;
+        p.tanda = candidate.tanda;
+        p.spot = candidate.spot;
+        candidate.tanda = tempT;
+        candidate.spot = tempS;
+      };
+
       const enforceAllowedTanda = (p: Participant, otherId: number) => {
         if (!allowedTandas.includes(p.tanda!)) {
-          // Buscar a alguien en tandas 2, 3 o 4 para intercambiar
           const candidate = participants.find(x => 
-            x.id !== p.id && 
-            x.id !== otherId && 
-            x.tanda !== undefined && 
-            allowedTandas.includes(x.tanda)
+            x.id !== p.id && x.id !== otherId && x.tanda !== undefined && allowedTandas.includes(x.tanda)
           );
           if (candidate) {
-            const tempT = p.tanda;
-            const tempS = p.spot;
-            p.tanda = candidate.tanda;
-            p.spot = candidate.spot;
-            candidate.tanda = tempT;
-            candidate.spot = tempS;
+            swapWithCandidate(p, candidate);
           } else {
-            // Si no hay nadie para intercambiar (raro), forzar a tanda 2
             p.tanda = 2;
           }
         }
       };
 
+      // Regla 1
       enforceAllowedTanda(facundo, angel.id!);
       enforceAllowedTanda(angel, facundo.id!);
 
-      // Regla 2: Facundo debe tener un número de tanda menor que Ángel. O al menos igual.
-      // Si Ángel tiene un número menor, los intercambiamos
+      // Regla 2
       if (facundo.tanda > angel.tanda!) {
-        const tempT = facundo.tanda;
-        const tempS = facundo.spot;
-        facundo.tanda = angel.tanda;
-        facundo.spot = angel.spot;
-        angel.tanda = tempT;
-        angel.spot = tempS;
+        swapWithCandidate(facundo, angel);
       }
       
-      // Regla 3: Facundo y Ángel NO deben estar en la misma tanda
+      // Regla 3
       if (facundo.tanda === angel.tanda) {
-        if (angel.tanda < 4) {
-          angel.tanda = angel.tanda + 1;
+        let targetTanda = angel.tanda! < 4 ? angel.tanda! + 1 : facundo.tanda! - 1;
+        let personToMove = angel.tanda! < 4 ? angel : facundo;
+        
+        // Find someone in the target tanda to swap with
+        const swapCandidate = participants.find(x => x.id !== facundo.id && x.id !== angel.id && x.tanda === targetTanda);
+        if (swapCandidate) {
+          swapWithCandidate(personToMove, swapCandidate);
         } else {
-          facundo.tanda = facundo.tanda - 1;
+          // If no one is there, it's safe to just move without causing >4 per tanda
+          personToMove.tanda = targetTanda;
+          personToMove.spot = 1;
         }
+      }
+    }
+  }
+
+  // To absolutely ensure no tanda has >4 people and spots are unique,
+  // we do a quick re-pack of spots per tanda.
+  const groups: Record<number, Participant[]> = {};
+  for (const p of participants) {
+    if (p.tanda !== undefined) {
+      if (!groups[p.tanda]) groups[p.tanda] = [];
+      groups[p.tanda].push(p);
+    }
+  }
+
+  // Fix any overfilled tandas by moving extra people to the first available spot
+  const overfilled: Participant[] = [];
+  for (const t in groups) {
+    if (groups[t].length > 4) {
+      overfilled.push(...groups[t].splice(4));
+    }
+    // Reassign spots 1-4
+    groups[t].forEach((p, idx) => {
+      p.spot = (idx + 1) as 1|2|3|4;
+    });
+  }
+
+  // Assign any overfilled participants to the next available tanda/spot
+  if (overfilled.length > 0) {
+    for (const p of overfilled) {
+      let found = false;
+      for (let t = 1; t <= 8; t++) {
+        if (!groups[t]) groups[t] = [];
+        if (groups[t].length < 4) {
+          p.tanda = t;
+          groups[t].push(p);
+          p.spot = groups[t].length as 1|2|3|4;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // Fallback if event is totally full
+        p.tanda = undefined;
+        p.spot = undefined;
       }
     }
   }
