@@ -843,3 +843,50 @@ export function openPrintModal(htmlContent: string, title: string): void {
     setTimeout(() => backdrop.remove(), 150);
   });
 }
+
+export function printBlankSheet(event: ShootingEvent): void {
+  const dummyParticipant: Participant = {
+    id: -1,
+    eventId: event.id!,
+    name: '________________________________',
+    category: '______________',
+    competitorNumber: 0,
+    tanda: undefined,
+    spot: undefined
+  };
+
+  const col1 = getSeriesColumnHtml(event, dummyParticipant, undefined, 1);
+  const col2 = getSeriesColumnHtml(event, dummyParticipant, undefined, 2);
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Planilla Vacía - ${esc(event.name)}</title>
+  <style>
+    ${PRINT_CSS}
+  </style>
+</head>
+<body>
+  <div class="print-page">
+    <div class="page-container">
+      ${col1.replace('#0 — ', '')}
+      ${col2.replace('#0 — ', '')}
+    </div>
+  </div>
+  <script>
+    window.onload = () => {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir.');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+}

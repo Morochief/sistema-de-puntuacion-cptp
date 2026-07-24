@@ -17,7 +17,7 @@ import { sortRanking, showTieBreakerModal } from './tiebreaker';
 import { handleSeedParticipants, handleSeedScores } from './seeder';
 import { db } from './db';
 import type { ShootingEvent, Participant, Series, Shot } from './types';
-import { printSeriesCard, printEventCards, printRankingCard } from './print';
+import { printSeriesCard, printEventCards, printRankingCard, printBlankSheet } from './print';
 import html2canvas from 'html2canvas';
 import { getFilteredEvents, showEditEventModal } from './eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor, migrateParticipantsToPadron } from './masterCompetitors';
@@ -622,6 +622,9 @@ async function renderEvent(eventId: string): Promise<void> {
           aria-label="Imprimir todas las planillas">
         Imprimir Todo
       </button>` : ''}
+      <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;" title="Imprimir planilla vacía para llenado manual">
+        Planilla Vacía
+      </button>
     </div>
    </div>
    <div id="lista-series-por-tirador" style="display:flex;flex-direction:column;gap:16px;"></div>
@@ -632,6 +635,9 @@ async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
     <div>
+     <button class="btn-ghost-custom" id="btn-print-blank-tab" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
+       Planilla Vacía
+     </button>
      <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;">
        Imprimir Reportes
      </button>
@@ -1355,6 +1361,13 @@ async function renderEvent(eventId: string): Promise<void> {
   `;
 
   // Imprimir Button in Tab
+  
+  document.getElementById('btn-print-blank-tab')?.addEventListener('click', () => {
+    printBlankSheet(event!);
+  });
+  document.getElementById('btn-print-blank-series')?.addEventListener('click', () => {
+    printBlankSheet(event!);
+  });
   document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => {
     printRankingCard(event!, participants, allSeries);
   });
