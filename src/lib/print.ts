@@ -863,12 +863,12 @@ export function printBlankSheet(event: ShootingEvent): void {
  <meta charset="UTF-8"/>
  <title>Planilla Vacía - ${event.name}</title>
  <style>
-   \${getLandscapePrintStyles()}
+   ${getLandscapePrintStyles()}
  </style>
 </head>
 <body>
  <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla Vacía</button>
- \${pageHtml}
+ ${pageHtml}
 </body>
 </html>`;
 
