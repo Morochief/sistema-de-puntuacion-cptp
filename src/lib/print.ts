@@ -864,7 +864,7 @@ export function printBlankSheet(event: ShootingEvent): void {
   <meta charset="UTF-8">
   <title>Planilla Vacía - ${event.name}</title>
   <style>
-    ${PRINT_CSS}
+    ${getLandscapePrintStyles()}
   </style>
 </head>
 <body>
