@@ -855,38 +855,22 @@ export function printBlankSheet(event: ShootingEvent): void {
     spot: undefined
   };
 
-  const col1 = getSeriesColumnHtml(event, dummyParticipant, undefined, 1);
-  const col2 = getSeriesColumnHtml(event, dummyParticipant, undefined, 2);
+  const pageHtml = getCompetitorLandscapePageHtml(event, dummyParticipant, []);
 
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Planilla Vacía - ${event.name}</title>
-  <style>
-    ${getLandscapePrintStyles()}
-  </style>
+ <meta charset="UTF-8"/>
+ <title>Planilla Vacía - ${event.name}</title>
+ <style>
+   \${getLandscapePrintStyles()}
+ </style>
 </head>
 <body>
-  <div class="print-page">
-    <div class="page-container">
-      ${col1.replace('#0 — ', '')}
-      ${col2.replace('#0 — ', '')}
-    </div>
-  </div>
-  <script>
-    window.onload = () => {
-      window.print();
-    };
-  </script>
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla Vacía</button>
+ \${pageHtml}
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
-  if (!win) {
-    alert('Por favor, permita las ventanas emergentes (pop-ups) para imprimir.');
-    return;
-  }
-  win.document.write(html);
-  win.document.close();
+  openPrintModal(html, 'Planilla Vacía');
 }
