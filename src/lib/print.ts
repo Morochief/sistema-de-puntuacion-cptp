@@ -70,7 +70,7 @@ function getLandscapePrintStyles(): string {
 
    .a4-landscape-page {
     width: 287mm;
-    min-height: 190mm;
+    min-height: 186mm;
     margin: 10mm auto;
     background: #fff;
     padding: 8px 14px;
@@ -84,11 +84,11 @@ function getLandscapePrintStyles(): string {
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      margin: 18mm auto 0 auto; /* Espacio superior libre de 18mm para perforación de carpeta */
+      margin: 10mm auto 0 auto; /* Espacio superior libre de 18mm para perforación de carpeta */
       padding: 6px 0; 
       box-shadow: none; 
       width: 287mm; 
-      height: 190mm; 
+      height: 186mm; 
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
@@ -156,11 +156,11 @@ function getLandscapePrintStyles(): string {
    .score-table th { font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
    .th-label { width: 12%; } .th-pts { width: 10%; font-size: 8.5px; } .th-add { width: 11%; font-size: 8.5px; }
 
-   .score-cell { height: 26px; font-size: 0; position: relative; }
+   .score-cell { height: 25px; font-size: 0; position: relative; }
    .score-cell .val   { font-size: 12px; font-weight: 600; display: block; line-height: 1.05; color: #555; }
    .score-cell .pts-lbl { font-size: 7.5px; color: #aaa; display: block; line-height: 0.85; }
 
-   .cell-empty { height: 26px; background: #f8f8f8; }
+   .cell-empty { height: 25px; background: #f8f8f8; }
 
    .score-cell.cell-hit {
     background: #000 !important;
@@ -183,7 +183,7 @@ function getLandscapePrintStyles(): string {
     font-size: 13px; color: #e53e3e; font-weight: 900; opacity: 0.85;
    }
 
-   .row-label { font-size: 15px; font-weight: 900; background: #fafafa; height: 26px; }
+   .row-label { font-size: 15px; font-weight: 900; background: #fafafa; height: 25px; }
 
    .td-puntos  { font-size: 15px; font-weight: 900; background: #fffde7; }
    .td-adicional{ font-size: 14px; font-weight: 700; background: #fffde7; }
