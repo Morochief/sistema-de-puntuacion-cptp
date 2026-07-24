@@ -862,7 +862,7 @@ export function printBlankSheet(event: ShootingEvent): void {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Planilla Vacía - ${esc(event.name)}</title>
+  <title>Planilla Vacía - ${event.name}</title>
   <style>
     ${PRINT_CSS}
   </style>
