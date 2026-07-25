@@ -127,12 +127,12 @@ export async function renderSeries(seriesId: string): Promise<void> {
 
   if (isComplete) {
    panel.innerHTML = `
-    <div style="background:#0f172a;border-radius:11px;text-align:center;padding:28px 16px;">
+    <div style="background:#ffffff;border-radius:11px;text-align:center;padding:28px 16px;">
      <div style="font-size:3rem;margin-bottom:10px;"></div>
      <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;
-           color:#e2e8f0;margin-bottom:6px;">Serie completa</div>
+           color:#0f172a;margin-bottom:6px;">Serie completa</div>
      <div style="font-family:'JetBrains Mono',monospace;font-size:2.5rem;font-weight:700;
-           background:linear-gradient(135deg,#f59e0b,#fbbf24);
+           background:linear-gradient(135deg,#d97706,#f59e0b);
            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
            background-clip:text;">${total} pts</div>
      <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">de 67 posibles</div>
@@ -149,16 +149,16 @@ export async function renderSeries(seriesId: string): Promise<void> {
   const badgeCls = getTargetBadgeClass(phase);
 
   panel.innerHTML = `
-   <div style="background:#0f172a;border-radius:11px;padding:20px 16px;">
+   <div style="background:#ffffff;border-radius:11px;padding:20px 16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
      <div style="display:flex;align-items:center;gap:10px;">
       <div style="font-family:'Rajdhani',sans-serif;font-size:1.7rem;font-weight:900;
-            color:#e2e8f0;line-height:1;">Disparo ${nextShotNum}</div>
+            color:#0f172a;line-height:1;">Disparo ${nextShotNum}</div>
       <span class="${badgeCls}">${label}</span>
      </div>
      <div style="text-align:right;">
-      <div style="font-size:0.62rem;color:#475569;text-transform:uppercase;letter-spacing:0.08em;">Acumulado</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:#f59e0b;">
+      <div style="font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Acumulado</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:#d97706;">
        ${total} pts
       </div>
      </div>
@@ -182,7 +182,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
     </div>
 
     <div style="text-align:center;margin-bottom:18px;font-size:0.72rem;color:#475569;">
-     Máximo posible ahora: <strong style="color:#94a3b8;">${maxIfHit} pts</strong>
+     Máximo posible ahora: <strong style="color:#0f172a;">${maxIfHit} pts</strong>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
