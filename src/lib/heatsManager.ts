@@ -602,8 +602,8 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
     `;
 
     // Vincular cierre
-    modalBox.querySelector('#close-heats-modal')?.addEventListener('click', () => backdrop.remove());
-    modalBox.querySelector('#btn-cancel-heats')?.addEventListener('click', () => backdrop.remove());
+    modalBox.querySelector('#close-heats-modal')?.addEventListener('click', closeModal);
+    modalBox.querySelector('#btn-cancel-heats')?.addEventListener('click', closeModal);
 
     // Vincular botones de subir posición (▲)
     modalBox.querySelectorAll('.btn-arrow-up').forEach(btn => {
@@ -741,13 +741,30 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       }
 
       showToast('Orden de tandas y mesas actualizado con éxito.', 'success');
-      backdrop.remove();
+      closeModal();
       if (onSaveCallback) onSaveCallback();
     });
   };
 
+  const closeModal = () => {
+    backdrop.classList.remove('is-open');
+    backdrop.classList.add('is-closing');
+    setTimeout(() => {
+      backdrop.remove();
+    }, 150);
+  };
+
+  // Bind close buttons again to make sure they use closeModal
+  modalBox.querySelector('#close-heats-modal')?.addEventListener('click', closeModal);
+  modalBox.querySelector('#btn-cancel-heats')?.addEventListener('click', closeModal);
+
   backdrop.appendChild(modalBox);
   document.body.appendChild(backdrop);
+  
+  // Trigger transitions
+  void backdrop.offsetWidth;
+  backdrop.classList.add('is-open');
+  
   renderList();
 }
 
