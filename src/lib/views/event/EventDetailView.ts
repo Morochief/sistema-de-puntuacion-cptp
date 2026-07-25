@@ -271,6 +271,43 @@ export async function renderEvent(eventId: string): Promise<void> {
  const panelSeries = document.getElementById('tab-panel-series');
  const panelPosiciones = document.getElementById('tab-panel-posiciones');
 
+ // --- LÓGICA DE ESTILOS DE TABS PARAGUAY ---
+ function updateTabStyles(): void {
+  if (!btnTiradores || !btnSeries || !btnPosiciones) return;
+  
+  btnTiradores.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
+  btnSeries.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
+  btnPosiciones.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
+
+  if (btnTiradores.classList.contains('tab-active')) {
+    btnTiradores.style.background = '#b7201c';
+    btnTiradores.style.color = '#ffffff';
+    btnTiradores.style.boxShadow = '0 4px 12px rgba(183, 32, 28, 0.3)';
+  } else {
+    btnTiradores.style.background = 'transparent';
+    btnTiradores.style.color = '#475569';
+  }
+
+  if (btnSeries.classList.contains('tab-active')) {
+    btnSeries.style.background = '#ffffff';
+    btnSeries.style.color = '#0f172a';
+    btnSeries.style.border = '1px solid #cbd5e1';
+    btnSeries.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.08)';
+  } else {
+    btnSeries.style.background = 'transparent';
+    btnSeries.style.color = '#475569';
+    btnSeries.style.border = 'none';
+  }
+
+  if (btnPosiciones.classList.contains('tab-active')) {
+    btnPosiciones.style.background = '#0056b3';
+    btnPosiciones.style.color = '#ffffff';
+    btnPosiciones.style.boxShadow = '0 4px 12px rgba(0, 86, 179, 0.3)';
+  } else {
+    btnPosiciones.style.background = 'transparent';
+    btnPosiciones.style.color = '#475569';
+  }
+ }
  // --- LÓGICA DE TABS ---
  btnTiradores?.addEventListener('click', () => {
   btnTiradores.classList.add('tab-active');
@@ -279,6 +316,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   panelTiradores?.classList.remove('hidden');
   panelSeries?.classList.add('hidden');
   panelPosiciones?.classList.add('hidden');
+  updateTabStyles();
  });
 
  btnSeries?.addEventListener('click', () => {
@@ -288,6 +326,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   panelSeries?.classList.remove('hidden');
   panelTiradores?.classList.add('hidden');
   panelPosiciones?.classList.add('hidden');
+  updateTabStyles();
  });
 
  btnPosiciones?.addEventListener('click', () => {
@@ -298,6 +337,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   panelTiradores?.classList.add('hidden');
   panelSeries?.classList.add('hidden');
   renderPosicionesTab();
+  updateTabStyles();
  });
 
  // --- RENDER DE LISTA DE INSCRITOS ---
@@ -1311,6 +1351,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    renderListaInscritos();
    renderCuadroSorteo();
    renderListaSeries();
+   updateTabStyles();
   } catch (err) {
    console.error('[DB] Error ejecutando sorteo:', err);
    showToast('Error al guardar el sorteo.', 'error');
