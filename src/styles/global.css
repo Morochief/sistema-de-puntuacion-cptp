@@ -310,10 +310,10 @@ body {
 
 /* ── Shot entry card ─────────────────────────────────────── */
 .shot-entry {
-  background: linear-gradient(135deg, #001529 0%, #00264d 100%);
-  border: 1.5px solid rgba(0, 86, 179, 0.25);
+  background: linear-gradient(to bottom, #b7201c 0%, #b7201c 33.33%, #ffffff 33.33%, #ffffff 66.66%, #0056b3 66.66%, #0056b3 100%);
+  border: 1.5px solid #cbd5e1;
   border-radius: 14px;
-  padding: 16px;
+  padding: 3px;
   transition: border-color 0.2s;
 }
 .shot-entry.completed-hit  { border-color: rgba(34,197,94,0.25); background: linear-gradient(135deg, #0a1a0f 0%, #0f2218 100%); }

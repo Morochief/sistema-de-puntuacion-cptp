@@ -127,7 +127,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
 
   if (isComplete) {
    panel.innerHTML = `
-    <div style="text-align:center;padding:28px 16px;">
+    <div style="background:#0f172a;border-radius:11px;text-align:center;padding:28px 16px;">
      <div style="font-size:3rem;margin-bottom:10px;"></div>
      <div style="font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;
            color:#e2e8f0;margin-bottom:6px;">Serie completa</div>
@@ -135,7 +135,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
            background:linear-gradient(135deg,#f59e0b,#fbbf24);
            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
            background-clip:text;">${total} pts</div>
-     <div style="font-size:0.75rem;color:#475569;margin-top:4px;">de 67 posibles</div>
+     <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">de 67 posibles</div>
     </div>`;
    return;
   }
@@ -149,7 +149,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
   const badgeCls = getTargetBadgeClass(phase);
 
   panel.innerHTML = `
-   <div style="padding:20px 16px;">
+   <div style="background:#0f172a;border-radius:11px;padding:20px 16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
      <div style="display:flex;align-items:center;gap:10px;">
       <div style="font-family:'Rajdhani',sans-serif;font-size:1.7rem;font-weight:900;
