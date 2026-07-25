@@ -310,8 +310,8 @@ body {
 
 /* ── Shot entry card ─────────────────────────────────────── */
 .shot-entry {
-  background: linear-gradient(135deg, #0f1724 0%, #1a2436 100%);
-  border: 1.5px solid rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, #001529 0%, #00264d 100%);
+  border: 1.5px solid rgba(0, 86, 179, 0.25);
   border-radius: 14px;
   padding: 16px;
   transition: border-color 0.2s;
@@ -544,23 +544,24 @@ body {
   max-width: calc(100vw - 32px);
 }
 .toast-item {
-  background: #1e2736;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 12px;
   padding: 12px 20px;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #e2e8f0;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  font-weight: 700;
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
   animation: toastIn 0.25s ease-out;
   display: flex;
   align-items: center;
   gap: 10px;
   pointer-events: auto;
+  font-family: 'Rajdhani', sans-serif;
 }
-.toast-item.success { border-color: rgba(34,197,94,0.4); }
-.toast-item.error   { border-color: rgba(239,68,68,0.4); }
-.toast-item.info    { border-color: rgba(59,130,246,0.4); }
+.toast-item.success { border-left: 5px solid #0056b3; border-color: #cbd5e1; color: #0056b3; }
+.toast-item.error   { border-left: 5px solid #b7201c; border-color: #cbd5e1; color: #b7201c; }
+.toast-item.info    { border-left: 5px solid #0056b3; border-color: #cbd5e1; color: #0f172a; }
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }

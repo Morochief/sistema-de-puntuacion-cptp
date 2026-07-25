@@ -320,7 +320,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
       aria-label="Progreso de disparos"></div>
   </div>
 
-  <div id="action-panel" class="shot-entry" style="margin-bottom:20px;border-color:#1e3a5f;padding:0;"></div>
+  <div id="action-panel" class="shot-entry" style="margin-bottom:20px;border-color:#0056b3;padding:0;"></div>
 
   <div class="section-title" style="margin-bottom:10px;">Historial</div>
   <div id="shots-history"></div>`;
