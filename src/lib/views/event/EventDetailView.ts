@@ -443,21 +443,24 @@ export async function renderEvent(eventId: string): Promise<void> {
     const paymentClass = p.paymentStatus === 'pending' ? 'select-payment-pending' : p.paymentStatus === 'exempt' ? 'select-payment-exempt' : 'select-payment-paid';
 
     return `
-    <div class="competitor-row-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
-          background:#ffffff;border-radius:12px;flex-wrap:wrap;gap:12px;">
-     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#0056b3;font-size:0.95rem;">#${p.competitorNumber}</span>
-      <span style="font-weight:700;color:#0f172a;font-size:0.95rem;">${esc(p.name)}</span>
-      ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;font-weight:600;">(${esc(cleanCategory)})</span>` : ''}
-      ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
-      ${statusBadge}${payBadge}${rifleBadge}
-      
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:6px;font-weight:700;user-select:none;" title="Presente para sorteo">
+    <div class="competitor-row-card" style="display:flex; flex-direction:column; padding:12px 16px; background:#ffffff; border-radius:12px; gap:8px;">
+     <!-- Fila 1: Info del competidor -->
+     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; width:100%;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#0056b3;font-size:0.95rem;">#${p.competitorNumber}</span>
+        <span style="font-weight:700;color:#0f172a;font-size:0.95rem;">${esc(p.name)}</span>
+        ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;font-weight:600;">(${esc(cleanCategory)})</span>` : ''}
+        ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
+        ${statusBadge}${payBadge}${rifleBadge}
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;font-weight:700;user-select:none;" title="Presente para sorteo">
        <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} class="checkbox checkbox-xs checkbox-primary" style="cursor:pointer;--chkbg:#0056b3;--chkfg:#ffffff;" />
        <span>Sorteo</span>
       </label>
      </div>
-     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+     
+     <!-- Fila 2: Acciones y Dropdowns -->
+     <div style="display:flex; gap:8px; align-items:center; justify-content:flex-start; flex-wrap:wrap; width:100%; border-top:1px dashed #f1f5f9; padding-top:8px;">
       <select data-set-status="${p.id}" class="select-tactical ${statusClass}" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado del competidor">
        <option value="active" ${!p.status || p.status === 'active' ? 'selected' : ''}>Activo</option>
        <option value="dq" ${p.status === 'dq' ? 'selected' : ''}>DQ (Descalif.)</option>
@@ -468,14 +471,16 @@ export async function renderEvent(eventId: string): Promise<void> {
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
-      ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
-      <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
-       Editar
-      </button>
-      <button class="btn-danger-custom" data-remove-participant="${p.id}"
-          aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;border-radius:8px;">
-       Eliminar
-      </button>
+      <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+        ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+        <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
+         Editar
+        </button>
+        <button class="btn-danger-custom" data-remove-participant="${p.id}"
+            aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;border-radius:8px;">
+         Eliminar
+        </button>
+      </div>
      </div>
     </div>`;
    }).join('')
