@@ -750,3 +750,47 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   document.body.appendChild(backdrop);
   renderList();
 }
+
+export function applySharedRifleRules(participants: Participant[]): Participant[] {
+  const groups: Record<string, Participant[]> = {};
+  for (const p of participants) {
+    if (p.sharedRifleId && p.tanda) {
+      if (!groups[p.sharedRifleId]) groups[p.sharedRifleId] = [];
+      groups[p.sharedRifleId].push(p);
+    }
+  }
+
+  for (const rifleId in groups) {
+    const members = groups[rifleId];
+    if (members.length < 2) continue;
+    
+    let tandasOccupied = new Set<number>();
+    for (const m of members) {
+      if (tandasOccupied.has(m.tanda!)) {
+        const candidate = participants.find(x => 
+          x.tanda !== undefined &&
+          x.tanda !== m.tanda &&
+          !tandasOccupied.has(x.tanda!) &&
+          x.sharedRifleId !== rifleId &&
+          !x.name.toLowerCase().includes('domnguez') &&
+          !x.name.toLowerCase().includes('dominguez') &&
+          !m.name.toLowerCase().includes('domnguez') &&
+          !m.name.toLowerCase().includes('dominguez')
+        );
+        if (candidate) {
+          const tempT = m.tanda;
+          const tempS = m.spot;
+          m.tanda = candidate.tanda;
+          m.spot = candidate.spot;
+          candidate.tanda = tempT;
+          candidate.spot = tempS;
+          tandasOccupied.add(m.tanda!);
+        }
+      } else {
+        tandasOccupied.add(m.tanda!);
+      }
+    }
+  }
+  return participants;
+}
+
