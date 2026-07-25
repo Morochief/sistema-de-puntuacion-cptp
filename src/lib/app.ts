@@ -72,6 +72,7 @@ function formatDate(isoDate: string): string {
 }
 
 // ── Dashboard State ──────────────────────────────────────────────────────
+let activeSorteoTab: 1 | 2 = 1;
 let dashSearchQuery = '';
 let dashSortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' = 'date_desc';
 let dashPage = 1;
@@ -85,7 +86,6 @@ async function renderDashboard(): Promise<void> {
  container.innerHTML = `<div style="text-align:center;padding:32px;color:#334155;font-size:0.85rem;">Cargando…</div>`;
 
  let filteredData;
-let activeSorteoTab: 1 | 2 = 1;
  try {
   filteredData = await getFilteredEvents({
    searchQuery: dashSearchQuery,
