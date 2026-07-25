@@ -6,6 +6,7 @@ import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
 import { renderChampionshipPanel } from '../championship';
 import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal } from '../sync';
+import { importEventBackup } from '../backup';
 
 
 export let dashSearchQuery = '';
