@@ -290,11 +290,16 @@ export async function renderSeries(seriesId: string): Promise<void> {
    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
     <div>
      <h2 style="margin:0;font-family:'Rajdhani',sans-serif;font-size:1.3rem;
-           font-weight:700;color:#e2e8f0;line-height:1.2;">
+           font-weight:700;color:#0056b3;line-height:1.2;">
       ${esc(participant.name)}
      </h2>
      <span style="font-size:0.7rem;color:#64748b;">
-      Serie ${series!.seriesNumber} ${participant.tanda ? `· Tanda ${participant.tanda} — ${participant.sector}${participant.spot}` : ''}
+      Serie ${series!.seriesNumber} ${(() => {
+        const isS2 = series!.seriesNumber === 2;
+        const t = isS2 ? participant.tandaS2 : participant.tanda;
+        const s = isS2 ? participant.spotS2 : participant.spot;
+        return t ? `· Tanda ${t} – Mesa ${s || ''}` : '';
+      })()}
      </span>
     </div>
     <div style="text-align:right;flex-shrink:0;">
