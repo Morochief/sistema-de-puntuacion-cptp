@@ -508,15 +508,41 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
   const modalBox = document.createElement('div');
   modalBox.className = 'cptp-modal-content';
-  modalBox.style.maxWidth = '600px';
+  modalBox.style.maxWidth = '640px';
   modalBox.style.padding = '0';
   modalBox.style.overflow = 'hidden';
 
   // Copia de trabajo para cambios locales
   const workingParticipants = participants.map(p => ({ ...p }));
 
+  // Render inicial del cascarón del modal
+  modalBox.innerHTML = `
+    <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Serie ${seriesNum}</h2>
+        <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Elegí la Tanda con la lista y cambiá de Mesa (1-4) usando ▲ y ▼</span>
+      </div>
+      <button id="close-heats-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;padding:8px;">X</button>
+    </div>
+
+    <div id="modal-scroll-body" style="padding:16px 20px;max-height:60vh;overflow-y:auto;background:#ffffff;">
+      <!-- Las tandas se renderizan dinámicamente aquí -->
+    </div>
+
+    <div style="padding:16px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;gap:12px;">
+      <button id="btn-cancel-heats" class="btn-ghost-custom" style="padding:8px 16px;">Cancelar</button>
+      <button id="btn-save-heats" class="btn-primary-custom" style="padding:8px 20px;background:#0056b3;color:#ffffff;border-radius:8px;font-weight:bold;">Guardar Nuevo Orden</button>
+    </div>
+  `;
+
   const renderList = () => {
-    // Ordenar por Tanda y luego por Mesa (según la Serie que estemos editando)
+    const scrollBody = modalBox.querySelector('#modal-scroll-body') as HTMLElement;
+    if (!scrollBody) return;
+
+    // Guardar posición de scroll antes de actualizar
+    const savedScrollTop = scrollBody.scrollTop;
+
+    // Ordenar por tanda y luego por mesa para mostrar la lista correctamente
     workingParticipants.sort((a, b) => {
       const tA = (seriesNum === 1 ? a.tanda : a.tandaS2) ?? 999;
       const tB = (seriesNum === 1 ? b.tanda : b.tandaS2) ?? 999;
@@ -526,7 +552,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       return sA - sB;
     });
 
-    // Agrupar por tanda para la cabecera visual
+    // Agrupar por tanda
     const heatsMap = new Map<number, typeof workingParticipants>();
     workingParticipants.forEach(p => {
       const t = (seriesNum === 1 ? p.tanda : p.tandaS2) || 0; // 0 = Sin tanda
@@ -540,32 +566,42 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       const group = heatsMap.get(tandaNum)!;
       const title = tandaNum === 0 ? '⚠️ Competidores sin Tanda Asignada' : `Tanda ${tandaNum}`;
 
-      const itemsHtml = group.map(p => {
-        // Encontrar el índice en la lista general ordenada para los botones arriba/abajo
-        const globalIdx = workingParticipants.findIndex(x => x.id === p.id);
+      const itemsHtml = group.map((p, gIdx) => {
         const pSpot = seriesNum === 1 ? p.spot : p.spotS2;
         const pTanda = seriesNum === 1 ? p.tanda : p.tandaS2;
 
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:10px 14px;border:1px solid #cbd5e1;border-radius:10px;gap:12px;">
             <div style="min-width:0;flex:1;">
-              <span style="font-weight:800;color:#0f172a;font-size:0.92rem;">#${p.competitorNumber} — ${esc(p.name)}</span>
-              <span style="font-size:0.78rem;color:#64748b;font-weight:600;display:block;margin-top:2px;">
-                ${esc(p.category || 'General')} · ${pTanda ? `Tanda ${pTanda}` : 'Sin Tanda'} · ${pSpot ? `Mesa ${pSpot}` : 'Sin Mesa'}
+              <span style="font-weight:800;color:#0f172a;font-size:0.9rem;">#${p.competitorNumber} — ${esc(p.name)}</span>
+              <span style="font-size:0.75rem;color:#64748b;font-weight:600;display:block;margin-top:2px;">
+                ${esc(p.category || 'General')} · Mesa ${pSpot || '—'}
               </span>
             </div>
 
-            <div style="display:flex;gap:6px;align-items:center;">
-              <button class="btn-arrow-up" data-p-idx="${globalIdx}" 
-                  style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:34px;height:34px;cursor:pointer;font-weight:bold;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;"
-                  ${globalIdx === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
-                ▲
-              </button>
-              <button class="btn-arrow-down" data-p-idx="${globalIdx}" 
-                  style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:34px;height:34px;cursor:pointer;font-weight:bold;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;"
-                  ${globalIdx === workingParticipants.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
-                ▼
-              </button>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <div style="display:flex;gap:4px;align-items:center;">
+                <span style="font-size:0.75rem;font-weight:700;color:#475569;">Tanda:</span>
+                <select data-move-p="${p.id}" style="padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.8rem;background:#fff;font-weight:bold;color:#0056b3;">
+                  ${Array.from({ length: 8 }, (_, i) => i + 1).map(n => `
+                    <option value="${n}" ${pTanda === n ? 'selected' : ''}>${n}</option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div style="display:flex;gap:4px;align-items:center;">
+                <span style="font-size:0.75rem;font-weight:700;color:#475569;margin-left:4px;">Mesa:</span>
+                <button class="btn-arrow-up" data-p-id="${p.id}" data-tanda="${tandaNum}" data-spot="${pSpot}"
+                    style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:flex;align-items:center;justify-content:center;"
+                    ${gIdx === 0 || !pSpot ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
+                  ▲
+                </button>
+                <button class="btn-arrow-down" data-p-id="${p.id}" data-tanda="${tandaNum}" data-spot="${pSpot}"
+                    style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:flex;align-items:center;justify-content:center;"
+                    ${gIdx === group.length - 1 || !pSpot ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
+                  ▼
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -582,170 +618,107 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       `;
     }).join('');
 
-    modalBox.innerHTML = `
-      <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Serie ${seriesNum}</h2>
-          <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Usá ▲ y ▼ para mover competidores entre Tandas y Mesas</span>
-        </div>
-        <button id="close-heats-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;padding:8px;">X</button>
-      </div>
+    scrollBody.innerHTML = tandasHtml;
 
-      <div style="padding:16px 20px;max-height:60vh;overflow-y:auto;background:#ffffff;">
-        ${tandasHtml}
-      </div>
+    // Restaurar posición de scroll
+    scrollBody.scrollTop = savedScrollTop;
 
-      <div style="padding:16px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;gap:12px;">
-        <button id="btn-cancel-heats" class="btn-ghost-custom" style="padding:8px 16px;">Cancelar</button>
-        <button id="btn-save-heats" class="btn-primary-custom" style="padding:8px 20px;background:#0056b3;color:#ffffff;border-radius:8px;font-weight:bold;">Guardar Nuevo Orden</button>
-      </div>
-    `;
-
-    // Vincular cierre
-    modalBox.querySelector('#close-heats-modal')?.addEventListener('click', closeModal);
-    modalBox.querySelector('#btn-cancel-heats')?.addEventListener('click', closeModal);
-
-    // Vincular botones de subir posición (▲)
-    modalBox.querySelectorAll('.btn-arrow-up').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = Number((e.currentTarget as HTMLElement).dataset.pIdx);
-        if (idx > 0) {
-          const current = workingParticipants[idx];
-          const prev = workingParticipants[idx - 1];
+    // Vincular selectores de tanda
+    scrollBody.querySelectorAll('[data-move-p]').forEach(select => {
+      select.addEventListener('change', (e) => {
+        const pId = Number((e.currentTarget as HTMLElement).dataset.moveP);
+        const newTanda = Number((e.currentTarget as HTMLSelectElement).value);
+        const target = workingParticipants.find(p => p.id === pId);
+        if (target) {
+          // Encontrar mesa libre en la nueva tanda
+          const occupiedSpots = new Set<number>();
+          workingParticipants.forEach(p => {
+            if (p.id !== pId && (seriesNum === 1 ? p.tanda : p.tandaS2) === newTanda) {
+              const s = seriesNum === 1 ? p.spot : p.spotS2;
+              if (s) occupiedSpots.add(s);
+            }
+          });
+          
+          let nextSpot = 1;
+          for (let s = 1; s <= 4; s++) {
+            if (!occupiedSpots.has(s)) {
+              nextSpot = s;
+              break;
+            }
+          }
           
           if (seriesNum === 1) {
-            const tempT = current.tanda;
-            const tempS = current.spot;
-            current.tanda = prev.tanda;
-            current.spot = prev.spot;
-            prev.tanda = tempT;
-            prev.spot = tempS;
+            target.tanda = newTanda;
+            target.spot = nextSpot as 1|2|3|4;
           } else {
-            const tempT = current.tandaS2;
-            const tempS = current.spotS2;
-            current.tandaS2 = prev.tandaS2;
-            current.spotS2 = prev.spotS2;
-            prev.tandaS2 = tempT;
-            prev.spotS2 = tempS;
+            target.tandaS2 = newTanda;
+            target.spotS2 = nextSpot as 1|2|3|4;
           }
           renderList();
         }
       });
     });
 
-    // Vincular botones de bajar posición (▼)
-    modalBox.querySelectorAll('.btn-arrow-down').forEach(btn => {
+    // Vincular botones ▲ (Subir Mesa en la misma tanda)
+    scrollBody.querySelectorAll('.btn-arrow-up').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const idx = Number((e.currentTarget as HTMLElement).dataset.pIdx);
-        if (idx < workingParticipants.length - 1) {
-          const current = workingParticipants[idx];
-          const next = workingParticipants[idx + 1];
-          
+        const pId = Number((e.currentTarget as HTMLElement).dataset.pId);
+        const current = workingParticipants.find(p => p.id === pId);
+        if (current) {
+          const currentTanda = seriesNum === 1 ? current.tanda : current.tandaS2;
+          const currentSpot = seriesNum === 1 ? current.spot : current.spotS2;
+          if (!currentSpot || currentSpot === 1) return;
+
+          // Buscar al de la mesa anterior en la misma tanda
+          const prevSpot = currentSpot - 1;
+          const prevPartner = workingParticipants.find(p => 
+            (seriesNum === 1 ? p.tanda : p.tandaS2) === currentTanda &&
+            Number(seriesNum === 1 ? p.spot : p.spotS2) === prevSpot
+          );
+
           if (seriesNum === 1) {
-            const tempT = current.tanda;
-            const tempS = current.spot;
-            current.tanda = next.tanda;
-            current.spot = next.spot;
-            next.tanda = tempT;
-            next.spot = tempS;
+            current.spot = prevSpot as 1|2|3|4;
+            if (prevPartner) prevPartner.spot = currentSpot as 1|2|3|4;
           } else {
-            const tempT = current.tandaS2;
-            const tempS = current.spotS2;
-            current.tandaS2 = next.tandaS2;
-            current.spotS2 = next.spotS2;
-            next.tandaS2 = tempT;
-            next.spotS2 = tempS;
+            current.spotS2 = prevSpot as 1|2|3|4;
+            if (prevPartner) prevPartner.spotS2 = currentSpot as 1|2|3|4;
           }
           renderList();
         }
       });
     });
 
-    // Vincular botón guardar
-    modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
-      let validatedParticipants = [...workingParticipants];
-      
-      if (seriesNum === 1) {
-        // Reglas de familia y rifles compartidos para la Serie 1
-        validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
-        validatedParticipants = applySharedRifleRules(validatedParticipants);
-        
-        // Agrupar y asegurar sincronía en S2
-        const groups: Record<number, Participant[]> = {};
-        for (const p of validatedParticipants) {
-          if (p.tanda) {
-            if (!groups[p.tanda]) groups[p.tanda] = [];
-            groups[p.tanda].push(p);
-          }
-        }
-        
-        for (const tString in groups) {
-          const t = Number(tString);
-          const group = groups[t];
-          
-          // Re-indexar los spots secuenciales de S1 del 1 al 4 (por seguridad)
-          group.forEach((p, idx) => {
-            p.spot = (idx + 1) as 1|2|3|4;
-            p.tandaS2 = t;
-          });
-          
-          // Para S2, si no hay spots válidos asignados, barajar
-          const assignedSpotsS2 = new Set<number>();
-          const unassignedS2: Participant[] = [];
-          group.forEach(p => {
-             const targetSpot = p.spotS2;
-             if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpotsS2.has(targetSpot)) {
-                assignedSpotsS2.add(targetSpot);
-                p.spotS2 = targetSpot as 1|2|3|4;
-             } else {
-                unassignedS2.push(p);
-             }
-          });
-          
-          const availableS2Spots = [1, 2, 3, 4].filter(s => !assignedSpotsS2.has(s));
-          for (let i = availableS2Spots.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [availableS2Spots[i], availableS2Spots[j]] = [availableS2Spots[j], availableS2Spots[i]];
-          }
-          unassignedS2.forEach((p, idx) => {
-            p.spotS2 = availableS2Spots[idx] as 1|2|3|4;
-          });
-        }
-      } else {
-        // En Serie 2, asegurar que se preserva el mismo orden seleccionado
-        const groups: Record<number, Participant[]> = {};
-        for (const p of validatedParticipants) {
-          if (p.tandaS2) {
-            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
-            groups[p.tandaS2].push(p);
-          }
-        }
-        for (const tString in groups) {
-          const t = Number(tString);
-          groups[t].forEach((p, idx) => {
-            p.spotS2 = (idx + 1) as 1|2|3|4;
-          });
-        }
-      }
-      
-      // Guardar todos los participantes con Dexie.put para total compatibilidad
-      for (const p of validatedParticipants) {
-        if (p.tanda === undefined || p.tanda === null) {
-          p.spot = undefined;
-        }
-        if (p.tandaS2 === undefined || p.tandaS2 === null) {
-          p.spotS2 = undefined;
-        }
-        p.sector = undefined;
-        await db.participants.put(p);
-      }
+    // Vincular botones ▼ (Bajar Mesa en la misma tanda)
+    scrollBody.querySelectorAll('.btn-arrow-down').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const pId = Number((e.currentTarget as HTMLElement).dataset.pId);
+        const current = workingParticipants.find(p => p.id === pId);
+        if (current) {
+          const currentTanda = seriesNum === 1 ? current.tanda : current.tandaS2;
+          const currentSpot = seriesNum === 1 ? current.spot : current.spotS2;
+          if (!currentSpot || currentSpot === 4) return;
 
-      showToast('Orden de tandas y mesas actualizado con éxito.', 'success');
-      closeModal();
-      if (onSaveCallback) onSaveCallback();
+          // Buscar al de la mesa siguiente en la misma tanda
+          const nextSpot = currentSpot + 1;
+          const nextPartner = workingParticipants.find(p => 
+            (seriesNum === 1 ? p.tanda : p.tandaS2) === currentTanda &&
+            Number(seriesNum === 1 ? p.spot : p.spotS2) === nextSpot
+          );
+
+          if (seriesNum === 1) {
+            current.spot = nextSpot as 1|2|3|4;
+            if (nextPartner) nextPartner.spot = currentSpot as 1|2|3|4;
+          } else {
+            current.spotS2 = nextSpot as 1|2|3|4;
+            if (nextPartner) nextPartner.spotS2 = currentSpot as 1|2|3|4;
+          }
+          renderList();
+        }
+      });
     });
   };
 
+  // Vincular cierre
   const closeModal = () => {
     backdrop.classList.remove('is-open');
     backdrop.classList.add('is-closing');
@@ -754,9 +727,84 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
     }, 150);
   };
 
-  // Bind close buttons again to make sure they use closeModal
   modalBox.querySelector('#close-heats-modal')?.addEventListener('click', closeModal);
   modalBox.querySelector('#btn-cancel-heats')?.addEventListener('click', closeModal);
+
+  // Vincular botón guardar
+  modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
+    let validatedParticipants = [...workingParticipants];
+    
+    if (seriesNum === 1) {
+      // Reglas de familia y rifles compartidos para la Serie 1
+      validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
+      validatedParticipants = applySharedRifleRules(validatedParticipants);
+      
+      const groups: Record<number, Participant[]> = {};
+      for (const p of validatedParticipants) {
+        if (p.tanda) {
+          if (!groups[p.tanda]) groups[p.tanda] = [];
+          groups[p.tanda].push(p);
+        }
+      }
+      
+      for (const tString in groups) {
+        const t = Number(tString);
+        const group = groups[t];
+        
+        // Mantener spots de S1 y sincronizar S2 tanda
+        group.forEach((p) => {
+          p.tandaS2 = t;
+        });
+        
+        // Resolver spots de S2 (si no están asignados válidamente, barajar)
+        const assignedSpotsS2 = new Set<number>();
+        const unassignedS2: Participant[] = [];
+        group.forEach(p => {
+           const targetSpot = p.spotS2;
+           if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpotsS2.has(targetSpot)) {
+              assignedSpotsS2.add(targetSpot);
+              p.spotS2 = targetSpot as 1|2|3|4;
+           } else {
+              unassignedS2.push(p);
+           }
+        });
+        
+        const availableS2Spots = [1, 2, 3, 4].filter(s => !assignedSpotsS2.has(s));
+        for (let i = availableS2Spots.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [availableS2Spots[i], availableS2Spots[j]] = [availableS2Spots[j], availableS2Spots[i]];
+        }
+        unassignedS2.forEach((p, idx) => {
+          p.spotS2 = availableS2Spots[idx] as 1|2|3|4;
+        });
+      }
+    } else {
+      // En Serie 2, asegurar que se guardan los cambios de mesas tal cual
+      const groups: Record<number, Participant[]> = {};
+      for (const p of validatedParticipants) {
+        if (p.tandaS2) {
+          if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
+          groups[p.tandaS2].push(p);
+        }
+      }
+    }
+    
+    // Guardar todos los participantes con Dexie.put para total compatibilidad
+    for (const p of validatedParticipants) {
+      if (p.tanda === undefined || p.tanda === null) {
+        p.spot = undefined;
+      }
+      if (p.tandaS2 === undefined || p.tandaS2 === null) {
+        p.spotS2 = undefined;
+      }
+      p.sector = undefined;
+      await db.participants.put(p);
+    }
+
+    showToast('Orden de tandas y mesas actualizado con éxito.', 'success');
+    closeModal();
+    if (onSaveCallback) onSaveCallback();
+  });
 
   backdrop.appendChild(modalBox);
   document.body.appendChild(backdrop);
@@ -767,7 +815,6 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   
   renderList();
 }
-
 export function applySharedRifleRules(participants: Participant[]): Participant[] {
   const groups: Record<string, Participant[]> = {};
   for (const p of participants) {
