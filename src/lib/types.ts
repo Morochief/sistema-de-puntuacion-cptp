@@ -20,6 +20,7 @@ export interface Participant {
   status?: 'active' | 'dq' | 'dns'; // Estado del competidor (Activo, Descalificado, No presentado)
   paymentStatus?: 'paid' | 'pending' | 'exempt'; // Estado de inscripción (Abonado, Pendiente, Exento)
   presentForRaffle?: boolean;
+  sharedRifleId?: string; // Ej: 'Rifle A', 'Rifle B'
 }
 
 export interface Series {

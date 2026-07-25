@@ -101,3 +101,74 @@ export function showPrompt(title: string, message: string, defaultValue: string)
     });
   });
 }
+export interface ParticipantEditData {
+  name: string;
+  category?: string;
+  sharedRifleId?: string;
+}
+
+export function showEditParticipantModal(title: string, p: { name: string, category?: string, sharedRifleId?: string }): Promise<ParticipantEditData | null> {
+  return new Promise((resolve) => {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'cptp-modal-backdrop';
+    backdrop.style.zIndex = '99999';
+    backdrop.innerHTML = 
+      <div class="cptp-modal-content">
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0 0 10px;"> + "" + </h2>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          <div>
+            <label style="font-size:0.75rem;color:#64748b;font-weight:700;">Nombre Completo</label>
+            <input type="text" id="modal-edit-name" class="field-input" value=" + "" + " style="border:1px solid #cbd5e1;padding:8px 12px;border-radius:6px;width:100%;font-size:0.95rem;" autofocus />
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:#64748b;font-weight:700;">Categoría</label>
+            <input type="text" id="modal-edit-category" class="field-input" value=" + "" + " style="border:1px solid #cbd5e1;padding:8px 12px;border-radius:6px;width:100%;font-size:0.95rem;" />
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:#64748b;font-weight:700;">Rifle Compartido</label>
+            <select id="modal-edit-rifle" class="field-input" style="border:1px solid #cbd5e1;padding:8px 12px;border-radius:6px;width:100%;font-size:0.95rem;">
+              <option value=""  + "" + >Ninguno</option>
+              <option value="Rifle A"  + "" + >Rifle A</option>
+              <option value="Rifle B"  + "" + >Rifle B</option>
+              <option value="Rifle C"  + "" + >Rifle C</option>
+              <option value="Rifle D"  + "" + >Rifle D</option>
+              <option value="Rifle E"  + "" + >Rifle E</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button id="modal-cancel-btn" class="btn-ghost-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;">Cancelar</button>
+          <button id="modal-confirm-btn" class="btn-primary-custom" style="padding:10px 18px;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:700;background:#0056b3;color:#ffffff;">Guardar Cambios</button>
+        </div>
+      </div>
+    ;
+    document.body.appendChild(backdrop);
+    const nameInput = backdrop.querySelector('#modal-edit-name') as HTMLInputElement | null;
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
+    }
+    void backdrop.offsetWidth;
+    backdrop.classList.add('is-open');
+
+    const closeWithResult = (val: ParticipantEditData | null) => {
+      backdrop.classList.remove('is-open');
+      backdrop.classList.add('is-closing');
+      setTimeout(() => {
+        backdrop.remove();
+        resolve(val);
+      }, 150);
+    };
+
+    backdrop.querySelector('#modal-cancel-btn')?.addEventListener('click', () => closeWithResult(null));
+    backdrop.querySelector('#modal-confirm-btn')?.addEventListener('click', () => {
+      const catInput = backdrop.querySelector('#modal-edit-category') as HTMLInputElement;
+      const rifleInput = backdrop.querySelector('#modal-edit-rifle') as HTMLSelectElement;
+      closeWithResult({
+        name: nameInput?.value || '',
+        category: catInput?.value || undefined,
+        sharedRifleId: rifleInput?.value || undefined
+      });
+    });
+  });
+}

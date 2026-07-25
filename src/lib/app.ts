@@ -9,7 +9,7 @@
  *  No se puede pasar al siguiente blanco sin impactar el actual.
  */
 
-import { esc, showToast, showConfirm, showPrompt } from './modals';
+import { esc, showToast, showConfirm, showPrompt, showEditParticipantModal } from './modals';
 import { navigate, getRoute, showView } from './router';
 import { exportRankingToExcel } from './excel';
 import { exportEventBackup, importEventBackup } from './backup';
@@ -21,7 +21,7 @@ import { printSeriesCard, printEventCards, printRankingCard, printBlankSheet } f
 import html2canvas from 'html2canvas';
 import { getFilteredEvents, showEditEventModal } from './eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor, migrateParticipantsToPadron } from './masterCompetitors';
-import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
+import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, applySharedRifleRules, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
 import { renderChampionshipPanel } from './championship';
 
 (window as any).downloadElementAsPng = async (el: HTMLElement, filename: string) => {
@@ -513,14 +513,22 @@ async function renderEvent(eventId: string): Promise<void> {
      Inscribir Competidor
     </h3>
     <div style="display:flex;gap:10px;">
-     <div style="display:flex;gap:10px;flex:1;">
-      <input type="text" id="field-participant-name" class="field-input" style="flex:2;"
+     <div style="display:flex;gap:10px;flex:1;flex-wrap:wrap;">
+      <input type="text" id="field-participant-name" class="field-input" style="flex:2;min-width:140px;"
           placeholder="Nombre completo" maxlength="60" list="padron-suggestions"
           ${participants.length >= 32 ? 'disabled placeholder="Capacidad máxima (32)"' : ''} />
        <datalist id="padron-suggestions"></datalist>
-      <input type="text" id="field-participant-category" class="field-input" style="flex:1;"
+      <input type="text" id="field-participant-category" class="field-input" style="flex:1;min-width:100px;"
           placeholder="Categoría (ej: Senior)" maxlength="30"
           ${participants.length >= 32 ? 'disabled' : ''} />
+      <select id="field-participant-rifle" class="field-input" style="flex:1;min-width:100px;font-size:0.8rem;" ${participants.length >= 32 ? 'disabled' : ''}>
+        <option value="">Rifle (Ninguno)</option>
+        <option value="Rifle A">Rifle A</option>
+        <option value="Rifle B">Rifle B</option>
+        <option value="Rifle C">Rifle C</option>
+        <option value="Rifle D">Rifle D</option>
+        <option value="Rifle E">Rifle E</option>
+      </select>
      </div>
      <button id="btn-add-participant" class="btn-primary-custom" style="padding:10px 18px;"
          ${participants.length >= 32 ? 'disabled' : ''}>
@@ -785,6 +793,9 @@ async function renderEvent(eventId: string): Promise<void> {
      : p.paymentStatus === 'paid'
      ? `<span style="font-size:0.65rem;background:#f0fdf4;color:#16a34a;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #bbf7d0;">$ Abonado</span>`
      : '';
+    const rifleBadge = p.sharedRifleId
+     ? `<span style="font-size:0.65rem;background:#f3e8ff;color:#7e22ce;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #d8b4fe;" title="Rifle Compartido">🎯 ${esc(p.sharedRifleId)}</span>`
+     : '';
     const isRaffleChecked = p.presentForRaffle !== false;
     return `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
@@ -794,7 +805,7 @@ async function renderEvent(eventId: string): Promise<void> {
       <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span> <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
       ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
       ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
-      ${statusBadge}${payBadge}
+      ${statusBadge}${payBadge}${rifleBadge}
       <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
        <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} style="cursor:pointer;" />
        <span>Sorteo</span>
@@ -843,6 +854,18 @@ async function renderEvent(eventId: string): Promise<void> {
 
     let foundS1 = false;
     for (let t = 1; t <= 8; t++) {
+     // Check for sharedRifleId clash
+     let rifleClash = false;
+     if (p.sharedRifleId) {
+       for (const existingP of participants) {
+         if (existingP.tanda === t && existingP.sharedRifleId === p.sharedRifleId && existingP.id !== p.id) {
+           rifleClash = true;
+           break;
+         }
+       }
+     }
+     if (rifleClash) continue; // Skip this tanda
+
      for (let s = 1; s <= 4; s++) {
       if (!occupiedS1.has(`${t}-${s}`)) {
        p.tanda = t;
@@ -852,6 +875,21 @@ async function renderEvent(eventId: string): Promise<void> {
       }
      }
      if (foundS1) break;
+    }
+
+    // Fallback: If no spots found without a clash, just put them anywhere available
+    if (!foundS1) {
+      for (let t = 1; t <= 8; t++) {
+       for (let s = 1; s <= 4; s++) {
+        if (!occupiedS1.has(`${t}-${s}`)) {
+         p.tanda = t;
+         p.spot = s as 1|2|3|4;
+         foundS1 = true;
+         break;
+        }
+       }
+       if (foundS1) break;
+      }
     }
 
     p.presentForRaffle = true;
@@ -987,9 +1025,17 @@ async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.editParticipant);
     const p = participants.find(x => x.id === pid);
     if (!p) return;
-    const newName = await showPrompt('Editar Competidor', 'Nuevo nombre del competidor:', p.name);
-    if (newName !== null && newName.trim() !== '') {
-     await db.participants.update(pid, { name: newName.trim() });
+    const res = await showEditParticipantModal('Editar Competidor', {
+      name: p.name,
+      category: p.category,
+      sharedRifleId: p.sharedRifleId
+    });
+    if (res !== null && res.name.trim() !== '') {
+     await db.participants.update(pid, { 
+       name: res.name.trim(),
+       category: res.category,
+       sharedRifleId: res.sharedRifleId
+     });
      participants = await db.participants.where('eventId').equals(id).toArray();
      participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
      renderListaInscritos();
@@ -1450,9 +1496,11 @@ async function renderEvent(eventId: string): Promise<void> {
  document.getElementById('btn-add-participant')?.addEventListener('click', async () => {
   const input = document.getElementById('field-participant-name') as HTMLInputElement | null;
   const catInput = document.getElementById('field-participant-category') as HTMLInputElement | null;
+  const rifleInput = document.getElementById('field-participant-rifle') as HTMLSelectElement | null;
   if (!input || !catInput) return;
   const name = input.value.trim();
   const categoryVal = catInput.value.trim();
+  const rifleVal = rifleInput?.value.trim();
   if (!name) { showToast('Ingresá el nombre del tirador', 'error'); return; }
 
   if (participants.length >= 32) {
@@ -1478,7 +1526,8 @@ async function renderEvent(eventId: string): Promise<void> {
     tanda: freeSpot?.tanda,
     spot: freeSpot?.spot,
     status: 'active',
-    paymentStatus: 'paid'
+    paymentStatus: 'paid',
+    sharedRifleId: rifleVal || undefined
    });
 
    // Agregar al Padrón Maestro silenciosamente (sin duplicar)
@@ -1486,6 +1535,7 @@ async function renderEvent(eventId: string): Promise<void> {
 
    input.value = '';
    catInput.value = '';
+   if (rifleInput) rifleInput.value = '';
    showToast(`Inscrito Competidor #${chosenNumber}`, 'success');
 
    // recargar
@@ -1599,6 +1649,9 @@ async function renderEvent(eventId: string): Promise<void> {
    }
    if (typeof applySpecialFamilySeedingRules === 'function') {
       applySpecialFamilySeedingRules(listS1);
+   }
+   if (typeof applySharedRifleRules === 'function') {
+      applySharedRifleRules(listS1);
    }
 
    // 2. SORTEO SERIE 2 (Mismo grupo de tanda, pero mezclando las mesas/spots)
