@@ -848,35 +848,32 @@ async function renderEvent(eventId: string): Promise<void> {
      if (foundS1) break;
     }
 
-    // Encontrar puestos ocupados en Serie 2
-    const occupiedS2 = new Set<string>();
-    participants.forEach(x => {
-     if (x.tandaS2 !== undefined && x.spotS2 !== undefined) {
-      occupiedS2.add(`${x.tandaS2}-${x.spotS2}`);
-     }
-    });
-
-    let foundS2 = false;
-    for (let t = 1; t <= 8; t++) {
-     for (let s = 1; s <= 4; s++) {
-      if (!occupiedS2.has(`${t}-${s}`)) {
-       p.tandaS2 = t;
-       p.spotS2 = s as 1|2|3|4;
-       foundS2 = true;
-       break;
-      }
-     }
-     if (foundS2) break;
-    }
-
     p.presentForRaffle = true;
 
-    if (foundS1 || foundS2) {
+    if (foundS1) {
+     // Para la Serie 2, lo ponemos en la misma tanda, pero en una mesa libre de esa tanda para S2.
+     const occupiedInTandaS2 = new Set<number>();
+     participants.forEach(x => {
+       if (x.tandaS2 === p.tanda && x.spotS2 !== undefined) {
+         occupiedInTandaS2.add(x.spotS2);
+       }
+     });
+     
+     let s2Found = 1;
+     for (let s = 1; s <= 4; s++) {
+       if (!occupiedInTandaS2.has(s)) {
+         s2Found = s;
+         break;
+       }
+     }
+     p.tandaS2 = p.tanda;
+     p.spotS2 = s2Found as 1|2|3|4;
+
      await db.participants.put(p);
-     showToast(`Se asignó a ${p.name} a Serie 1: Tanda ${p.tanda || '—'} Mesa ${p.spot || '—'} | Serie 2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}.`, 'success');
+     showToast(`Se asignó a ${p.name} a Tanda ${p.tanda} (Mesa S1: ${p.spot} | Mesa S2: ${p.spotS2}).`, 'success');
      renderEvent(String(event!.id!));
     } else {
-     showToast('No hay mesas libres disponibles en ninguna serie.', 'error');
+     showToast('No hay mesas libres disponibles (Capacidad máxima alcanzada).', 'error');
     }
    });
   });
@@ -1578,7 +1575,7 @@ async function renderEvent(eventId: string): Promise<void> {
     [list[i], list[j]] = [list[j], list[i]];
    }
 
-   // 1. SORTEO SERIE 1
+   // 1. SORTEO SERIE 1 (Normal)
    const listS1 = [...list];
    for (let i = listS1.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1592,28 +1589,37 @@ async function renderEvent(eventId: string): Promise<void> {
       applySpecialFamilySeedingRules(listS1);
    }
 
-   // 2. SORTEO SERIE 2
-   const listS2 = [...list];
-   for (let i = listS2.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [listS2[i], listS2[j]] = [listS2[j], listS2[i]];
-   }
-   for (let i = 0; i < listS2.length; i++) {
-    listS2[i].tandaS2 = Math.floor(i / 4) + 1;
-    listS2[i].spotS2 = ((i % 4) + 1) as 1|2|3|4;
-   }
-   if (typeof applySpecialFamilySeedingRulesS2 === 'function') {
-      applySpecialFamilySeedingRulesS2(listS2);
+   // 2. SORTEO SERIE 2 (Mismo grupo de tanda, pero mezclando las mesas/spots)
+   const groupsS1: Record<number, Participant[]> = {};
+   for (const p of listS1) {
+     if (p.tanda) {
+       if (!groupsS1[p.tanda]) groupsS1[p.tanda] = [];
+       groupsS1[p.tanda].push(p);
+     }
    }
 
-   // Combinar resultados
+   for (const tString in groupsS1) {
+     const t = Number(tString);
+     const competitorsInTanda = [...groupsS1[t]];
+     const spots = [1, 2, 3, 4].slice(0, competitorsInTanda.length);
+     // Mezclar spots
+     for (let i = spots.length - 1; i > 0; i--) {
+       const j = Math.floor(Math.random() * (i + 1));
+       [spots[i], spots[j]] = [spots[j], spots[i]];
+     }
+     competitorsInTanda.forEach((p, idx) => {
+       p.tandaS2 = t;
+       p.spotS2 = spots[idx] as 1|2|3|4;
+     });
+   }
+
+   // Guardar la lista combinada
    for (const p of list) {
      const p1 = listS1.find(x => x.id === p.id);
-     const p2 = listS2.find(x => x.id === p.id);
      p.tanda = p1?.tanda;
      p.spot = p1?.spot;
-     p.tandaS2 = p2?.tandaS2;
-     p.spotS2 = p2?.spotS2;
+     p.tandaS2 = p1?.tandaS2;
+     p.spotS2 = p1?.spotS2;
      p.sector = undefined;
    }
 

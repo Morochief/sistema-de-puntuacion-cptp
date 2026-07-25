@@ -347,51 +347,44 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
     modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
       let validatedParticipants = [...workingParticipants];
-      if (seriesNum === 1) {
-        validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
+      
+      // Enforce S1 rules
+      validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
+      
+      const groups: Record<number, Participant[]> = {};
+      for (const p of validatedParticipants) {
+        if (p.tanda) {
+          if (!groups[p.tanda]) groups[p.tanda] = [];
+          groups[p.tanda].push(p);
+        }
+      }
+      
+      for (const tString in groups) {
+        const t = Number(tString);
+        groups[t].forEach((p, idx) => {
+          p.spot = (idx + 1) as 1 | 2 | 3 | 4;
+          p.tandaS2 = t;
+        });
         
-        const groups: Record<number, Participant[]> = {};
-        for (const p of validatedParticipants) {
-          if (p.tanda) {
-            if (!groups[p.tanda]) groups[p.tanda] = [];
-            groups[p.tanda].push(p);
-          }
+        // Shuffle S2 spots in the same tanda
+        const spotsS2 = [1, 2, 3, 4].slice(0, groups[t].length);
+        for (let i = spotsS2.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [spotsS2[i], spotsS2[j]] = [spotsS2[j], spotsS2[i]];
         }
-        for (const tString in groups) {
-          const t = Number(tString);
-          groups[t].forEach((p, idx) => {
-            p.spot = (idx + 1) as 1 | 2 | 3 | 4;
-          });
-        }
-        for (const p of validatedParticipants) {
-          await db.participants.update(p.id!, {
-            tanda: p.tanda,
-            spot: p.tanda ? p.spot : undefined,
-            sector: undefined
-          });
-        }
-      } else {
-        validatedParticipants = applySpecialFamilySeedingRulesS2(validatedParticipants);
-        
-        const groups: Record<number, Participant[]> = {};
-        for (const p of validatedParticipants) {
-          if (p.tandaS2) {
-            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
-            groups[p.tandaS2].push(p);
-          }
-        }
-        for (const tString in groups) {
-          const t = Number(tString);
-          groups[t].forEach((p, idx) => {
-            p.spotS2 = (idx + 1) as 1 | 2 | 3 | 4;
-          });
-        }
-        for (const p of validatedParticipants) {
-          await db.participants.update(p.id!, {
-            tandaS2: p.tandaS2,
-            spotS2: p.tandaS2 ? p.spotS2 : undefined
-          });
-        }
+        groups[t].forEach((p, idx) => {
+          p.spotS2 = spotsS2[idx] as 1 | 2 | 3 | 4;
+        });
+      }
+      
+      for (const p of validatedParticipants) {
+        await db.participants.update(p.id!, {
+          tanda: p.tanda,
+          spot: p.tanda ? p.spot : undefined,
+          tandaS2: p.tandaS2,
+          spotS2: p.tanda ? p.spotS2 : undefined,
+          sector: undefined
+        });
       }
 
       showToast('Orden de tandas actualizado con éxito.', 'success');
