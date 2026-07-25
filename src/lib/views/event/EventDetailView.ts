@@ -77,15 +77,15 @@ export async function renderEvent(eventId: string): Promise<void> {
    </p>
   </div>
 
-    <!-- TABS DE NAVEGACIÓN -->
-  <div class="tabs tabs-boxed mb-6" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;">
-   <button id="tab-btn-tiradores" class="tab tab-active" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#0f172a;font-size:0.8rem;">
+  <!-- TABS DE NAVEGACIÓN -->
+  <div role="tablist" aria-label="Navegación del Evento" class="tabs tabs-boxed mb-6 bg-slate-200 border border-slate-300 flex gap-1 p-1 rounded-xl">
+   <button role="tab" aria-selected="true" aria-controls="tab-panel-tiradores" id="tab-btn-tiradores" class="tab tab-active flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-900 text-sm transition-all duration-200">
     Sorteo (${participants.length}/32)
    </button>
-   <button id="tab-btn-series" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;font-size:0.8rem;">
+   <button role="tab" aria-selected="false" aria-controls="tab-panel-series" id="tab-btn-series" class="tab flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
     Series
    </button>
-   <button id="tab-btn-posiciones" class="tab" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;color:#475569;font-size:0.8rem;">
+   <button role="tab" aria-selected="false" aria-controls="tab-panel-posiciones" id="tab-btn-posiciones" class="tab flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
     Posiciones
    </button>
   </div>
@@ -268,42 +268,22 @@ export async function renderEvent(eventId: string): Promise<void> {
  const panelSeries = document.getElementById('tab-panel-series');
  const panelPosiciones = document.getElementById('tab-panel-posiciones');
 
- // --- LÓGICA DE ESTILOS DE TABS PARAGUAY ---
+ // --- LÓGICA DE ESTILOS DE TABS ---
  function updateTabStyles(): void {
   if (!btnTiradores || !btnSeries || !btnPosiciones) return;
-  
-  btnTiradores.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
-  btnSeries.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
-  btnPosiciones.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;";
+      
+  const setTabStyle = (btn: HTMLElement, isActive: boolean) => {
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if (isActive) {
+      btn.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;background:#b7201c;color:#ffffff;box-shadow:0 4px 12px rgba(183, 32, 28, 0.3);";
+    } else {
+      btn.style.cssText = "flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.8rem;padding:8px;transition:all 0.2s;background:transparent;color:#475569;";
+    }
+  };
 
-  if (btnTiradores.classList.contains('tab-active')) {
-    btnTiradores.style.background = '#b7201c';
-    btnTiradores.style.color = '#ffffff';
-    btnTiradores.style.boxShadow = '0 4px 12px rgba(183, 32, 28, 0.3)';
-  } else {
-    btnTiradores.style.background = 'transparent';
-    btnTiradores.style.color = '#475569';
-  }
-
-  if (btnSeries.classList.contains('tab-active')) {
-    btnSeries.style.background = '#ffffff';
-    btnSeries.style.color = '#0f172a';
-    btnSeries.style.border = '1px solid #cbd5e1';
-    btnSeries.style.boxShadow = '0 4px 12px rgba(15, 23, 42, 0.08)';
-  } else {
-    btnSeries.style.background = 'transparent';
-    btnSeries.style.color = '#475569';
-    btnSeries.style.border = 'none';
-  }
-
-  if (btnPosiciones.classList.contains('tab-active')) {
-    btnPosiciones.style.background = '#0056b3';
-    btnPosiciones.style.color = '#ffffff';
-    btnPosiciones.style.boxShadow = '0 4px 12px rgba(0, 86, 179, 0.3)';
-  } else {
-    btnPosiciones.style.background = 'transparent';
-    btnPosiciones.style.color = '#475569';
-  }
+  setTabStyle(btnTiradores, btnTiradores.classList.contains('tab-active'));
+  setTabStyle(btnSeries, btnSeries.classList.contains('tab-active'));
+  setTabStyle(btnPosiciones, btnPosiciones.classList.contains('tab-active'));
  }
  // --- LÓGICA DE TABS ---
  btnTiradores?.addEventListener('click', () => {
@@ -568,7 +548,7 @@ export async function renderEvent(eventId: string): Promise<void> {
      p.spotS2 = s2Found as 1|2|3|4;
 
      await db.participants.put(p);
-     showToast(`Se asignó a ${p.name} a Tanda ${p.tanda} (Mesa S1: ${p.spot} | Mesa S2: ${p.spotS2}).`, 'success');
+     showToast(`Se asignó a ${esc(p.name)} a Tanda ${p.tanda} (Mesa S1: ${p.spot} | Mesa S2: ${p.spotS2}).`, 'success');
      renderEvent(String(event!.id!));
     } else {
      showToast('No hay mesas libres disponibles (Capacidad máxima alcanzada).', 'error');
@@ -600,7 +580,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.removeParticipant);
     const p = participants.find(x => x.id === pid);
     if (!p) return;
-    if (!await showConfirm('Eliminar Inscripción', `¿Eliminar la inscripción de ${p.name}? Se perderán sus series.`)) return;
+    if (!await showConfirm('Eliminar Inscripción', `¿Eliminar la inscripción de ${esc(p.name)}? Se perderán sus series.`)) return;
 
     try {
      await db.participants.delete(pid);
@@ -786,12 +766,20 @@ export async function renderEvent(eventId: string): Promise<void> {
   // Update button states
   const btnUndoState = document.getElementById('btn-undo-sorteo') as HTMLButtonElement | null;
   if (btnUndoState) {
-    const hasRaffle = participants.some(p => p.tanda !== undefined || p.tandaS2 !== undefined);
-    btnUndoState.disabled = !hasRaffle;
+   const hasRaffle = participants.some(p => p.tanda !== undefined || p.tandaS2 !== undefined);
+   btnUndoState.disabled = !hasRaffle;
   }
   const btnShuffleState = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
   if (btnShuffleState) {
-    btnShuffleState.disabled = participants.length === 0;
+   btnShuffleState.disabled = participants.length === 0;
+  }
+  const btnReorderS1 = document.getElementById('btn-reorder-heats') as HTMLButtonElement | null;
+  if (btnReorderS1) {
+   btnReorderS1.disabled = participants.length === 0;
+  }
+  const btnReorderS2 = document.getElementById('btn-reorder-heats-s2') as HTMLButtonElement | null;
+  if (btnReorderS2) {
+   btnReorderS2.disabled = participants.length === 0 || !participants.some(p => p.tanda !== undefined);
   }
  }
 
@@ -954,12 +942,12 @@ export async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.clearSeriesFor);
     const p = participants.find(x => x.id === pid);
     if (!p) return;
-    if (!await showConfirm('Vaciar Series', `¿Eliminar TODAS las series de ${p.name}? Esto dejará sus puntajes en cero.`)) return;
+    if (!await showConfirm('Vaciar Series', `¿Eliminar TODAS las series de ${esc(p.name)}? Esto dejará sus puntajes en cero.`)) return;
     try {
      await db.series.where('participantId').equals(pid).delete();
      allSeries = await db.series.where('eventId').equals(id).toArray();
      renderListaSeries();
-     showToast(`Series de ${p.name} eliminadas.`, 'info');
+     showToast(`Series de ${esc(p.name)} eliminadas.`, 'info');
     } catch (err) {
      console.error('[DB] Error borrando series del participante:', err);
      showToast('Error al vaciar series.', 'error');
@@ -1221,7 +1209,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    const catInput2 = document.getElementById('field-participant-category') as HTMLInputElement | null;
    if (nameInput) nameInput.value = mc.name;
    if (catInput2) catInput2.value = mc.category || '';
-   showToast(`Tirador "${mc.name}" seleccionado del Padrón. Presioná Inscribir para confirmar.`, 'info', 3500);
+   showToast(`Tirador "${esc(mc.name)}" seleccionado del Padrón. Presioná Inscribir para confirmar.`, 'info', 3500);
   });
  });
 
@@ -1401,6 +1389,9 @@ export async function renderEvent(eventId: string): Promise<void> {
           p.tanda = undefined;
           p.spot = undefined;
           p.sector = undefined;
+          p.tandaS2 = undefined;
+          p.spotS2 = undefined;
+          p.sectorS2 = undefined;
           p.competitorNumber = num++;
           
           await db.participants.put(p);

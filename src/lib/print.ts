@@ -576,8 +576,8 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        <tr class="rank-row">
         <td class="td-pos">${posHtml}</td>
         <td class="td-name">
-         <div class="name-text">${p.name.toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR · ${laneLabel} ${p.category ? `· ${p.category}` : ''}</div>
+         <div class="name-text">${esc(p.name).toUpperCase()}</div>
+         <div class="sub-text">COMPETIDOR · ${laneLabel} ${p.category ? `· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val">${scoreDisplay}</div>
@@ -617,8 +617,8 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
       <tr class="rank-row" style="background:#fffbeb;">
         <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
         <td class="td-name">
-         <div class="name-text">${p.name.toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${p.category}` : ''}</div>
+         <div class="name-text">${esc(p.name).toUpperCase()}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>

@@ -22,3 +22,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# backups and scratch
+cptp_backup_*.json
+*.py
