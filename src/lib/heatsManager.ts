@@ -578,7 +578,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
 
 
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
 
             <label style="font-size:0.75rem;font-weight:700;color:#475569;">Tanda:</label>
 
@@ -590,6 +590,13 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
               `).join('')}
 
+            </select>
+
+            <label style="font-size:0.75rem;font-weight:700;color:#475569;margin-left:8px;">Mesa:</label>
+            <select data-move-spot="${p.id}" style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;background:#fff;font-weight:bold;color:#0f172a;">
+              ${Array.from({ length: 4 }, (_, i) => i + 1).map(n => `
+                <option value="${n}" ${(seriesNum === 1 ? p.spot : p.spotS2) === n ? 'selected' : ''}>Mesa ${n}</option>
+              `).join('')}
             </select>
 
           </div>
@@ -667,27 +674,29 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
 
     modalBox.querySelectorAll('[data-move-p]').forEach(select => {
-
       select.addEventListener('change', (e) => {
-
         const pId = Number((e.currentTarget as HTMLElement).dataset.moveP);
-
         const newTanda = Number((e.currentTarget as HTMLSelectElement).value);
-
         const target = workingParticipants.find(p => p.id === pId);
-
         if (target) {
-
           if (seriesNum === 1) target.tanda = newTanda;
-
           else target.tandaS2 = newTanda;
-
           renderList();
-
         }
-
       });
+    });
 
+    modalBox.querySelectorAll('[data-move-spot]').forEach(select => {
+      select.addEventListener('change', (e) => {
+        const pId = Number((e.currentTarget as HTMLElement).dataset.moveSpot);
+        const newSpot = Number((e.currentTarget as HTMLSelectElement).value) as 1|2|3|4;
+        const target = workingParticipants.find(p => p.id === pId);
+        if (target) {
+          if (seriesNum === 1) target.spot = newSpot;
+          else target.spotS2 = newSpot;
+          renderList();
+        }
+      });
     });
 
 
@@ -739,17 +748,41 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
         
 
-        for (const tString in groups) {
-
+                for (const tString in groups) {
           const t = Number(tString);
-
-          groups[t].forEach((p, idx) => {
-
-            p.spot = (idx + 1) as 1 | 2 | 3 | 4;
-
-            p.tandaS2 = t;
-
+          const group = groups[t];
+          
+          const assignedSpots = new Set<number>();
+          const unassigned: Participant[] = [];
+          
+          group.forEach(p => {
+             const targetSpot = seriesNum === 1 ? p.spot : p.spotS2;
+             if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpots.has(targetSpot)) {
+                assignedSpots.add(targetSpot);
+                if (seriesNum === 1) p.spot = targetSpot as 1|2|3|4;
+                else p.spotS2 = targetSpot as 1|2|3|4;
+             } else {
+                unassigned.push(p);
+             }
           });
+
+          let nextAvailable = 1;
+          for (const p of unassigned) {
+             while (assignedSpots.has(nextAvailable)) {
+               nextAvailable++;
+             }
+             if (nextAvailable <= 4) {
+               if (seriesNum === 1) p.spot = nextAvailable as 1|2|3|4;
+               else p.spotS2 = nextAvailable as 1|2|3|4;
+               assignedSpots.add(nextAvailable);
+             } else {
+               if (seriesNum === 1) p.spot = 4; else p.spotS2 = 4;
+             }
+          }
+
+          // Ensure tandaS2 is set for everyone in S1 edit
+          group.forEach(p => { p.tandaS2 = t; });
+
 
           
 
@@ -792,21 +825,35 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         
 
         for (const tString in groups) {
-
           const t = Number(tString);
-
-          // Shuffle spots for S2 or just assign them sequentially
-
-          // Since it's manual reordering, sequential is fine, or we could shuffle. Sequential is more predictable.
-
-          groups[t].forEach((p, idx) => {
-
-            p.spotS2 = (idx + 1) as 1 | 2 | 3 | 4;
-
+          const group = groups[t];
+          
+          const assignedSpots = new Set<number>();
+          const unassigned: Participant[] = [];
+          
+          group.forEach(p => {
+             const targetSpot = p.spotS2;
+             if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpots.has(targetSpot)) {
+                assignedSpots.add(targetSpot);
+                p.spotS2 = targetSpot as 1|2|3|4;
+             } else {
+                unassigned.push(p);
+             }
           });
 
+          let nextAvailable = 1;
+          for (const p of unassigned) {
+             while (assignedSpots.has(nextAvailable)) {
+               nextAvailable++;
+             }
+             if (nextAvailable <= 4) {
+               p.spotS2 = nextAvailable as 1|2|3|4;
+               assignedSpots.add(nextAvailable);
+             } else {
+               p.spotS2 = 4;
+             }
+          }
         }
-
       }
 
       
