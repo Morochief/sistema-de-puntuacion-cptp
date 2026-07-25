@@ -294,7 +294,10 @@ function getSeriesColumnHtml(
        <span class="field-lbl">Participante</span>
        <span class="field-val">
         ${participant.name} 
-        ${participant.tanda ? ` (Tanda ${participant.tanda} · Mesa ${participant.spot})` : ''}
+        ${seriesNumberLabel === 1
+          ? (participant.tanda ? ` (Tanda ${participant.tanda} · Mesa ${participant.spot})` : '')
+          : (participant.tandaS2 ? ` (Tanda ${participant.tandaS2} · Mesa ${participant.spotS2})` : '')
+        }
        </span>
       </div>
      </div>
@@ -564,7 +567,9 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        ? `<div class="pos-badge top-${pos}">${pos}</div>`
        : `<div class="pos-number">${pos}</div>`;
         
-      const laneLabel = p.tanda ? `Tanda ${p.tanda} · Mesa ${p.spot}` : 'Sin posición';
+      const laneLabel = p.tanda
+       ? `S1: T${p.tanda}·M${p.spot} | S2: T${p.tandaS2 || '—'}·M${p.spotS2 || '—'}`
+       : 'Sin posición';
       const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
       return `

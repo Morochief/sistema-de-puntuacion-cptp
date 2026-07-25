@@ -21,7 +21,7 @@ import { printSeriesCard, printEventCards, printRankingCard, printBlankSheet } f
 import html2canvas from 'html2canvas';
 import { getFilteredEvents, showEditEventModal } from './eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor, migrateParticipantsToPadron } from './masterCompetitors';
-import { applySpecialFamilySeedingRules, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
+import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, resetEventSeeding, showManualHeatsReorderModal } from './heatsManager';
 import { renderChampionshipPanel } from './championship';
 
 (window as any).downloadElementAsPng = async (el: HTMLElement, filename: string) => {
@@ -85,6 +85,7 @@ async function renderDashboard(): Promise<void> {
  container.innerHTML = `<div style="text-align:center;padding:32px;color:#334155;font-size:0.85rem;">Cargando…</div>`;
 
  let filteredData;
+let activeSorteoTab: 1 | 2 = 1;
  try {
   filteredData = await getFilteredEvents({
    searchQuery: dashSearchQuery,
@@ -786,7 +787,7 @@ async function renderEvent(eventId: string): Promise<void> {
       
       <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span> <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
       ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
-      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);">T${p.tanda} · M${p.spot}</span>` : ''}
+      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
       ${statusBadge}${payBadge}
       <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
        <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} style="cursor:pointer;" />
@@ -804,7 +805,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
-            ${p.tanda === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+            ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
       <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">
        Editar
       </button>
@@ -826,35 +827,56 @@ async function renderEvent(eventId: string): Promise<void> {
     const p = participants.find(x => x.id === id);
     if (!p) return;
 
-    // Encontrar puestos ocupados
-    const occupied = new Set<string>();
+    // Encontrar puestos ocupados en Serie 1
+    const occupiedS1 = new Set<string>();
     participants.forEach(x => {
      if (x.tanda !== undefined && x.spot !== undefined) {
-      occupied.add(`${x.tanda}-${x.spot}`);
+      occupiedS1.add(`${x.tanda}-${x.spot}`);
      }
     });
 
-    // Encontrar el primer espacio libre
-    let found = false;
+    let foundS1 = false;
     for (let t = 1; t <= 8; t++) {
      for (let s = 1; s <= 4; s++) {
-      if (!occupied.has(`${t}-${s}`)) {
+      if (!occupiedS1.has(`${t}-${s}`)) {
        p.tanda = t;
        p.spot = s as 1|2|3|4;
-       p.presentForRaffle = true;
-       found = true;
+       foundS1 = true;
        break;
       }
      }
-     if (found) break;
+     if (foundS1) break;
     }
 
-    if (found) {
+    // Encontrar puestos ocupados en Serie 2
+    const occupiedS2 = new Set<string>();
+    participants.forEach(x => {
+     if (x.tandaS2 !== undefined && x.spotS2 !== undefined) {
+      occupiedS2.add(`${x.tandaS2}-${x.spotS2}`);
+     }
+    });
+
+    let foundS2 = false;
+    for (let t = 1; t <= 8; t++) {
+     for (let s = 1; s <= 4; s++) {
+      if (!occupiedS2.has(`${t}-${s}`)) {
+       p.tandaS2 = t;
+       p.spotS2 = s as 1|2|3|4;
+       foundS2 = true;
+       break;
+      }
+     }
+     if (foundS2) break;
+    }
+
+    p.presentForRaffle = true;
+
+    if (foundS1 || foundS2) {
      await db.participants.put(p);
-     showToast(`Se asignó a ${p.name} a Tanda ${p.tanda} Mesa ${p.spot}.`, 'success');
+     showToast(`Se asignó a ${p.name} a Serie 1: Tanda ${p.tanda || '—'} Mesa ${p.spot || '—'} | Serie 2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}.`, 'success');
      renderEvent(String(event!.id!));
     } else {
-     showToast('No hay mesas libres disponibles (Capacidad máxima alcanzada).', 'error');
+     showToast('No hay mesas libres disponibles en ninguna serie.', 'error');
     }
    });
   });
@@ -987,22 +1009,38 @@ async function renderEvent(eventId: string): Promise<void> {
   if (!tableEl) return;
 
   // Verificar si ya se sorteó (al menos uno tiene tanda asignada)
-  const sortedParticipants = participants.filter(p => p.tanda !== undefined);
+  const sortedParticipants = participants.filter(p => (activeSorteoTab === 1 ? p.tanda : p.tandaS2) !== undefined);
+  
+  // Render tabs for Serie 1 / Serie 2 selection inside Sorteo view
+  const tabsHtml = `
+    <div class="tabs tabs-boxed mb-4" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;margin-bottom:16px;">
+      <button id="sorteo-tab-btn-s1" class="tab ${activeSorteoTab === 1 ? 'tab-active' : ''}" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.8rem;${activeSorteoTab === 1 ? 'color:#0f172a;' : 'color:#475569;'}">
+        Ver Serie 1
+      </button>
+      <button id="sorteo-tab-btn-s2" class="tab ${activeSorteoTab === 2 ? 'tab-active' : ''}" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.8rem;${activeSorteoTab === 2 ? 'color:#0f172a;' : 'color:#475569;'}">
+        Ver Serie 2
+      </button>
+    </div>
+  `;
+
   if (sortedParticipants.length === 0) {
-   tableEl.innerHTML = `
+   tableEl.innerHTML = tabsHtml + `
     <div style="text-align:center;padding:32px 16px;border:1px dashed #cbd5e1;border-radius:12px;">
-     <div style="font-size:1.6rem;margin-bottom:6px;"></div>
-     <div style="font-size:0.8rem;color:#475569;">Sorteo pendiente. Presioná el botón de arriba.</div>
+     <div style="font-size:0.8rem;color:#475569;">Sorteo pendiente para Serie ${activeSorteoTab}. Presioná el botón "Sortear Posiciones".</div>
     </div>`;
-   return;
+    
+    // Bind tab clicks even if empty
+    tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
+    tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
+    return;
   }
 
-  let html = `<div style="display:flex;flex-direction:column;gap:18px;">`;
+  let html = tabsHtml + `<div style="display:flex;flex-direction:column;gap:18px;">`;
 
   // 8 Tandas de 4 spots cada una (32 competidores max)
   for (let t = 1; t <= 8; t++) {
     const getCompetitor = (spotNum: 1 | 2 | 3 | 4) => {
-      return participants.find(p => p.tanda === t && p.spot === spotNum);
+      return participants.find(p => (activeSorteoTab === 1 ? p.tanda === t && p.spot === spotNum : p.tandaS2 === t && p.spotS2 === spotNum));
     };
 
     html += `
@@ -1010,7 +1048,7 @@ async function renderEvent(eventId: string): Promise<void> {
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:900;
             color:#0f172a;letter-spacing:0.08em;margin-bottom:10px;text-align:center;
             border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
-       TANDA ${t}
+       TANDA ${t} (${activeSorteoTab === 1 ? 'Serie 1' : 'Serie 2'})
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         ${[1, 2, 3, 4].map(spotNum => {
@@ -1023,6 +1061,10 @@ async function renderEvent(eventId: string): Promise<void> {
 
   html += `</div>`;
   tableEl.innerHTML = html;
+
+  // Bind tab clicks
+  tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
+  tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
 
   // Bind click en spots con competidor para ver sus series
   tableEl.querySelectorAll('[data-goto-participant-id]').forEach(cell => {
@@ -1041,7 +1083,7 @@ async function renderEvent(eventId: string): Promise<void> {
   // Update button states
   const btnUndoState = document.getElementById('btn-undo-sorteo') as HTMLButtonElement | null;
   if (btnUndoState) {
-    const hasRaffle = participants.some(p => p.tanda !== undefined);
+    const hasRaffle = participants.some(p => p.tanda !== undefined || p.tandaS2 !== undefined);
     btnUndoState.disabled = !hasRaffle;
   }
   const btnShuffleState = document.getElementById('btn-shuffle-sorteo') as HTMLButtonElement | null;
@@ -1139,7 +1181,7 @@ async function renderEvent(eventId: string): Promise<void> {
        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category.split('::')[0])})</span>` : ''}
       </div>
       <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
-       ${p.tanda ? `Tanda ${p.tanda} — Mesa ${p.spot}` : 'Posición no sorteada'}
+       ${p.tanda ? `S1: Tanda ${p.tanda}·Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'}·Mesa ${p.spotS2 || '—'}` : 'Posición no sorteada'}
        ${pSeries.length > 0 ? `· Acumulado: <strong style="color:#22c55e;">${totalScore} pts</strong>` : ''}
       </div>
      </div>
@@ -1453,7 +1495,7 @@ async function renderEvent(eventId: string): Promise<void> {
     if (btnShuffle) btnShuffle.disabled = participants.length === 0;
     const btnUndoState = document.getElementById('btn-undo-sorteo');
     if (btnUndoState) {
-      const hasRaffle = participants.some(p => p.tanda !== undefined);
+      const hasRaffle = participants.some(p => p.tanda !== undefined || p.tandaS2 !== undefined);
       btnUndoState.disabled = !hasRaffle;
     }
 
@@ -1536,25 +1578,53 @@ async function renderEvent(eventId: string): Promise<void> {
     [list[i], list[j]] = [list[j], list[i]];
    }
 
-   for (let i = 0; i < list.length; i++) {
-    const tanda = Math.floor(i / 4) + 1;
-    const spot = (i % 4) + 1;
-
-    list[i].tanda = tanda;
-    list[i].sector = undefined;
-    list[i].spot = spot;
+   // 1. SORTEO SERIE 1
+   const listS1 = [...list];
+   for (let i = listS1.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [listS1[i], listS1[j]] = [listS1[j], listS1[i]];
+   }
+   for (let i = 0; i < listS1.length; i++) {
+    listS1[i].tanda = Math.floor(i / 4) + 1;
+    listS1[i].spot = ((i % 4) + 1) as 1|2|3|4;
+   }
+   if (typeof applySpecialFamilySeedingRules === 'function') {
+      applySpecialFamilySeedingRules(listS1);
    }
 
-   if (typeof applySpecialFamilySeedingRules === 'function') {
-      applySpecialFamilySeedingRules(list);
+   // 2. SORTEO SERIE 2
+   const listS2 = [...list];
+   for (let i = listS2.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [listS2[i], listS2[j]] = [listS2[j], listS2[i]];
+   }
+   for (let i = 0; i < listS2.length; i++) {
+    listS2[i].tandaS2 = Math.floor(i / 4) + 1;
+    listS2[i].spotS2 = ((i % 4) + 1) as 1|2|3|4;
+   }
+   if (typeof applySpecialFamilySeedingRulesS2 === 'function') {
+      applySpecialFamilySeedingRulesS2(listS2);
+   }
+
+   // Combinar resultados
+   for (const p of list) {
+     const p1 = listS1.find(x => x.id === p.id);
+     const p2 = listS2.find(x => x.id === p.id);
+     p.tanda = p1?.tanda;
+     p.spot = p1?.spot;
+     p.tandaS2 = p2?.tandaS2;
+     p.spotS2 = p2?.spotS2;
+     p.sector = undefined;
    }
 
    let nextNumber = list.length + 1;
    const listAusentes = participants.filter(p => p.presentForRaffle === false);
    for (const p of listAusentes) {
      p.tanda = undefined;
-     p.sector = undefined;
      p.spot = undefined;
+     p.tandaS2 = undefined;
+     p.spotS2 = undefined;
+     p.sector = undefined;
      p.competitorNumber = nextNumber++;
    }
 

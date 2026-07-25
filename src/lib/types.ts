@@ -12,7 +12,9 @@ export interface Participant {
   competitorNumber: number; // 1 a 32 (número correlativo de inscripción)
   sector?: 'A' | 'B';
   spot?: 1 | 2 | 3 | 4;
-  tanda?: number; // 1, 2, 3 o 4
+  tanda?: number; // 1, 2, 3 o 4 (Representa la Serie 1)
+  tandaS2?: number; // Tanda para la Serie 2
+  spotS2?: 1 | 2 | 3 | 4; // Mesa para la Serie 2
   category?: string;
   tieRank?: number;
   status?: 'active' | 'dq' | 'dns'; // Estado del competidor (Activo, Descalificado, No presentado)

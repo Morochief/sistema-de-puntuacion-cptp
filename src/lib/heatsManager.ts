@@ -13,6 +13,106 @@ import { esc, showToast, showConfirm } from './modals';
  * 1. Ángel Domínguez y Facundo Domínguez NUNCA deben estar en la misma tanda.
  * 2. Facundo Domínguez debe tirar SIEMPRE en una tanda ANTERIOR (menor número) que Ángel Domínguez.
  */
+
+export function applySpecialFamilySeedingRulesS2(participants: Participant[]): Participant[] {
+  const facundoIndex = participants.findIndex(p => p.name.toLowerCase().includes('facundo domínguez') || p.name.toLowerCase().includes('facundo dominguez'));
+  const angelIndex = participants.findIndex(p => p.name.toLowerCase().includes('ángel domínguez') || p.name.toLowerCase().includes('angel dominguez'));
+
+  if (facundoIndex >= 0 && angelIndex >= 0) {
+    const facundo = participants[facundoIndex];
+    const angel = participants[angelIndex];
+
+    if (facundo.tandaS2 !== undefined && angel.tandaS2 !== undefined) {
+      const allowedTandas = [2, 3, 4];
+      
+      const swapWithCandidate = (p: Participant, candidate: Participant) => {
+        const tempT = p.tandaS2;
+        const tempS = p.spotS2;
+        p.tandaS2 = candidate.tandaS2;
+        p.spotS2 = candidate.spotS2;
+        candidate.tandaS2 = tempT;
+        candidate.spotS2 = tempS;
+      };
+
+      const enforceAllowedTanda = (p: Participant, otherId: number) => {
+        if (!allowedTandas.includes(p.tandaS2!)) {
+          const candidate = participants.find(x => 
+            x.id !== p.id && x.id !== otherId && x.tandaS2 !== undefined && allowedTandas.includes(x.tandaS2)
+          );
+          if (candidate) {
+            swapWithCandidate(p, candidate);
+          } else {
+            p.tandaS2 = 2;
+          }
+        }
+      };
+
+      // Regla 1
+      enforceAllowedTanda(facundo, angel.id!);
+      enforceAllowedTanda(angel, facundo.id!);
+
+      // Regla 2
+      if (facundo.tandaS2 > angel.tandaS2!) {
+        swapWithCandidate(facundo, angel);
+      }
+      
+      // Regla 3
+      if (facundo.tandaS2 === angel.tandaS2) {
+        let targetTanda = angel.tandaS2! < 4 ? angel.tandaS2! + 1 : facundo.tandaS2! - 1;
+        let personToMove = angel.tandaS2! < 4 ? angel : facundo;
+        
+        const swapCandidate = participants.find(x => x.id !== facundo.id && x.id !== angel.id && x.tandaS2 === targetTanda);
+        if (swapCandidate) {
+          swapWithCandidate(personToMove, swapCandidate);
+        } else {
+          personToMove.tandaS2 = targetTanda;
+          personToMove.spotS2 = 1;
+        }
+      }
+    }
+  }
+
+  const groups: Record<number, Participant[]> = {};
+  for (const p of participants) {
+    if (p.tandaS2 !== undefined) {
+      if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
+      groups[p.tandaS2].push(p);
+    }
+  }
+
+  const overfilled: Participant[] = [];
+  for (const t in groups) {
+    if (groups[t].length > 4) {
+      overfilled.push(...groups[t].splice(4));
+    }
+    groups[t].forEach((p, idx) => {
+      p.spotS2 = (idx + 1) as 1|2|3|4;
+    });
+  }
+
+  if (overfilled.length > 0) {
+    for (const p of overfilled) {
+      let found = false;
+      for (let t = 1; t <= 8; t++) {
+        if (!groups[t]) groups[t] = [];
+        if (groups[t].length < 4) {
+          p.tandaS2 = t;
+          groups[t].push(p);
+          p.spotS2 = groups[t].length as 1|2|3|4;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        p.tandaS2 = undefined;
+        p.spotS2 = undefined;
+      }
+    }
+  }
+
+  return participants;
+}
+
 export function applySpecialFamilySeedingRules(participants: Participant[]): Participant[] {
   const facundoIndex = participants.findIndex(p => p.name.toLowerCase().includes('facundo domínguez') || p.name.toLowerCase().includes('facundo dominguez'));
   const angelIndex = participants.findIndex(p => p.name.toLowerCase().includes('ángel domínguez') || p.name.toLowerCase().includes('angel dominguez'));
@@ -133,7 +233,9 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
     await db.participants.update(p.id!, {
       tanda: undefined,
       sector: undefined,
-      spot: undefined
+      spot: undefined,
+      tandaS2: undefined,
+      spotS2: undefined
     });
   }
 
@@ -144,7 +246,7 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
 /**
  * Modal táctico para cambiar el orden de las tandas y mesas manualmente (Control Total del Organizador).
  */
-export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void): Promise<void> {
+export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void, seriesNum: number = 1): Promise<void> {
   const participants = await db.participants.where('eventId').equals(eventId).toArray();
   if (participants.length === 0) {
     showToast('No hay competidores en este evento.', 'info');
@@ -165,10 +267,10 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   const workingParticipants = participants.map(p => ({ ...p }));
 
   const renderList = () => {
-    // Agrupar por Tanda
+    // Agrupar por Tanda (dependiendo de la Serie)
     const heatsMap = new Map<number, Participant[]>();
     workingParticipants.forEach(p => {
-      const t = p.tanda || 0; // 0 = Sin tanda
+      const t = (seriesNum === 1 ? p.tanda : p.tandaS2) || 0; // 0 = Sin tanda
       if (!heatsMap.has(t)) heatsMap.set(t, []);
       heatsMap.get(t)!.push(p);
     });
@@ -183,14 +285,14 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         <div style="display:flex;align-items:center;justify-content:space-between;background:#ffffff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;gap:8px;">
           <div style="min-width:0;flex:1;">
             <span style="font-weight:700;color:#0f172a;font-size:0.9rem;">#${p.competitorNumber} — ${esc(p.name)}</span>
-            <span style="font-size:0.75rem;color:#64748b;display:block;">${esc(p.category || 'General')} ${p.sector ? `· Sector ${p.sector}` : ''} ${p.spot ? `· Mesa ${p.spot}` : ''}</span>
+            <span style="font-size:0.75rem;color:#64748b;display:block;">${esc(p.category || 'General')} ${seriesNum === 1 ? (p.spot ? `· Mesa ${p.spot}` : '') : (p.spotS2 ? `· Mesa ${p.spotS2}` : '')}</span>
           </div>
 
           <div style="display:flex;gap:6px;align-items:center;">
             <label style="font-size:0.75rem;font-weight:700;color:#475569;">Tanda:</label>
             <select data-move-p="${p.id}" style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;background:#fff;font-weight:bold;color:#0056b3;">
               ${Array.from({ length: 8 }, (_, i) => i + 1).map(n => `
-                <option value="${n}" ${p.tanda === n ? 'selected' : ''}>Tanda ${n}</option>
+                <option value="${n}" ${(seriesNum === 1 ? p.tanda : p.tandaS2) === n ? 'selected' : ''}>Tanda ${n}</option>
               `).join('')}
             </select>
           </div>
@@ -211,7 +313,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
     modalBox.innerHTML = `
       <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Tandas Manualmente</h2>
+          <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Tandas Serie ${seriesNum}</h2>
           <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Control Total del Organizador del Evento</span>
         </div>
         <button id="close-heats-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;">X</button>
@@ -236,39 +338,60 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         const newTanda = Number((e.currentTarget as HTMLSelectElement).value);
         const target = workingParticipants.find(p => p.id === pId);
         if (target) {
-          target.tanda = newTanda;
+          if (seriesNum === 1) target.tanda = newTanda;
+          else target.tandaS2 = newTanda;
           renderList();
         }
       });
     });
 
     modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
-      // Aplicar reglas especiales de Ángel y Facundo Domínguez si aplican
-      const validatedParticipants = applySpecialFamilySeedingRules(workingParticipants);
-
-      // Agrupar por tanda asignada y asignar spots secuenciales del 1 al 4
-      const groups: Record<number, Participant[]> = {};
-      for (const p of validatedParticipants) {
-        if (p.tanda) {
-          if (!groups[p.tanda]) groups[p.tanda] = [];
-          groups[p.tanda].push(p);
+      let validatedParticipants = [...workingParticipants];
+      if (seriesNum === 1) {
+        validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
+        
+        const groups: Record<number, Participant[]> = {};
+        for (const p of validatedParticipants) {
+          if (p.tanda) {
+            if (!groups[p.tanda]) groups[p.tanda] = [];
+            groups[p.tanda].push(p);
+          }
         }
-      }
-
-      // Para cada tanda, reasignar spots consecutivamente de 1 a 4
-      for (const tString in groups) {
-        const t = Number(tString);
-        groups[t].forEach((p, idx) => {
-          p.spot = (idx + 1) as 1 | 2 | 3 | 4;
-        });
-      }
-
-      for (const p of validatedParticipants) {
-        await db.participants.update(p.id!, {
-          tanda: p.tanda,
-          spot: p.tanda ? p.spot : undefined,
-          sector: undefined
-        });
+        for (const tString in groups) {
+          const t = Number(tString);
+          groups[t].forEach((p, idx) => {
+            p.spot = (idx + 1) as 1 | 2 | 3 | 4;
+          });
+        }
+        for (const p of validatedParticipants) {
+          await db.participants.update(p.id!, {
+            tanda: p.tanda,
+            spot: p.tanda ? p.spot : undefined,
+            sector: undefined
+          });
+        }
+      } else {
+        validatedParticipants = applySpecialFamilySeedingRulesS2(validatedParticipants);
+        
+        const groups: Record<number, Participant[]> = {};
+        for (const p of validatedParticipants) {
+          if (p.tandaS2) {
+            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
+            groups[p.tandaS2].push(p);
+          }
+        }
+        for (const tString in groups) {
+          const t = Number(tString);
+          groups[t].forEach((p, idx) => {
+            p.spotS2 = (idx + 1) as 1 | 2 | 3 | 4;
+          });
+        }
+        for (const p of validatedParticipants) {
+          await db.participants.update(p.id!, {
+            tandaS2: p.tandaS2,
+            spotS2: p.tandaS2 ? p.spotS2 : undefined
+          });
+        }
       }
 
       showToast('Orden de tandas actualizado con éxito.', 'success');
