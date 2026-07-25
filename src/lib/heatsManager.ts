@@ -679,8 +679,30 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         const newTanda = Number((e.currentTarget as HTMLSelectElement).value);
         const target = workingParticipants.find(p => p.id === pId);
         if (target) {
-          if (seriesNum === 1) target.tanda = newTanda;
-          else target.tandaS2 = newTanda;
+          // Find occupied spots in the new tanda
+          const occupiedSpots = new Set<number>();
+          workingParticipants.forEach(p => {
+            if (p.id !== pId && (seriesNum === 1 ? p.tanda : p.tandaS2) === newTanda) {
+              const s = seriesNum === 1 ? p.spot : p.spotS2;
+              if (s) occupiedSpots.add(s);
+            }
+          });
+          
+          let nextSpot = 1;
+          for (let s = 1; s <= 4; s++) {
+            if (!occupiedSpots.has(s)) {
+              nextSpot = s;
+              break;
+            }
+          }
+          
+          if (seriesNum === 1) {
+            target.tanda = newTanda;
+            target.spot = nextSpot as 1|2|3|4;
+          } else {
+            target.tandaS2 = newTanda;
+            target.spotS2 = nextSpot as 1|2|3|4;
+          }
           renderList();
         }
       });
@@ -692,8 +714,27 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         const newSpot = Number((e.currentTarget as HTMLSelectElement).value) as 1|2|3|4;
         const target = workingParticipants.find(p => p.id === pId);
         if (target) {
-          if (seriesNum === 1) target.spot = newSpot;
-          else target.spotS2 = newSpot;
+          const currentTanda = seriesNum === 1 ? target.tanda : target.tandaS2;
+          const oldSpot = seriesNum === 1 ? target.spot : target.spotS2;
+          
+          // Swap spots with the other competitor in the same tanda if they occupy the new spot
+          const swapPartner = workingParticipants.find(p => 
+            p.id !== pId && 
+            (seriesNum === 1 ? p.tanda : p.tandaS2) === currentTanda && 
+            (seriesNum === 1 ? p.spot : p.spotS2) === newSpot
+          );
+          
+          if (seriesNum === 1) {
+            target.spot = newSpot;
+            if (swapPartner && oldSpot) {
+              swapPartner.spot = oldSpot as 1|2|3|4;
+            }
+          } else {
+            target.spotS2 = newSpot;
+            if (swapPartner && oldSpot) {
+              swapPartner.spotS2 = oldSpot as 1|2|3|4;
+            }
+          }
           renderList();
         }
       });
