@@ -720,8 +720,8 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
           // Swap spots with the other competitor in the same tanda if they occupy the new spot
           const swapPartner = workingParticipants.find(p => 
             p.id !== pId && 
-            (seriesNum === 1 ? p.tanda : p.tandaS2) === currentTanda && 
-            (seriesNum === 1 ? p.spot : p.spotS2) === newSpot
+            Number(seriesNum === 1 ? p.tanda : p.tandaS2) === Number(currentTanda) && 
+            Number(seriesNum === 1 ? p.spot : p.spotS2) === Number(newSpot)
           );
           
           if (seriesNum === 1) {
