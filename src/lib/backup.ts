@@ -114,21 +114,31 @@ export function importEventBackup(onComplete: () => void): void {
       } as ShootingEvent);
 
       // ── Insertar participantes y construir mapa de IDs viejos → nuevos ─
+      // Ordenar por competitorNumber original y renumerar consecutivamente
+      const sortedParticipants = [...data.participants].sort(
+        (a, b) => (a.competitorNumber ?? 0) - (b.competitorNumber ?? 0)
+      );
       const participantIdMap = new Map<number, number>();
-      for (const p of data.participants) {
+      let consecutiveNumber = 1;
+      for (const p of sortedParticipants) {
         const oldPId = p.id!;
         const newPId = await db.participants.add({
           eventId:          newEventId as number,
           name:             p.name,
-          competitorNumber: p.competitorNumber,
+          competitorNumber: consecutiveNumber,
           category:         p.category,
           sector:           p.sector,
           spot:             p.spot,
           tanda:            p.tanda,
           tandaS2:          p.tandaS2,
           spotS2:           p.spotS2,
+          status:           p.status,
+          paymentStatus:    p.paymentStatus,
+          sharedRifleId:    p.sharedRifleId,
+          presentForRaffle: p.presentForRaffle,
         } as Participant);
         participantIdMap.set(oldPId, newPId as number);
+        consecutiveNumber++;
       }
 
       // ── Insertar series con IDs reasignados ───────────────────────────
