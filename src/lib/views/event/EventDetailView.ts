@@ -139,10 +139,10 @@ export async function renderEvent(eventId: string): Promise<void> {
    </div>
 
    <!-- Sorteo Acción -->
-   <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(245,158,11,0.25);">
+   <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.25);">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
-      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#d97706;margin:0;">
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin:0;">
        Sorteo de Mesas
       </h3>
       <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">
@@ -151,25 +151,25 @@ export async function renderEvent(eventId: string): Promise<void> {
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button id="btn-shuffle-sorteo" class="btn-primary-custom" 
-          style="background:#d97706;color:#ffffff;border-color:#d97706;padding:12px 20px;"
+          style="background:#0056b3;color:#ffffff;border-color:#0056b3;padding:12px 20px;"
           ${participants.length === 0 ? 'disabled' : ''}>
         Sortear Posiciones
       </button>
       <button id="btn-reorder-heats" class="btn-ghost-custom"
-          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(245,158,11,0.35);color:#d97706;"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 1">
         Reordenar S1
       </button>
       <button id="btn-reorder-heats-s2" class="btn-ghost-custom"
-          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(245,158,11,0.35);color:#d97706;"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 2">
         Reordenar S2
       </button>
       
       <button id="btn-undo-sorteo" class="btn-ghost-custom"
-          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(183,32,28,0.35);color:#b7201c;"
           ${participants.some(p => p.tanda !== undefined) ? '' : 'disabled'}
           title="Deshacer sorteo y limpiar todas las asignaciones de tandas">
         Deshacer Sorteo
