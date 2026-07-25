@@ -743,128 +743,85 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
 
     modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
-
       let validatedParticipants = [...workingParticipants];
-
       
-
       if (seriesNum === 1) {
-
         // Enforce S1 rules
-
-                validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
-        
-        // Comprobar conflictos de rifle y advertir
-        let clashWarning = false;
-        const tempGroups: Record<string, Set<number>> = {};
-        for (const p of validatedParticipants) {
-          const t = seriesNum === 1 ? p.tanda : p.tandaS2;
-          if (p.sharedRifleId && t) {
-             if (!tempGroups[p.sharedRifleId]) tempGroups[p.sharedRifleId] = new Set();
-             if (tempGroups[p.sharedRifleId].has(t)) { clashWarning = true; }
-             tempGroups[p.sharedRifleId].add(t);
-          }
-        }
-        if (clashWarning) {
-           showToast('Advertencia: El sistema ajustó posiciones para separar rifles compartidos.', 'info', 5000);
-        }
-
+        validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
         validatedParticipants = applySharedRifleRules(validatedParticipants);
-
         
-
         const groups: Record<number, Participant[]> = {};
-
         for (const p of validatedParticipants) {
-
           if (p.tanda) {
-
             if (!groups[p.tanda]) groups[p.tanda] = [];
-
             groups[p.tanda].push(p);
-
           }
-
         }
-
         
-
-                for (const tString in groups) {
+        for (const tString in groups) {
           const t = Number(tString);
           const group = groups[t];
           
+          // Resolve S1 spot conflicts preserving manual selections
           const assignedSpots = new Set<number>();
           const unassigned: Participant[] = [];
-          
           group.forEach(p => {
-             const targetSpot = seriesNum === 1 ? p.spot : p.spotS2;
+             const targetSpot = p.spot;
              if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpots.has(targetSpot)) {
                 assignedSpots.add(targetSpot);
-                if (seriesNum === 1) p.spot = targetSpot as 1|2|3|4;
-                else p.spotS2 = targetSpot as 1|2|3|4;
+                p.spot = targetSpot as 1|2|3|4;
              } else {
                 unassigned.push(p);
              }
           });
-
+          
           let nextAvailable = 1;
           for (const p of unassigned) {
              while (assignedSpots.has(nextAvailable)) {
                nextAvailable++;
              }
              if (nextAvailable <= 4) {
-               if (seriesNum === 1) p.spot = nextAvailable as 1|2|3|4;
-               else p.spotS2 = nextAvailable as 1|2|3|4;
+               p.spot = nextAvailable as 1|2|3|4;
                assignedSpots.add(nextAvailable);
              } else {
-               if (seriesNum === 1) p.spot = 4; else p.spotS2 = 4;
+               p.spot = 4;
              }
           }
-
-          // Ensure tandaS2 is set for everyone in S1 edit
-          group.forEach(p => { p.tandaS2 = t; });
-
-
           
-
-          // Shuffle S2 spots in the same tanda
-
-          const spotsS2 = [1, 2, 3, 4].slice(0, groups[t].length);
-
-          for (let i = spotsS2.length - 1; i > 0; i--) {
-
-            const j = Math.floor(Math.random() * (i + 1));
-
-            [spotsS2[i], spotsS2[j]] = [spotsS2[j], spotsS2[i]];
-
-          }
-
-          groups[t].forEach((p, idx) => {
-
-            p.spotS2 = spotsS2[idx] as 1 | 2 | 3 | 4;
-
+          // Ensure S2 tanda is set for everyone in S1 edit
+          group.forEach(p => { p.tandaS2 = t; });
+          
+          // Resolve S2 spots preserving manually assigned ones, fallback to shuffling remaining
+          const assignedSpotsS2 = new Set<number>();
+          const unassignedS2: Participant[] = [];
+          group.forEach(p => {
+             const targetSpot = p.spotS2;
+             if (targetSpot && targetSpot >= 1 && targetSpot <= 4 && !assignedSpotsS2.has(targetSpot)) {
+                assignedSpotsS2.add(targetSpot);
+                p.spotS2 = targetSpot as 1|2|3|4;
+             } else {
+                unassignedS2.push(p);
+             }
           });
-
-        }
-
-      } else {
-
-        const groups: Record<number, Participant[]> = {};
-
-        for (const p of validatedParticipants) {
-
-          if (p.tandaS2) {
-
-            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
-
-            groups[p.tandaS2].push(p);
-
+          
+          const availableS2Spots = [1, 2, 3, 4].filter(s => !assignedSpotsS2.has(s));
+          for (let i = availableS2Spots.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableS2Spots[i], availableS2Spots[j]] = [availableS2Spots[j], availableS2Spots[i]];
           }
-
+          unassignedS2.forEach((p, idx) => {
+            p.spotS2 = availableS2Spots[idx] as 1|2|3|4;
+          });
         }
-
+      } else {
+        const groups: Record<number, Participant[]> = {};
+        for (const p of validatedParticipants) {
+          if (p.tandaS2) {
+            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
+            groups[p.tandaS2].push(p);
+          }
+        }
         
-
         for (const tString in groups) {
           const t = Number(tString);
           const group = groups[t];
@@ -896,9 +853,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
           }
         }
       }
-
       
-
       for (const p of validatedParticipants) {
 
         await db.participants.update(p.id!, {
