@@ -125,6 +125,8 @@ export function importEventBackup(onComplete: () => void): void {
           sector:           p.sector,
           spot:             p.spot,
           tanda:            p.tanda,
+          tandaS2:          p.tandaS2,
+          spotS2:           p.spotS2,
         } as Participant);
         participantIdMap.set(oldPId, newPId as number);
       }
