@@ -191,55 +191,52 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Series por Tirador</div>
    <!-- Panel de Acciones y Herramientas Deportivas -->
-   <div class="card-tactical" style="padding:14px;margin-bottom:20px;border-color:rgba(148,163,184,0.15);background:rgba(15,23,42,0.15);">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+   <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.15);background:#ffffff;">
+    <div style="display:flex;flex-direction:column;gap:12px;">
       
-      <!-- Grupo: Reportes e Impresión -->
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;text-transform:uppercase;color:#64748b;margin-right:4px;">Impresión:</span>
+      <!-- Fila 1: Impresión -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:#0056b3;margin-right:4px;">📄 Impresión:</span>
         ${participants.length > 0 ? `
-         <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;"
+         <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;"
              title="Ver y exportar Reporte de Posiciones">
            Resultados
          </button>` : ''}
         ${allSeries.length > 0 ? `
-         <button class="btn-ghost-custom" id="btn-print-event" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.25);color:#3b82f6;"
+         <button class="btn-ghost-custom" id="btn-print-event" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;"
              title="Imprimir planillas de todos los tiradores">
            Imprimir Todo
          </button>` : ''}
-         <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;" 
+         <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;" 
              title="Imprimir planilla vacía para llenado manual">
            Planilla Vacía
          </button>
       </div>
 
-      <!-- Grupo: Torneo y Datos -->
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;text-transform:uppercase;color:#64748b;margin-right:4px;">Torneo:</span>
+      <!-- Fila 2: Torneo y Datos -->
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:800;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:#0056b3;margin-right:4px;">🏆 Torneo:</span>
         ${participants.length > 1 ? `
-         <button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(99,102,241,0.35);color:#6366f1;"
+         <button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;"
              title="Resolver empates ordenándolos uno a uno en desempate">
            Resolver Desempates
          </button>` : ''}
         ${participants.length > 0 ? `
-         <button class="btn-ghost-custom" id="btn-export-excel" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(34,197,94,0.25);color:#22c55e;"
+         <button class="btn-ghost-custom" id="btn-export-excel" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;"
              title="Exportar todos los datos a CSV">
            Exportar CSV
          </button>` : ''}
-         <button class="btn-ghost-custom" id="btn-export-backup" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.35);color:#3b82f6;"
+         <button class="btn-ghost-custom" id="btn-export-backup" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;"
              title="Exportar copia de seguridad .json para importar en otra máquina">
            Copia (.json)
          </button>
-      </div>
 
-      <!-- Grupo: Peligro -->
-      ${allSeries.length > 0 ? `
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-         <button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
+        ${allSeries.length > 0 ? `
+         <button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(183,32,28,0.3);color:#b7201c;border-radius:8px;margin-left:auto;"
              title="Eliminar todas las series y resultados (mantiene los tiradores)">
            Reiniciar Todo
-         </button>
-      </div>` : ''}
+         </button>` : ''}
+      </div>
 
     </div>
    </div>
@@ -252,10 +249,10 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
     <div>
-     <button class="btn-ghost-custom" id="btn-print-blank-tab" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
+     <button class="btn-ghost-custom" id="btn-print-blank-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
        Planilla Vacía
      </button>
-     <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;">
+     <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">
        Imprimir Reportes
      </button>
     </div>
