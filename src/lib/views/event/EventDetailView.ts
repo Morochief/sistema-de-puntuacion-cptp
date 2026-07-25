@@ -381,19 +381,19 @@ export async function renderEvent(eventId: string): Promise<void> {
   });
 
   const filterBarHtml = `
-   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;background:#f8fafc;padding:10px;border-radius:10px;border:1px solid #e2e8f0;">
-    <div style="display:flex;align-items:center;gap:4px;">
-     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Tanda:</label>
-     <select id="p-filter-tanda" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;background:#f8fafc;padding:12px 16px;border-radius:12px;border:1px solid #e2e8f0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8);">
+    <div style="display:flex;align-items:center;gap:6px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Tanda:</label>
+     <select id="p-filter-tanda" class="select-tactical" style="font-size:0.8rem;padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
       <option value="all" ${pFilterTanda === 'all' ? 'selected' : ''}>Todas</option>
       ${Array.from({ length: 8 }, (_, i) => `<option value="${i + 1}" ${pFilterTanda === String(i + 1) ? 'selected' : ''}>Tanda ${i + 1}</option>`).join('')}
       <option value="none" ${pFilterTanda === 'none' ? 'selected' : ''}>Sin Tanda</option>
      </select>
     </div>
 
-    <div style="display:flex;align-items:center;gap:4px;">
-     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Estado:</label>
-     <select id="p-filter-status" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+    <div style="display:flex;align-items:center;gap:6px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Estado:</label>
+     <select id="p-filter-status" class="select-tactical" style="font-size:0.8rem;padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
       <option value="all" ${pFilterStatus === 'all' ? 'selected' : ''}>Todos</option>
       <option value="active" ${pFilterStatus === 'active' ? 'selected' : ''}>Activos</option>
       <option value="dq" ${pFilterStatus === 'dq' ? 'selected' : ''}>DQ</option>
@@ -401,18 +401,18 @@ export async function renderEvent(eventId: string): Promise<void> {
      </select>
     </div>
 
-    <div style="display:flex;align-items:center;gap:4px;">
-     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Pago:</label>
-     <select id="p-filter-payment" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+    <div style="display:flex;align-items:center;gap:6px;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Pago:</label>
+     <select id="p-filter-payment" class="select-tactical" style="font-size:0.8rem;padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
       <option value="all" ${pFilterPayment === 'all' ? 'selected' : ''}>Todos</option>
       <option value="paid" ${pFilterPayment === 'paid' ? 'selected' : ''}>Abonados</option>
       <option value="pending" ${pFilterPayment === 'pending' ? 'selected' : ''}>Pendientes</option>
      </select>
     </div>
 
-    <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
-     <label style="font-size:0.75rem;font-weight:700;color:#64748b;">Orden:</label>
-     <select id="p-sort-by" style="font-size:0.78rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font-weight:600;">
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+     <label style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Orden:</label>
+     <select id="p-sort-by" class="select-tactical" style="font-size:0.8rem;padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
       <option value="num" ${pSortBy === 'num' ? 'selected' : ''}>Nº Competidor</option>
       <option value="name" ${pSortBy === 'name' ? 'selected' : ''}>Nombre (A-Z)</option>
       <option value="tanda" ${pSortBy === 'tanda' ? 'selected' : ''}>Por Tanda</option>
@@ -439,37 +439,41 @@ export async function renderEvent(eventId: string): Promise<void> {
      ? `<span style="font-size:0.65rem;background:#f3e8ff;color:#7e22ce;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #d8b4fe;" title="Rifle Compartido">🎯 ${esc(p.sharedRifleId)}</span>`
      : '';
     const isRaffleChecked = p.presentForRaffle !== false;
+    const statusClass = p.status === 'dq' ? 'select-status-dq' : p.status === 'dns' ? 'select-status-dns' : 'select-status-active';
+    const paymentClass = p.paymentStatus === 'pending' ? 'select-payment-pending' : p.paymentStatus === 'exempt' ? 'select-payment-exempt' : 'select-payment-paid';
+
     return `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-          background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;flex-wrap:wrap;gap:10px;">
+    <div class="competitor-row-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+          background:#ffffff;border-radius:12px;flex-wrap:wrap;gap:12px;">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:#0056b3;">#${p.competitorNumber}</span> <span style="font-weight:600;color:#0f172a;font-size:0.9rem;">${esc(p.name)}</span>
-      ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;">(${esc(cleanCategory)})</span>` : ''}
-      ${p.tanda ? `<span style="font-size:0.68rem;background:rgba(0,86,179,0.1);color:#0056b3;padding:2px 6px;border-radius:4px;border:1px solid rgba(0,86,179,0.2);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#0056b3;font-size:0.95rem;">#${p.competitorNumber}</span>
+      <span style="font-weight:700;color:#0f172a;font-size:0.95rem;">${esc(p.name)}</span>
+      ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;font-weight:600;">(${esc(cleanCategory)})</span>` : ''}
+      ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
       ${statusBadge}${payBadge}${rifleBadge}
-      <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:4px;" title="Presente para sorteo">
-       <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} style="cursor:pointer;" />
+      
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;margin-left:6px;font-weight:700;user-select:none;" title="Presente para sorteo">
+       <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} class="checkbox checkbox-xs checkbox-primary" style="cursor:pointer;--chkbg:#0056b3;--chkfg:#ffffff;" />
        <span>Sorteo</span>
       </label>
      </div>
-     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-      <select data-set-status="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado del competidor">
+     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select data-set-status="${p.id}" class="select-tactical ${statusClass}" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado del competidor">
        <option value="active" ${!p.status || p.status === 'active' ? 'selected' : ''}>Activo</option>
        <option value="dq" ${p.status === 'dq' ? 'selected' : ''}>DQ (Descalif.)</option>
-       <option value="dns" ${p.status === 'dns' ? 'selected' : ''}>DNS (No se presentó)</option>
+       <option value="dns" ${p.status === 'dns' ? 'selected' : ''}>DNS (No asistió)</option>
       </select>
-      <select data-set-payment="${p.id}" style="font-size:0.72rem;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;" title="Estado de pago">
+      <select data-set-payment="${p.id}" class="select-tactical ${paymentClass}" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado de pago">
        <option value="paid" ${!p.paymentStatus || p.paymentStatus === 'paid' ? 'selected' : ''}>$ Abonado</option>
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
-            ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
-      <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">
+      ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+      <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
        Editar
       </button>
       <button class="btn-danger-custom" data-remove-participant="${p.id}"
-          aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 10px;font-size:0.72rem;font-weight:700;">
+          aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;border-radius:8px;">
        Eliminar
       </button>
      </div>
