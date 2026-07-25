@@ -565,8 +565,14 @@ async function renderEvent(eventId: string): Promise<void> {
       <button id="btn-reorder-heats" class="btn-ghost-custom"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(245,158,11,0.35);color:#d97706;"
           ${participants.length === 0 ? 'disabled' : ''}
-          title="Reasignar tandas manualmente">
-        Reordenar Manual
+          title="Reasignar tandas manualmente para Serie 1">
+        Reordenar S1
+      </button>
+      <button id="btn-reorder-heats-s2" class="btn-ghost-custom"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(245,158,11,0.35);color:#d97706;"
+          ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
+          title="Reasignar tandas manualmente para Serie 2">
+        Reordenar S2
       </button>
       
       <button id="btn-undo-sorteo" class="btn-ghost-custom"
@@ -1658,7 +1664,17 @@ async function renderEvent(eventId: string): Promise<void> {
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
-  });
+  }, 1);
+ });
+
+ document.getElementById('btn-reorder-heats-s2')?.addEventListener('click', async () => {
+  if (participants.length === 0) { showToast('No hay competidores inscritos.', 'error'); return; }
+  await showManualHeatsReorderModal(id, async () => {
+   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+   renderListaInscritos();
+   renderCuadroSorteo();
+  }, 2);
  });
 
 

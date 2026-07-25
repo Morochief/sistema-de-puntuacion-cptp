@@ -348,33 +348,52 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
     modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
       let validatedParticipants = [...workingParticipants];
       
-      // Enforce S1 rules
-      validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
-      
-      const groups: Record<number, Participant[]> = {};
-      for (const p of validatedParticipants) {
-        if (p.tanda) {
-          if (!groups[p.tanda]) groups[p.tanda] = [];
-          groups[p.tanda].push(p);
-        }
-      }
-      
-      for (const tString in groups) {
-        const t = Number(tString);
-        groups[t].forEach((p, idx) => {
-          p.spot = (idx + 1) as 1 | 2 | 3 | 4;
-          p.tandaS2 = t;
-        });
+      if (seriesNum === 1) {
+        // Enforce S1 rules
+        validatedParticipants = applySpecialFamilySeedingRules(validatedParticipants);
         
-        // Shuffle S2 spots in the same tanda
-        const spotsS2 = [1, 2, 3, 4].slice(0, groups[t].length);
-        for (let i = spotsS2.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [spotsS2[i], spotsS2[j]] = [spotsS2[j], spotsS2[i]];
+        const groups: Record<number, Participant[]> = {};
+        for (const p of validatedParticipants) {
+          if (p.tanda) {
+            if (!groups[p.tanda]) groups[p.tanda] = [];
+            groups[p.tanda].push(p);
+          }
         }
-        groups[t].forEach((p, idx) => {
-          p.spotS2 = spotsS2[idx] as 1 | 2 | 3 | 4;
-        });
+        
+        for (const tString in groups) {
+          const t = Number(tString);
+          groups[t].forEach((p, idx) => {
+            p.spot = (idx + 1) as 1 | 2 | 3 | 4;
+            p.tandaS2 = t;
+          });
+          
+          // Shuffle S2 spots in the same tanda
+          const spotsS2 = [1, 2, 3, 4].slice(0, groups[t].length);
+          for (let i = spotsS2.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [spotsS2[i], spotsS2[j]] = [spotsS2[j], spotsS2[i]];
+          }
+          groups[t].forEach((p, idx) => {
+            p.spotS2 = spotsS2[idx] as 1 | 2 | 3 | 4;
+          });
+        }
+      } else {
+        const groups: Record<number, Participant[]> = {};
+        for (const p of validatedParticipants) {
+          if (p.tandaS2) {
+            if (!groups[p.tandaS2]) groups[p.tandaS2] = [];
+            groups[p.tandaS2].push(p);
+          }
+        }
+        
+        for (const tString in groups) {
+          const t = Number(tString);
+          // Shuffle spots for S2 or just assign them sequentially
+          // Since it's manual reordering, sequential is fine, or we could shuffle. Sequential is more predictable.
+          groups[t].forEach((p, idx) => {
+            p.spotS2 = (idx + 1) as 1 | 2 | 3 | 4;
+          });
+        }
       }
       
       for (const p of validatedParticipants) {
@@ -382,14 +401,14 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
           tanda: p.tanda,
           spot: p.tanda ? p.spot : undefined,
           tandaS2: p.tandaS2,
-          spotS2: p.tanda ? p.spotS2 : undefined,
+          spotS2: p.tandaS2 ? p.spotS2 : undefined,
           sector: undefined
         });
       }
 
       showToast('Orden de tandas actualizado con éxito.', 'success');
       backdrop.remove();
-      onSaveCallback();
+      if (onSaveCallback) onSaveCallback();
     });
   };
 
