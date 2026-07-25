@@ -7,6 +7,7 @@ import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterComp
 import { renderChampionshipPanel } from '../championship';
 import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from '../sync';
 import { importEventBackup } from '../backup';
+import { supabase } from '../supabase';
 
 
 export let dashSearchQuery = '';
