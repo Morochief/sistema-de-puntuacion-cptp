@@ -865,13 +865,19 @@ async function renderEvent(eventId: string): Promise<void> {
        }
      });
      
-     let s2Found = 1;
-     for (let s = 1; s <= 4; s++) {
-       if (!occupiedInTandaS2.has(s)) {
-         s2Found = s;
-         break;
-       }
-     }
+     let availableSpots = [];
+      for (let s = 1; s <= 4; s++) {
+        if (!occupiedInTandaS2.has(s)) {
+          availableSpots.push(s);
+        }
+      }
+      
+      let s2Found = availableSpots.length > 0 ? availableSpots[0] : 1;
+      
+      const differentSpots = availableSpots.filter(s => s !== p.spot);
+      if (differentSpots.length > 0) {
+        s2Found = differentSpots[Math.floor(Math.random() * differentSpots.length)];
+      }
      p.tandaS2 = p.tanda;
      p.spotS2 = s2Found as 1|2|3|4;
 
