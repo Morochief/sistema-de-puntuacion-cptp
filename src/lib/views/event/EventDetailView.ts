@@ -190,42 +190,59 @@ export async function renderEvent(eventId: string): Promise<void> {
   <div id="tab-panel-series" class="tab-panel hidden">
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Series por Tirador</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-     ${participants.length > 0 ? `
-      <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;"
-          aria-label="Ver y Exportar Tabla de Posiciones">
-        Tabla de Resultados
-      </button>` : ''}
-     ${participants.length > 0 ? `
-      <button class="btn-ghost-custom" id="btn-export-excel" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(34,197,94,0.25);color:#22c55e;"
-          aria-label="Exportar todos los datos a CSV">
-        Exportar CSV
-      </button>` : ''}
-     ${participants.length > 1 ? `
-      <button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(99,102,241,0.35);color:#6366f1;"
-          aria-label="Resolver empates de posiciones manualmente"
-          title="Resolver empates ordenándolos uno a uno en desempate">
-        Resolver Desempates
-      </button>` : ''}
-     <button class="btn-ghost-custom" id="btn-export-backup" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.35);color:#3b82f6;"
-          aria-label="Exportar copia de seguridad del evento"
-          title="Exportar como .json para importar en otra máquina">
-       Exportar Copia
-     </button>
-     ${allSeries.length > 0 ? `
-      <button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
-          aria-label="Vaciar todas las series del evento" title="Eliminar todas las series y resultados (los tiradores se mantienen)">
-        Reiniciar Todo
-      </button>` : ''}
-     ${allSeries.length > 0 ? `
-      <button class="btn-ghost-custom" id="btn-print-event" style="padding:8px 12px;font-size:0.75rem;"
-          aria-label="Imprimir todas las planillas">
-        Imprimir Todo
-      </button>` : ''}
-      <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:8px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;" title="Imprimir planilla vacía para llenado manual">
-        Planilla Vacía
-      </button>
+   <!-- Panel de Acciones y Herramientas Deportivas -->
+   <div class="card-tactical" style="padding:14px;margin-bottom:20px;border-color:rgba(148,163,184,0.15);background:rgba(15,23,42,0.15);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      
+      <!-- Grupo: Reportes e Impresión -->
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;text-transform:uppercase;color:#64748b;margin-right:4px;">Impresión:</span>
+        ${participants.length > 0 ? `
+         <button class="btn-ghost-custom" id="btn-print-ranking" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(245,158,11,0.25);color:#d97706;"
+             title="Ver y exportar Reporte de Posiciones">
+           Resultados
+         </button>` : ''}
+        ${allSeries.length > 0 ? `
+         <button class="btn-ghost-custom" id="btn-print-event" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.25);color:#3b82f6;"
+             title="Imprimir planillas de todos los tiradores">
+           Imprimir Todo
+         </button>` : ''}
+         <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(16,185,129,0.25);color:#10b981;" 
+             title="Imprimir planilla vacía para llenado manual">
+           Planilla Vacía
+         </button>
+      </div>
+
+      <!-- Grupo: Torneo y Datos -->
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;text-transform:uppercase;color:#64748b;margin-right:4px;">Torneo:</span>
+        ${participants.length > 1 ? `
+         <button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(99,102,241,0.35);color:#6366f1;"
+             title="Resolver empates ordenándolos uno a uno en desempate">
+           Resolver Desempates
+         </button>` : ''}
+        ${participants.length > 0 ? `
+         <button class="btn-ghost-custom" id="btn-export-excel" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(34,197,94,0.25);color:#22c55e;"
+             title="Exportar todos los datos a CSV">
+           Exportar CSV
+         </button>` : ''}
+         <button class="btn-ghost-custom" id="btn-export-backup" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(59,130,246,0.35);color:#3b82f6;"
+             title="Exportar copia de seguridad .json para importar en otra máquina">
+           Copia (.json)
+         </button>
+      </div>
+
+      <!-- Grupo: Peligro -->
+      ${allSeries.length > 0 ? `
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+         <button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(239,68,68,0.35);color:#ef4444;"
+             title="Eliminar todas las series y resultados (mantiene los tiradores)">
+           Reiniciar Todo
+         </button>
+      </div>` : ''}
+
     </div>
+   </div>
    </div>
    <div id="lista-series-por-tirador" style="display:flex;flex-direction:column;gap:16px;"></div>
   </div>
