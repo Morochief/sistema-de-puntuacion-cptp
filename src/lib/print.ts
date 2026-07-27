@@ -712,7 +712,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
    width: 210mm;
    min-height: 297mm;
    background: #ffffff;
-   padding: 24px 28px 24px 52px;
+   padding: 24px 28px 80px 52px;
    position: relative;
    overflow: hidden;
    box-shadow: 0 4px 32px rgba(15, 23, 42, 0.15);
@@ -721,7 +721,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   @media print {
    body { background: none; }
    .pages-container { padding: 0; gap: 0; display: block; }
-   .a4-page { margin: 0; padding: 24px 24px 24px 40px; box-shadow: none; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+   .a4-page { margin: 0; padding: 24px 24px 80px 40px; box-shadow: none; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
    .no-print { display: none !important; }
   }
 
