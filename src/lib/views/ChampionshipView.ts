@@ -54,7 +54,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     // Cabecera Eventos (Max 4)
     const headerEvents = allEvents.slice(0, 4);
     const eventHeadersHtml = headerEvents.map((e, idx) => `
-      <th style="padding:10px 8px;text-align:center;font-size:0.75rem;color:#0056b3;width:12%;min-width:70px;" title="${esc(e.name)}">
+      <th style="padding:8px 4px;text-align:center;font-size:0.75rem;color:#0056b3;width:11%;min-width:65px;" title="${esc(e.name)}">
         <div style="font-weight:900;text-transform:uppercase;">E${idx + 1}</div>
         <div style="font-size:0.65rem;color:#64748b;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin:auto;margin-top:2px;">
           ${esc(e.championshipDate || e.name)}
@@ -64,7 +64,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     const missingHeadersCount = Math.max(0, 4 - headerEvents.length);
     const emptyHeadersHtml = Array.from({ length: missingHeadersCount }, (_, i) => `
-      <th style="padding:10px 8px;text-align:center;font-size:0.75rem;color:#94a3b8;width:12%;min-width:70px;font-weight:500;">
+      <th style="padding:8px 4px;text-align:center;font-size:0.75rem;color:#94a3b8;width:11%;min-width:65px;font-weight:500;">
         E${headerEvents.length + i + 1} (Pendiente)
       </th>
     `).join('');
@@ -111,7 +111,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         }
 
         return `
-          <td style="padding:8px;text-align:center;font-size:0.85rem;border-radius:6px;${style}">
+          <td style="padding:6px;text-align:center;font-size:0.85rem;border-radius:6px;${style}">
             <div style="font-family:'JetBrains Mono',monospace;">${displayVal}</div>
             ${subtitle}
           </td>
@@ -127,20 +127,20 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
       return `
         <tr style="border-bottom:1px solid #f1f5f9;${rowBg} transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${isTop6 ? 'rgba(248,250,252,0.6)' : 'transparent'}'">
-          <td style="padding:12px 8px;text-align:center;width:45px;">${posHtml}</td>
-          <td style="padding:12px 8px;">
-            <div style="font-weight:700;color:#0f172a;font-size:0.95rem;text-transform:uppercase;">${esc(row.competitorName)}</div>
-            <div style="font-size:0.72rem;color:#64748b;font-weight:600;margin-top:2px;">${esc(row.category)}</div>
+          <td style="padding:10px 4px;text-align:center;width:40px;">${posHtml}</td>
+          <td style="padding:10px 6px;">
+            <div style="font-weight:700;color:#0f172a;font-size:0.9rem;text-transform:uppercase;">${esc(row.competitorName)}</div>
+            <div style="font-size:0.7rem;color:#64748b;font-weight:600;margin-top:2px;">${esc(row.category)}</div>
           </td>
           ${cellsHtml}
           ${emptyCellsHtml}
-          <td style="padding:12px 8px;text-align:center;width:95px;background:${currentSortBy === 'baseFirme' ? '#f0fdf4' : 'transparent'};">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:${currentSortBy === 'baseFirme' ? '#16a34a' : '#64748b'};">
+          <td style="padding:10px 4px;text-align:center;width:85px;background:${currentSortBy === 'baseFirme' ? '#f0fdf4' : 'transparent'};">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:${currentSortBy === 'baseFirme' ? '#16a34a' : '#64748b'};">
               ${row.baseFirme}
             </span>
           </td>
-          <td style="padding:12px 8px;text-align:center;width:95px;background:${currentSortBy === 'totalActual' ? '#eff6ff' : 'transparent'};">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:1.15rem;font-weight:900;color:${currentSortBy === 'totalActual' ? '#0056b3' : '#64748b'};">
+          <td style="padding:10px 4px;text-align:center;width:85px;background:${currentSortBy === 'totalActual' ? '#eff6ff' : 'transparent'};">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:${currentSortBy === 'totalActual' ? '#0056b3' : '#64748b'};">
               ${row.totalActual}
             </span>
           </td>
@@ -150,29 +150,29 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     html += `
       <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;min-width:750px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:650px;table-layout:auto;">
           <thead>
             <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;text-align:left;font-family:'Rajdhani',sans-serif;font-weight:700;">
-              <th style="padding:10px 8px;text-align:center;color:#0056b3;width:45px;">Pos</th>
-              <th style="padding:10px 8px;color:#0056b3;">Tirador</th>
+              <th style="padding:10px 4px;text-align:center;color:#0056b3;width:40px;">Pos</th>
+              <th style="padding:10px 6px;color:#0056b3;">Tirador</th>
               ${eventHeadersHtml}
               ${emptyHeadersHtml}
               
               <!-- CABECERAS ORDENABLES -->
-              <th id="th-sort-base" style="padding:10px 8px;text-align:center;color:#16a34a;width:95px;cursor:pointer;background:${currentSortBy === 'baseFirme' ? '#dcfce7' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Base Firme">
+              <th id="th-sort-base" style="padding:10px 4px;text-align:center;color:#16a34a;width:85px;cursor:pointer;background:${currentSortBy === 'baseFirme' ? '#dcfce7' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Base Firme">
                 <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
                   Base Firme
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'baseFirme' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'baseFirme' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
-                <div style="font-size:0.65rem;color:#15803d;font-weight:600;margin-top:2px;">(Mejores 2)</div>
+                <div style="font-size:0.6rem;color:#15803d;font-weight:600;margin-top:2px;">(Mejores 2)</div>
               </th>
               
-              <th id="th-sort-total" style="padding:10px 8px;text-align:center;color:#0056b3;width:95px;cursor:pointer;background:${currentSortBy === 'totalActual' ? '#dbeafe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Total Actual">
+              <th id="th-sort-total" style="padding:10px 4px;text-align:center;color:#0056b3;width:85px;cursor:pointer;background:${currentSortBy === 'totalActual' ? '#dbeafe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Total Actual">
                 <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
                   Total
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'totalActual' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'totalActual' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
-                <div style="font-size:0.65rem;color:#0369a1;font-weight:600;margin-top:2px;">(Mejores 3)</div>
+                <div style="font-size:0.6rem;color:#0369a1;font-weight:600;margin-top:2px;">(Mejores 3)</div>
               </th>
             </tr>
           </thead>
