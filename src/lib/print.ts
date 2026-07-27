@@ -9,6 +9,7 @@ import type { Series, ShootingEvent, Shot, Participant } from './types';
 import { SCORING_TABLES } from './scoring';
 import { db } from './db';
 import { sortRanking } from './tiebreaker';
+import { esc } from './modals';
 
 function formatDate(isoDate: string): string {
   try {
