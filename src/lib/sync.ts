@@ -90,38 +90,23 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
 
     // 2. Sincronizar Participantes
     if (localParticipants.length > 0) {
-      const participantsData = localParticipants.map(p => {
-      const baseCategory = (p.category || '').split('::')[0];
-      const pRaffleStr = p.presentForRaffle !== undefined ? (p.presentForRaffle ? '1' : '0') : '1';
-      const pTandaS2Str = p.tandaS2 !== undefined ? String(p.tandaS2) : '';
-      const pSpotS2Str = p.spotS2 !== undefined ? String(p.spotS2) : '';
-      const pSectorStr = p.sector || '';
-      const pSectorS2Str = p.sectorS2 || '';
-      const legacyParts = [
-        baseCategory,
-        p.paymentStatus || 'paid',
-        p.status || 'active',
-        pRaffleStr,
-        pTandaS2Str,
-        pSpotS2Str,
-        pSectorStr,
-        pSectorS2Str
-      ];
-
-      return {
+      const participantsData = localParticipants.map(p => ({
         id: toDeterministicUuid(p.id, 1),
         event_id: toDeterministicUuid(p.eventId, 0),
         name: p.name,
         competitor_number: p.competitorNumber,
-        category: legacyParts.join('::'),
+        category: (p.category || '').split('::')[0],
         payment_status: p.paymentStatus || 'paid',
         status: p.status || 'active',
         present_for_raffle: p.presentForRaffle !== undefined ? !!p.presentForRaffle : true,
         tanda: p.tanda || null,
         spot: p.spot || null,
-        tie_rank: p.tieRank || null
-      };
-    });
+        tie_rank: p.tieRank || null,
+        tanda_s2: p.tandaS2 || null,
+        spot_s2: p.spotS2 || null,
+        sector: p.sector || null,
+        sector_s2: p.sectorS2 || null
+      }));
 
       const { error: pErr } = await supabase
         .from('participants')
@@ -227,14 +212,9 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
         const rawCategory = catParts[0] || '';
         const rawPaymentStatus = p.payment_status || (catParts[1] as any) || 'paid';
         const rawStatus = p.status || (catParts[2] as any) || 'active';
-        const rawRaffle = p.present_for_raffle !== null && p.present_for_raffle !== undefined 
-          ? !!p.present_for_raffle 
+        const rawRaffle = p.present_for_raffle !== null && p.present_for_raffle !== undefined
+          ? !!p.present_for_raffle
           : (catParts[3] === '1' || catParts.length === 1);
-        
-        const tandaS2 = catParts[4] ? parseInt(catParts[4], 10) : undefined;
-        const spotS2 = catParts[5] ? parseInt(catParts[5], 10) as 1|2|3|4 : undefined;
-        const sector = catParts[6] ? catParts[6] as 'A'|'B' : undefined;
-        const sectorS2 = catParts[7] ? catParts[7] as 'A'|'B' : undefined;
 
         await db.participants.put({
           id: localId,
@@ -248,10 +228,10 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           paymentStatus: rawPaymentStatus,
           status: rawStatus,
           presentForRaffle: rawRaffle,
-          tandaS2,
-          spotS2,
-          sector,
-          sectorS2
+          tandaS2: p.tanda_s2 || undefined,
+          spotS2: p.spot_s2 || undefined,
+          sector: p.sector || undefined,
+          sectorS2: p.sector_s2 || undefined
         });
 
         // ─ Alimentar Padrón Maestro local silenciosamente ─
