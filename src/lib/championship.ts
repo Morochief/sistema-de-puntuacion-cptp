@@ -115,11 +115,13 @@ export async function getChampionshipData(year: number): Promise<{ rankings: Cha
     let totalActual = 0;
     let baseFirme = 0;
 
+    const userParticipations = yearEvents.filter(e => row.events[e.id!] !== null).length;
+
     for (let i = 0; i < sortedScores.length; i++) {
       const s = sortedScores[i];
       const isBaseFirme = i < 2;
       const isTaken = i < 3; // Top 3
-      const isAtRisk = i === 2 && yearEvents.length < 4; // El 3ro en discordia si faltan fechas
+      const isAtRisk = i === 2 && userParticipations < 4; // El 3ro en discordia si faltan fechas al tirador
       const isDiscarded = i >= 3;
 
       if (isBaseFirme) baseFirme += s.score;
