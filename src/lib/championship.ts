@@ -125,7 +125,9 @@ export async function getChampionshipData(year: number): Promise<{ rankings: Cha
       if (isBaseFirme) baseFirme += s.score;
       if (isTaken) totalActual += s.score;
 
-      if (row.events[s.eventId] !== undefined) {
+      // Asignar el score al evento correspondiente. 
+      // Ignoramos si es null (DNS puro sin anotarse).
+      if (row.events[s.eventId] !== null) {
          row.events[s.eventId] = {
            eventId: s.eventId,
            score: s.score,
