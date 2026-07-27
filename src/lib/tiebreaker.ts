@@ -15,6 +15,19 @@ export function sortRanking(
   a: { participant: Participant; totalScore: number },
   b: { participant: Participant; totalScore: number }
 ): number {
+  const getStatusWeight = (status: string | undefined) => {
+    if (status === 'dns') return 2;
+    if (status === 'dq') return 1;
+    return 0;
+  };
+
+  const statusWeightA = getStatusWeight(a.participant.status);
+  const statusWeightB = getStatusWeight(b.participant.status);
+
+  if (statusWeightA !== statusWeightB) {
+    return statusWeightA - statusWeightB;
+  }
+
   if (b.totalScore !== a.totalScore) {
     return b.totalScore - a.totalScore;
   }
