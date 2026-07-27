@@ -7,8 +7,9 @@
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/",
-  "id": "/cptp-scoring/",
+  "id": "/",
   "categories": ["sports", "utilities"],
+  "icons": [
     {
       "src": "/logo-cptp.svg",
       "sizes": "any",
