@@ -4,7 +4,7 @@ import { router } from '../app';
 import { db } from '../db';
 import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
-import { renderChampionshipPanel } from '../championship';
+import { renderChampionshipPanel } from './ChampionshipView';
 import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from '../sync';
 import { importEventBackup } from '../backup';
 import { supabase } from '../supabase';

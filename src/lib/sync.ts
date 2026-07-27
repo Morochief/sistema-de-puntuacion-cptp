@@ -42,6 +42,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     const localEventIds = new Set(localEvents.map(e => toDeterministicUuid(e.id, 0)));
     const localParticipantIds = new Set(localParticipants.map(p => toDeterministicUuid(p.id, 1)));
     const localSeriesIds = new Set(localSeries.map(s => toDeterministicUuid(s.id, 2)));
+    const localMasterCompetitors = await db.masterCompetitors.toArray();
+    const localMasterIds = new Set(localMasterCompetitors.map(m => toDeterministicUuid(m.id, 3)));
 
     // Borrar Series
     const { data: cloudSeriesIds } = await supabase.from('series').select('id');
@@ -136,6 +138,22 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
       seriesSynced = localSeries.length;
     }
 
+    // 4. Sincronizar Master Competitors
+    if (localMasterCompetitors.length > 0) {
+      const masterData = localMasterCompetitors.map(m => ({
+        id: toDeterministicUuid(m.id, 3),
+        name: m.name,
+        championship_tie_rank: m.championshipTieRank || null,
+        created_at: new Date(m.createdAt || Date.now()).toISOString()
+      }));
+
+      const { error: mErr } = await supabase
+        .from('master_competitors')
+        .upsert(masterData, { onConflict: 'id' });
+
+      if (mErr) throw new Error(`Error sincronizando padrón maestro: ${mErr.message}`);
+    }
+
     console.log('[Sync] Subida a la nube finalizada con éxito.');
     return {
       success: true,
@@ -183,11 +201,15 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     const { data: cloudSeries, error: sErr } = await supabase.from('series').select('*');
     if (sErr) throw new Error(`Error descargando series: ${sErr.message}`);
 
+    const { data: cloudMaster, error: mErr } = await supabase.from('master_competitors').select('*');
+    if (mErr) throw new Error(`Error descargando padrón maestro: ${mErr.message}`);
+
     // 2. Limpiar locales completamente para recibir el estado oficial de la nube
     await Promise.all([
       db.events.clear(),
       db.participants.clear(),
-      db.series.clear()
+      db.series.clear(),
+      db.masterCompetitors.clear()
     ]);
 
     // 3. Escribir datos de la nube en Dexie
@@ -233,20 +255,6 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           sector: p.sector || undefined,
           sectorS2: p.sector_s2 || undefined
         });
-
-        // ─ Alimentar Padrón Maestro local silenciosamente ─
-        try {
-          const existing = await db.masterCompetitors.where('name').equalsIgnoreCase(p.name).first();
-          if (!existing) {
-            await db.masterCompetitors.add({
-              name: p.name,
-              category: p.category || 'General',
-              createdAt: Date.now()
-            });
-          }
-        } catch (err) {
-          console.warn('[Sync] No se pudo agregar al padrón maestro:', err);
-        }
       }
     }
 
@@ -263,6 +271,18 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           shots: s.shots,
           totalScore: s.total_score,
           createdAt: new Date(s.created_at).getTime()
+        });
+      }
+    }
+
+    if (cloudMaster) {
+      for (const m of cloudMaster) {
+        const localId = fromDeterministicUuid(m.id);
+        await db.masterCompetitors.put({
+          id: localId,
+          name: m.name,
+          championshipTieRank: m.championship_tie_rank || undefined,
+          createdAt: new Date(m.created_at).getTime()
         });
       }
     }

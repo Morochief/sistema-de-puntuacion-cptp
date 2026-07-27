@@ -20,5 +20,8 @@
     "html2canvas": "^1.4.1",
     "tailwindcss": "^4.3.3",
     "workbox-window": "^7.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }

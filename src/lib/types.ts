@@ -47,5 +47,6 @@ export interface MasterCompetitor {
   name: string;
   category?: string;
   phone?: string;
+  championshipTieRank?: number;
   createdAt: number;
 }

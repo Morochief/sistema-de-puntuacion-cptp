@@ -68,4 +68,12 @@ db.version(6).stores({
   masterCompetitors: '++id, name, createdAt',
 });
 
+// Versión 7: Añadir championshipTieRank al padrón maestro para el ranking del campeonato.
+db.version(7).stores({
+  events: '++id, date, createdAt',
+  participants: '++id, eventId, competitorNumber, status, paymentStatus',
+  series: '++id, eventId, participantId, seriesNumber',
+  masterCompetitors: '++id, name, championshipTieRank, createdAt',
+});
+
 export { db };
