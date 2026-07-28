@@ -49,6 +49,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         date: e.date,
         location: e.location || null,
         modality: e.modality || '.22 LR',
+        is_pilot: !!e.isPilot,
         created_at: new Date(e.createdAt).toISOString(),
         is_deleted: !!e.is_deleted
       }));
@@ -191,7 +192,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           location: e.location || '',
           modality: e.modality || '.22 LR',
           createdAt: new Date(e.created_at).getTime(),
-          is_deleted: !!e.is_deleted
+          is_deleted: !!e.is_deleted,
+          isPilot: !!e.is_pilot
         });
       }
     }

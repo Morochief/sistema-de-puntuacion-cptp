@@ -11,3 +11,6 @@ ALTER TABLE series ADD COLUMN IF NOT EXISTS bonus_active boolean DEFAULT false;
 
 -- 3. Marcar todos los eventos existentes como .22 LR
 UPDATE events SET modality = '.22 LR' WHERE modality IS NULL;
+
+-- 4. Agregar columna de evento piloto (no cuenta para campeonato)
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_pilot boolean DEFAULT false;
