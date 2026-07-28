@@ -79,8 +79,8 @@ function getLandscapePrintStyles(): string {
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
     gap: 12px;
-    page-break-after: always;
-    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
    }
 
    @media print {
@@ -90,7 +90,7 @@ function getLandscapePrintStyles(): string {
       padding: 6px 0; 
       box-shadow: none; 
       width: 287mm; 
-      height: 186mm; 
+      min-height: 186mm;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
@@ -111,6 +111,7 @@ function getLandscapePrintStyles(): string {
    .series-column {
     flex: 1;
     width: 50%;
+    min-width: 0;
     border: 1.5px solid #000;
     border-radius: 6px;
     padding: 3px 6px;
@@ -118,6 +119,9 @@ function getLandscapePrintStyles(): string {
     flex-direction: column;
     justify-content: space-between;
     background: #fff;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: hidden;
    }
 
    /* Sub-diseño de las tarjetas internas */

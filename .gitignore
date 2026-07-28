@@ -26,3 +26,6 @@ pnpm-debug.log*
 # backups and scratch
 cptp_backup_*.json
 *.py
+
+# command code
+.commandcode/
