@@ -151,7 +151,7 @@ export async function renderEvent(eventId: string): Promise<void> {
       </p>
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button id="btn-shuffle-sorteo" class="btn-primary-custom" 
+      <button id="btn-shuffle-sorteo" class="btn-primary-custom staff-only" 
           style="background:#0056b3;color:#ffffff;border-color:#0056b3;padding:12px 20px;"
           ${participants.length === 0 ? 'disabled' : ''}>
         Sortear Posiciones
@@ -250,7 +250,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
     <div>
-     <button class="btn-ghost-custom" id="btn-print-blank-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
+     <button class="btn-ghost-custom staff-only" id="btn-print-blank-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
        Planilla Vacía
      </button>
      <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">
@@ -450,7 +450,7 @@ export async function renderEvent(eventId: string): Promise<void> {
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
       <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
-        ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" class="btn-ghost-custom staff-only" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+        ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom staff-only" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
         <button class="btn-ghost-custom staff-only" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
          Editar
         </button>
