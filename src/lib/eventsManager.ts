@@ -12,6 +12,7 @@ export interface EventFilterOptions {
   sortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc';
   page: number;
   itemsPerPage: number;
+  modalityFilter?: string; // '' = todos, '.22 LR', '.308', '.223'
 }
 
 export async function getFilteredEvents(options: EventFilterOptions): Promise<{
@@ -22,7 +23,12 @@ export async function getFilteredEvents(options: EventFilterOptions): Promise<{
   let allEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
   allEvents = allEvents.filter(e => !e.is_deleted);
 
-  // 1. Filtrado por texto
+  // 1. Filtrado por modalidad
+  if (options.modalityFilter && options.modalityFilter.trim()) {
+    allEvents = allEvents.filter(e => e.modality === options.modalityFilter);
+  }
+
+  // 2. Filtrado por texto
   if (options.searchQuery.trim()) {
     const q = options.searchQuery.toLowerCase().trim();
     allEvents = allEvents.filter(e => 

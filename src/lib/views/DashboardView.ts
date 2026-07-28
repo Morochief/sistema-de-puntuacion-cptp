@@ -13,6 +13,7 @@ import { supabase } from '../supabase';
 
 export let dashSearchQuery = '';
 export let dashSortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' = 'date_desc';
+export let dashModalityFilter = '';
 export let dashPage = 1;
 export const DASH_ITEMS_PER_PAGE = 6;
 
@@ -36,7 +37,8 @@ export async function renderDashboard(): Promise<void> {
    searchQuery: dashSearchQuery,
    sortBy: dashSortBy,
    page: dashPage,
-   itemsPerPage: DASH_ITEMS_PER_PAGE
+   itemsPerPage: DASH_ITEMS_PER_PAGE,
+   modalityFilter: dashModalityFilter,
   });
  } catch (err) {
   console.error('[DB] Error cargando eventos:', err);
@@ -68,6 +70,20 @@ export async function renderDashboard(): Promise<void> {
       Padrón Maestro
     </button>
    </div>
+
+   <!-- Filtros de Modalidad -->
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:0.78rem;font-weight:700;color:#64748b;white-space:nowrap;">Modalidad:</span>
+    ${['', '.22 LR', '.308', '.223'].map(m => {
+     const label = m === '' ? 'Todas' : m;
+     const isActive = dashModalityFilter === m;
+     return `<button class="dash-modality-pill" data-modality="${m}"
+       style="padding:5px 14px;border-radius:20px;border:1.5px solid ${isActive ? '#0056b3' : '#cbd5e1'};
+       background:${isActive ? '#0056b3' : '#fff'};color:${isActive ? '#fff' : '#475569'};
+       font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.15s;"
+     >${label}</button>`;
+    }).join('')}
+   </div>
   </div>
  `;
 
@@ -78,9 +94,17 @@ export async function renderDashboard(): Promise<void> {
    <p style="color:#475569;font-size:0.82rem;margin:8px 0 0">Probá cambiando los filtros o creá un nuevo evento.</p>
   </div>`;
  } else {
-  listHtml += `<div style="display:flex;flex-direction:column;gap:12px;">${events.map((e) => `
+  listHtml += `<div style="display:flex;flex-direction:column;gap:12px;">${events.map((e) => {
+   const modalityColors: Record<string, string> = {
+    '.22 LR':  '#0056b3',
+    '.308':    '#b34500',
+    '.223':    '#006b3c',
+   };
+   const mColor = modalityColors[e.modality || ''] ?? '#64748b';
+   return `
    <article class="event-card" data-event-id="${e.id}" role="button" tabindex="0"
-        aria-label="Evento: ${esc(e.name)}, ${formatDate(e.date)}">
+        aria-label="Evento: ${esc(e.name)}, ${formatDate(e.date)}"
+        style="border-left: 4px solid ${mColor};">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
      <div style="min-width:0;flex:1;">
       <h3 style="margin:0 0 4px;font-size:1.05rem;font-weight:700;color:#0056b3;
@@ -89,6 +113,7 @@ export async function renderDashboard(): Promise<void> {
        <span style="font-size:0.78rem;color:#64748b;">${formatDate(e.date)}</span>
        ${e.location ? `<span style="color:#cbd5e1;font-size:0.7rem;">·</span><span style="font-size:0.78rem;color:#64748b;">${esc(e.location)}</span>` : ''}
        ${e.championshipDate ? `<span style="font-size:0.72rem;background:#eff6ff;color:#0056b3;padding:2px 6px;border-radius:4px;font-weight:600;">${esc(e.championshipDate)}</span>` : ''}
+       ${e.modality ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:700;background:${mColor}18;color:${mColor};border:1px solid ${mColor}40;">${esc(e.modality)}</span>` : ''}
       </div>
      </div>
      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
@@ -96,6 +121,7 @@ export async function renderDashboard(): Promise<void> {
           aria-label="Editar evento ${esc(e.name)}"
           onclick="event.stopPropagation()"
           style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">Editar</button>
+
       <button class="btn-danger-custom admin-only" data-delete-id="${e.id}"
           aria-label="Eliminar evento ${esc(e.name)}"
           onclick="event.stopPropagation()">
@@ -107,7 +133,8 @@ export async function renderDashboard(): Promise<void> {
       </button>
      </div>
     </div>
-   </article>`).join('')}</div>`;
+   </article>`;
+  }).join('')}</div>`;
 
   // Paginador
   listHtml += `
@@ -120,6 +147,7 @@ export async function renderDashboard(): Promise<void> {
    </div>
   `;
  }
+
 
  // Agregar el panel inferior para importar, vaciar base de datos + cloud sync
  listHtml += `
@@ -174,6 +202,15 @@ export async function renderDashboard(): Promise<void> {
   renderDashboard();
  });
 
+ // Bind filtros de modalidad (pills)
+ container.querySelectorAll('.dash-modality-pill').forEach((btn) => {
+  btn.addEventListener('click', () => {
+   dashModalityFilter = (btn as HTMLElement).dataset.modality ?? '';
+   dashPage = 1;
+   renderDashboard();
+  });
+ });
+
  // Bind paginador
  container.querySelector('#dash-prev-page')?.addEventListener('click', () => {
   if (dashPage > 1) { dashPage--; renderDashboard(); }
@@ -186,6 +223,7 @@ export async function renderDashboard(): Promise<void> {
  container.querySelector('#btn-open-master-padron')?.addEventListener('click', () => {
   renderMasterCompetitorsModal();
  });
+
 
  // Vincular eventos a las tarjetas de eventos
  if (events.length > 0) {
