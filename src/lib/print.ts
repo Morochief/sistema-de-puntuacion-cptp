@@ -80,22 +80,29 @@ function getLRPrintStyles(): string {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    min-height: 186mm;
    }
 
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      margin: 0; 
-      padding: 6px 8px; 
-      box-shadow: none; 
-      width: 287mm; 
+      display: block;
+      margin: 0;
+      padding: 4mm;
+      box-shadow: none;
+      width: 297mm;
       height: 210mm;
       overflow: hidden;
-      page-break-inside: avoid;
-      break-inside: avoid;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
+    }
+    .series-column {
+      float: left;
+      width: 46%;
+      margin: 0 2%;
+      border: 1.5px solid #000;
+      border-radius: 6px;
+      padding: 2px 5px;
+      background: #fff;
     }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -112,16 +119,10 @@ function getLRPrintStyles(): string {
    /* Columnas lado a lado para .22 LR */
    .series-column {
     width: 50%;
-    min-width: 0;
     border: 1.5px solid #000;
     border-radius: 6px;
     padding: 3px 6px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
     background: #fff;
-    page-break-inside: avoid;
-    break-inside: avoid;
    }
 
    /* Sub-diseÃ±o de las tarjetas internas */
