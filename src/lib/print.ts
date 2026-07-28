@@ -107,6 +107,7 @@ function getLandscapePrintStyles(): string {
    .print-btn:hover { background: #333; }
 
    /* Columnas lado a lado */
+   .cf-full-width { width: 100% !important; flex: none !important; }
    .series-column {
     flex: 1;
     width: 50%;
@@ -296,7 +297,7 @@ function getSeriesColumnHtml(
   };
 
   return `
-  <div class="series-column">
+  <div class="series-column ${isCF ? 'cf-full-width' : ''}">
     <!-- HEADER -->
     <div class="header">
      <div class="logo-left">
@@ -345,7 +346,7 @@ function getSeriesColumnHtml(
     <div class="meta-grid">
      <div class="meta-box">
       <span class="lbl">ORDEN</span>
-      <span class="vl" style="font-size:11px;font-weight:900;text-transform:uppercase;">SERIE ${seriesNumberLabel}</span>
+      <span class="vl" style="font-size:11px;font-weight:900;text-transform:uppercase;">${isCF ? "&nbsp;" : "SERIE " + seriesNumberLabel}</span>
      </div>
      <div class="meta-box">
       <span class="lbl">MODALIDAD</span>
@@ -353,7 +354,7 @@ function getSeriesColumnHtml(
      </div>
      <div class="meta-box">
       <span class="lbl">CALIBRE</span>
-      <img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />
+      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}
      </div>
      <div class="meta-box">
       <span class="lbl">CATEGORIA</span>
@@ -396,7 +397,12 @@ ${isCF ? `<colgroup>
          const colN = i + 1;
          return renderScoreCell(colN, v, series ? hitGrande?.shotNumber : undefined, missGrande);
         }).join('')}
-        <td class="td-puntos" rowspan="3" style="font-size:11px;">${series ? (series.bonusActive ? 'SI' : 'NO') : ''}</td>
+        <td class="td-puntos" rowspan="3" style="font-size:10px; font-weight: 700; line-height: 1.4;">
+          ${series ? 
+            `<div style="border-radius:3px; margin-bottom: 2px; ${series.bonusActive ? 'background:#000;color:#fff;' : ''}">SI</div>
+             <div style="border-radius:3px; ${!series.bonusActive ? 'background:#000;color:#fff;' : ''}">NO</div>`
+          : `<div style="margin-bottom:2px;">SI</div><div>NO</div>`}
+        </td>
         <td class="td-adicional" rowspan="3">${series ? addPts : ''}</td>
         <td class="td-puntos" rowspan="3">${series ? totalCF : ''}</td>
        </tr>
