@@ -11,6 +11,7 @@ import { updateUIRoles } from '../../authManager';
 import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../types';
 import { getModalityConfig } from '../../modalityConfig';
 import { printEventCards, printRankingCard, printBlankSheet } from '../../print';
+import { printCFSeriesCard, printCFEventCards, printCFBlankSheet } from '../../printCF';
 import html2canvas from 'html2canvas';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../../masterCompetitors';
 import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, applySharedRifleRules, resetEventSeeding, showManualHeatsReorderModal } from '../../heatsManager';
@@ -1136,10 +1137,12 @@ export async function renderEvent(eventId: string): Promise<void> {
   // Imprimir Button in Tab
   
   document.getElementById('btn-print-blank-tab')?.addEventListener('click', () => {
-    printBlankSheet(event!);
+    if (isCF) printCFBlankSheet(event!);
+    else printBlankSheet(event!);
   });
   document.getElementById('btn-print-blank-series')?.addEventListener('click', () => {
-    printBlankSheet(event!);
+    if (isCF) printCFBlankSheet(event!);
+    else printBlankSheet(event!);
   });
   document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => {
     printRankingCard(event!, participants, allSeries);
@@ -1493,7 +1496,8 @@ export async function renderEvent(eventId: string): Promise<void> {
  // --- IMPRIMIR TODO EL EVENTO ---
  document.getElementById('btn-print-event')?.addEventListener('click', () => {
   if (allSeries.length === 0) { showToast('No hay series registradas.', 'info'); return; }
-  printEventCards(event!, participants, allSeries);
+  if (isCF) printCFEventCards(event!, participants, allSeries);
+  else printEventCards(event!, participants, allSeries);
  });
 
  // --- HANDLER: REINICIAR TODAS LAS SERIES ---

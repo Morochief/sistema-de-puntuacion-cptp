@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CPTP .22 LR â€” Planilla oficial imprimible en formato horizontal (Landscape)
  *
  * Imprime dos series (Tandas) de un competidor una al lado de la otra
@@ -235,35 +235,7 @@ function getLRPrintStyles(): string {
 }
 
 /**
- * Retorna los estilos CSS para la planilla imprimible horizontal de CF (.308 / .223) (una sola columna).
- */
-function getCFPrintStyles(): string {
-  // Reutiliza todos los estilos base de .22 LR y solo sobreescribe lo que cambia para CF
-  const base = getLRPrintStyles();
-  const cfOverride = `
-   /* CF: columna Ãºnica a ancho completo */
-   .a4-landscape-page {
-    height: 196mm;
-    padding: 4px 8px;
-    gap: 0;
-   }
-   @media print {
-    .a4-landscape-page {
-      height: 198mm;
-      padding: 3px 6px;
-    }
-   }
-   .series-column {
-    width: 100% !important;
-    flex: none !important;
-    padding: 3px 8px;
-   }
-  `;
-  return base + cfOverride;
-}
-
-/**
- * Genera el HTML de una sola columna representando una serie.
+ * Genera el HTML de una sola columna representando una serie .22 LR.
  * Si la serie es undefined, genera una planilla en blanco (valores de referencia)
  * para llenado manual del competidor.
  */
@@ -273,17 +245,8 @@ function getSeriesColumnHtml(
   series: Series | undefined,
   seriesNumberLabel: number
 ): string {
-  let modality = event.modality || '.22 LR';
-  if (!event.modality && event.name) {
-    if (event.name.includes('.308')) modality = '.308' as any;
-    else if (event.name.includes('.223')) modality = '.223' as any;
-  }
-  const mConfig = getModalityConfig(modality);
-  const isCF = modality === '.308' || modality === '.223';
   const shots = series?.shots ?? [];
 
-  // Buscar impactos y fallos
-// .22 LR
   const hit15  = shots.find((s) => s.targetType === '15"' && s.hit);
   const hit10  = shots.find((s) => s.targetType === '10"' && s.hit);
   const hit5  = shots.find((s) => s.targetType === '5"' && s.hit);
@@ -298,33 +261,12 @@ function getSeriesColumnHtml(
   const pts5  = hit5?.value ?? 0;
   const addPts = addShots.reduce((s, sh) => s + sh.value, 0);
   const mainPts = pts15 + pts10 + pts5;
-  const totalLR  = series ? (mainPts + addPts) : 0;
-
-  // CF
-  const hitGrande  = shots.find((s) => s.targetType === 'grande' && s.hit);
-  const hitMediano = shots.find((s) => s.targetType === 'mediano' && s.hit);
-  const hitPequeno = shots.find((s) => s.targetType === 'pequeÃ±o' && s.hit);
-
-  const missGrande = new Set(shots.filter((s) => s.targetType === 'grande' && !s.hit).map((s) => s.shotNumber));
-  const missMediano = new Set(shots.filter((s) => s.targetType === 'mediano' && !s.hit).map((s) => s.shotNumber));
-  const missPequeno = new Set(shots.filter((s) => s.targetType === 'pequeÃ±o' && !s.hit).map((s) => s.shotNumber));
-
-  const ptsGrande  = hitGrande?.value ?? 0;
-  const ptsMediano = hitMediano?.value ?? 0;
-  const ptsPequeno = hitPequeno?.value ?? 0;
-  const mainPtsCF = ptsGrande + ptsMediano + ptsPequeno;
-  const totalCF = series ? (mainPtsCF + addPts) : 0;
-
-  const total = isCF ? totalCF : totalLR;
-  const maxScore = isCF ? (series?.bonusActive ? 96 : 87) : 67;
+  const total  = series ? (mainPts + addPts) : 0;
+  const maxScore = 67;
 
   const vals15 = SCORING_TABLES['15"'];
   const vals10 = SCORING_TABLES['10"'];
   const vals5 = SCORING_TABLES['5"'];
-
-  const valsGrande = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-  const valsMediano = [24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4];
-  const valsPequeno = [42, 38, 34, 30, 26, 22, 18, 14, 11, 7];
 
   const targetSummary = (label: string, hitShot: Shot | undefined, missSet: Set<number>): string => {
     if (!series) {
@@ -333,11 +275,11 @@ function getSeriesColumnHtml(
     if (!hitShot) {
       return `<span style="color:#888;">${label}: no impactado (${missSet.size} fallo${missSet.size !== 1 ? 's' : ''})</span>`;
     }
-    return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` â€” ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
+    return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` — ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
   };
 
   return `
-  <div class="series-column ${isCF ? 'cf-full-width' : ''}">
+  <div class="series-column">
     <!-- HEADER -->
     <div class="header">
      <div class="logo-left">
@@ -354,7 +296,7 @@ function getSeriesColumnHtml(
        <span class="field-lbl">Evento</span>
        <span class="field-lbl-r">Fecha</span>
        <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-end;">
-        <span class="field-val" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${event.name}${event.championshipDate ? ` Â· ${event.championshipDate}` : ''}</span>
+        <span class="field-val" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${event.name}${event.championshipDate ? ` · ${event.championshipDate}` : ''}</span>
         <span class="field-date">${formatDate(event.date)}</span>
        </div>
       </div>
@@ -363,8 +305,8 @@ function getSeriesColumnHtml(
        <span class="field-val">
         ${participant.name} 
         ${seriesNumberLabel === 1
-          ? (participant.tanda ? ` (Tanda ${participant.tanda} Â· Mesa ${participant.spot})` : '')
-          : (participant.tandaS2 ? ` (Tanda ${participant.tandaS2} Â· Mesa ${participant.spotS2})` : '')
+          ? (participant.tanda ? ` (Tanda ${participant.tanda} · Mesa ${participant.spot})` : '')
+          : (participant.tandaS2 ? ` (Tanda ${participant.tandaS2} · Mesa ${participant.spotS2})` : '')
         }
        </span>
       </div>
@@ -386,7 +328,7 @@ function getSeriesColumnHtml(
     <div class="meta-grid">
      <div class="meta-box">
       <span class="lbl">ORDEN</span>
-      <span class="vl" style="font-size:11px;font-weight:900;text-transform:uppercase;">${isCF ? "&nbsp;" : "SERIE " + seriesNumberLabel}</span>
+      <span class="vl" style="font-size:11px;font-weight:900;text-transform:uppercase;">SERIE ${seriesNumberLabel}</span>
      </div>
      <div class="meta-box">
       <span class="lbl">MODALIDAD</span>
@@ -394,11 +336,11 @@ function getSeriesColumnHtml(
      </div>
      <div class="meta-box">
       <span class="lbl">CALIBRE</span>
-      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}
+      <img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />
      </div>
      <div class="meta-box">
       <span class="lbl">CATEGORIA</span>
-      <div class="vs" style="font-size:12px;font-weight:900;text-transform:uppercase;">${participant.category || 'â€”'}</div>
+      <div class="vs" style="font-size:12px;font-weight:900;text-transform:uppercase;">${participant.category || '—'}</div>
      </div>
     </div>
 
@@ -409,64 +351,10 @@ function getSeriesColumnHtml(
      <div class="legend-item" style="font-size:7px;color:#555;">Valores son de referencia</div>
     </div>
 
-    <!-- TABLA PRINCIPAL DE PUNTUACIÃ“N -->
+    <!-- TABLA PRINCIPAL DE PUNTUACIÓN -->
     <div class="table-wrap">
      <table class="score-table">
-${isCF ? `<colgroup>
-       <col class="th-label">
-       ${Array.from({ length: 12 }, () => '<col>').join('')}
-       <col class="th-pts" style="width: 8%;">
-       <col class="th-add" style="width: 10%;">
-       <col class="th-pts" style="width: 8%;">
-      </colgroup>
-      <thead>
-       <tr>
-        <th class="th-label">Disparos</th>
-        ${Array.from({ length: 12 }, (_, i) => `<th>${i + 1}</th>`).join('')}
-        <th class="th-pts">Bonus</th>
-        <th class="th-add">Adicional</th>
-        <th class="th-pts">Puntos</th>
-       </tr>
-      </thead>
-      <tbody>
-
-       <!-- ROW GRANDE -->
-       <tr>
-        <td class="row-label" style="font-size:12px;">Grande</td>
-        ${valsGrande.map((v, i) => {
-         const colN = i + 1;
-         return renderScoreCell(colN, v, series ? hitGrande?.shotNumber : undefined, missGrande);
-        }).join('')}
-        <td class="td-puntos" rowspan="3" style="font-size:10px; font-weight: 700; line-height: 1.4;">
-          ${series ? 
-            `<div style="border-radius:3px; margin-bottom: 2px; ${series.bonusActive ? 'background:#000;color:#fff;' : ''}">SI</div>
-             <div style="border-radius:3px; ${!series.bonusActive ? 'background:#000;color:#fff;' : ''}">NO</div>`
-          : `<div style="margin-bottom:2px;">SI</div><div>NO</div>`}
-        </td>
-        <td class="td-adicional" rowspan="3">${series ? addPts : ''}</td>
-        <td class="td-puntos" rowspan="3">${series ? totalCF : ''}</td>
-       </tr>
-
-       <!-- ROW MEDIANO -->
-       <tr>
-        <td class="row-label" style="font-size:12px;">Mediano</td>
-        <td class="cell-empty"></td>
-        ${valsMediano.map((v, i) => {
-         const colN = i + 2;
-         return renderScoreCell(colN, v, series ? hitMediano?.shotNumber : undefined, missMediano);
-        }).join('')}
-       </tr>
-
-       <!-- ROW PEQUEÃ‘O -->
-       <tr>
-        <td class="row-label" style="font-size:12px;">PequeÃ±o</td>
-        <td class="cell-empty"></td>
-        <td class="cell-empty"></td>
-        ${valsPequeno.map((v, i) => {
-         const colN = i + 3;
-         return renderScoreCell(colN, v, series ? hitPequeno?.shotNumber : undefined, missPequeno);
-        }).join('')}
-       </tr>` : `<colgroup>
+      <colgroup>
        <col class="th-label">
        ${Array.from({ length: 10 }, () => '<col>').join('')}
        <col class="th-pts">
@@ -493,7 +381,7 @@ ${isCF ? `<colgroup>
         <td class="td-adicional" rowspan="3">${series ? addPts : ''}</td>
        </tr>
 
-       <!-- ROW 10" - columna 1 vacÃ­a, columnas 2 a 10 -->
+       <!-- ROW 10" - columna 1 vacía, columnas 2 a 10 -->
        <tr>
         <td class="row-label">10"</td>
         <td class="cell-empty"></td>
@@ -504,7 +392,7 @@ ${isCF ? `<colgroup>
         ${ vals10.length < 9 ? Array.from({ length: 9 - vals10.length }, () => '<td class="cell-empty"></td>').join('') : '' }
        </tr>
 
-       <!-- ROW 5" - columnas 1-2 vacÃ­as, columnas 3 a 10 -->
+       <!-- ROW 5" - columnas 1-2 vacías, columnas 3 a 10 -->
        <tr>
         <td class="row-label">5"</td>
         <td class="cell-empty"></td>
@@ -514,13 +402,13 @@ ${isCF ? `<colgroup>
          return renderScoreCell(colN, v, series ? hit5?.shotNumber : undefined, miss5);
         }).join('')}
         ${ vals5.length < 8 ? Array.from({ length: 8 - vals5.length }, () => '<td class="cell-empty"></td>').join('') : '' }
-       </tr>`}
+       </tr>
 
        <!-- FILA DE TOTAL HIGHLIGHTED (PIE DE TABLA) -->
        <tr class="total-footer-row">
         <td colspan="11" style="text-align:right; font-weight:bold; font-size:8px; padding-right:8px; background:#fafafa; border-right:1px solid #000;">TOTAL:</td>
         <td colspan="2" style="font-size:12px; font-weight:900; background:${series ? '#000' : '#fff'}; color:${series ? '#fff' : '#000'}; text-align:center; border:2.5px solid #000; padding:4px;">
-         ${series ? `${total} / ${maxScore}` : `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / ${isCF ? 96 : 67}`}
+         ${series ? `${total} / ${maxScore}` : `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / 67`}
         </td>
        </tr>
 
@@ -528,26 +416,20 @@ ${isCF ? `<colgroup>
      </table>
     </div>
 
-${isCF ? `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
-     <div class="target-summary">
-      <p>${targetSummary('Grande', hitGrande, missGrande)}</p>
-      <p>${targetSummary('Mediano', hitMediano, missMediano)}</p>
-      <p>${targetSummary('PequeÃ±o', hitPequeno, missPequeno)}</p>
-      ${series && addShots.length > 0 ? `<p><strong>Adicionales:</strong> ${addShots.length} disparos - ${addPts} pts</p>` : series ? '' : '<p style="color:#aaa;">Adicionales: firma de fiscal al culminar</p>'}
-     </div>` : `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
+     <!-- RESUMEN DE BLANCOS IMPACTADOS -->
      <div class="target-summary">
       <p>${targetSummary('15"', hit15, miss15)}</p>
       <p>${targetSummary('10"', hit10, miss10)}</p>
       <p>${targetSummary('5"', hit5, miss5)}</p>
       ${series && addShots.length > 0 ? `<p><strong>Adicionales:</strong> ${addShots.length} disparos - ${addPts} pts</p>` : series ? '' : '<p style="color:#aaa;">Adicionales: firma de fiscal al culminar</p>'}
-     </div>`}
+     </div>
 
     <!-- TOTAL GENERAL -->
     <div class="totals-row">
      <div class="total-box">
       <span class="total-lbl">Total</span>
       <div class="total-val">
-       <span class="total-num">${total || 'â€”'}</span>
+       <span class="total-num">${total || '—'}</span>
        <span class="total-word">pts</span>
       </div>
      </div>
@@ -556,25 +438,15 @@ ${isCF ? `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
      </div>
     </div>
 
-${isCF ? `<!-- IMPORTANTE -->
-    <div class="importante" style="align-items:flex-start; padding: 4px 8px;">
-     <h2 class="imp-title" style="align-self:center;">IMPORTANTE</h2>
-     <ul class="imp-list" style="font-size:7px; font-weight:700;">
-      <li>TIRO "BONUS" MARCAR CASILLA "SI"</li>
-      <li>TIRO CORRECTO MARCAR CON "O"</li>
-      <li>TIRO ERRADO MARCAR CON "X"</li>
-      <li>AL TERMINO DE LA PRUEBA SUMAR LOS PUNTOS</li>
-      <li>ES OBLIGATORIA LA FIRMA DEL FISCAL DESPUES DE CADA SERIE Y DEL TIRADOR AL FINAL DE LA PRUEBA</li>
-     </ul>
-    </div>` : `<!-- IMPORTANTE -->
+    <!-- IMPORTANTE -->
     <div class="importante">
      <h2 class="imp-title">Reglamento CPTP</h2>
      <ul class="imp-list">
       <li>Marcar acierto con "O", fallo con "X"</li>
       <li>Firma de fiscal es obligatoria tras la serie</li>
      </ul>
-     <div class="imp-banner">ProtecciÃ³n visual y auditiva obligatoria</div>
-    </div>`}
+     <div class="imp-banner">Protección visual y auditiva obligatoria</div>
+    </div>
     </div>
 
   </div>
@@ -582,9 +454,8 @@ ${isCF ? `<!-- IMPORTANTE -->
 }
 
 /**
- * Genera la pÃ¡gina A4 horizontal para un tirador.
- * - .22 LR: dos columnas (Serie 1 y Serie 2) lado a lado.
- * - CF (.308/.223): una sola columna a ancho completo.
+ * Genera la página A4 horizontal para un tirador .22 LR.
+ * Dos columnas (Serie 1 y Serie 2) lado a lado.
  */
 function getCompetitorLandscapePageHtml(
   event: ShootingEvent,
@@ -592,36 +463,16 @@ function getCompetitorLandscapePageHtml(
   seriesList: Series[],
   pageBreakStyle: string = ''
 ): string {
-  // Detectar modalidad
-  let modality = event.modality || '.22 LR';
-  if (!event.modality && event.name) {
-    if (event.name.includes('.308')) modality = '.308' as any;
-    else if (event.name.includes('.223')) modality = '.223' as any;
-  }
-  const isCF = modality === '.308' || modality === '.223';
-
-  if (isCF) {
-    // CF: solo una columna (Serie 1), ancho completo
-    const s1 = seriesList.find((s) => s.seriesNumber === 1);
-    const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
-    return `
-   <div class="a4-landscape-page" ${pageBreakStyle}>
-     ${col1Html}
-   </div>
-  `;
-  } else {
-    // .22 LR: dos columnas lado a lado
-    const s1 = seriesList.find((s) => s.seriesNumber === 1);
-    const s2 = seriesList.find((s) => s.seriesNumber === 2);
-    const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
-    const col2Html = getSeriesColumnHtml(event, participant, s2, 2);
-    return `
+  const s1 = seriesList.find((s) => s.seriesNumber === 1);
+  const s2 = seriesList.find((s) => s.seriesNumber === 2);
+  const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
+  const col2Html = getSeriesColumnHtml(event, participant, s2, 2);
+  return `
    <div class="a4-landscape-page" ${pageBreakStyle}>
      ${col1Html}
      ${col2Html}
    </div>
   `;
-  }
 }
 
 /** Genera y abre la planilla imprimible horizontal (Series 1 y 2 juntas) para un tirador */
@@ -639,9 +490,9 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Planilla CPTP â€” ${participant.name} â€” Series 1 y 2</title>
+ <title>Planilla CPTP — ${participant.name} — Series 1 y 2</title>
  <style>
-   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
+   ${getLRPrintStyles()}
  </style>
 </head>
 <body>
@@ -650,10 +501,10 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
 </body>
 </html>`;
 
-  openPrintModal(html, `Planilla CPTP â€” ${participant.name}`);
+  openPrintModal(html, `Planilla CPTP — ${participant.name}`);
 }
 
-/** Genera y abre una planilla Ãºnica que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
+/** Genera y abre una planilla única que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
 export function printEventCards(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
   // Agrupar series por participante
   const pagesHtml = participants.map((p, idx) => {
@@ -667,9 +518,9 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Todas las Planillas â€” ${event.name}</title>
+ <title>Todas las Planillas — ${event.name}</title>
  <style>
-   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
+   ${getLRPrintStyles()}
  </style>
 </head>
 <body>
@@ -678,7 +529,7 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
 </body>
 </html>`;
 
-  openPrintModal(html, `Todas las Planillas â€” ${event.name}`);
+  openPrintModal(html, `Todas las Planillas — ${event.name}`);
 }
 
 export function printRankingCard(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
@@ -725,8 +576,8 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        : `<div class="pos-number">${pos}</div>`;
         
       const laneLabel = p.tanda
-       ? `S1: T${p.tanda}Â·M${p.spot} | S2: T${p.tandaS2 || 'â€”'}Â·M${p.spotS2 || 'â€”'}`
-       : 'Sin posiciÃ³n';
+       ? `S1: T${p.tanda}·M${p.spot} | S2: T${p.tandaS2 || '—'}·M${p.spotS2 || '—'}`
+       : 'Sin posición';
       const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
       return `
@@ -734,7 +585,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
         <td class="td-pos">${posHtml}</td>
         <td class="td-name">
          <div class="name-text">${esc(p.name).toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR Â· ${laneLabel} ${p.category ? `Â· ${esc(p.category)}` : ''}</div>
+         <div class="sub-text">COMPETIDOR · ${laneLabel} ${p.category ? `· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val">${scoreDisplay}</div>
@@ -772,10 +623,10 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 
     return `
       <tr class="rank-row" style="background:#fffbeb;">
-        <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">â˜…</div></td>
+        <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
         <td class="td-name">
          <div class="name-text">${esc(p.name).toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `Â· ${esc(p.category)}` : ''}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>
@@ -784,7 +635,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   }).join('');
 
   if (perfectRowsHtml.trim() === '') {
-    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">NingÃºn tirador alcanzÃ³ puntaje perfecto (67 o 134).</td></tr>`;
+    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">Ningún tirador alcanzó puntaje perfecto (67 o 134).</td></tr>`;
   }
 
   // Helper to build a page
@@ -803,7 +654,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
      <div class="header-left" style="flex:1;margin-left:8px;">
       <span class="category">Campeonato Nacional Long Range</span>
       <h1 class="title-main">TABLA DE POSICIONES</h1>
-      <span class="event-name">${event.name.toUpperCase()} ${titleExtra ? `Â· <span style="color:#0056b3;font-weight:900;">${titleExtra.toUpperCase()}</span>` : ''}</span>
+      <span class="event-name">${event.name.toUpperCase()} ${titleExtra ? `· <span style="color:#0056b3;font-weight:900;">${titleExtra.toUpperCase()}</span>` : ''}</span>
      </div>
      
      <div class="header-right" style="margin-right:8px;">
@@ -831,7 +682,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
     </table>
 
     <footer class="footer">
-     <div>Club Paraguayo de Tiro de Long Range Â· Planilla Oficial</div>
+     <div>Club Paraguayo de Tiro de Long Range · Planilla Oficial</div>
      <div class="footer-right">CPTP Scoring</div>
     </footer>
   </div>
@@ -841,7 +692,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Ranking â€” ${event.name}</title>
+ <title>Ranking — ${event.name}</title>
  <style>
   @page { size: A4 portrait; margin: 0; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -940,7 +791,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 </body>
 </html>`;
 
-  openPrintModal(html, `Ranking â€” ${event.name}`);
+  openPrintModal(html, `Ranking — ${event.name}`);
 }
 export function openPrintModal(htmlContent: string, title: string): void {
   (window as any).cptpOpenPrintModalGlobal = openPrintModal;
@@ -1023,16 +874,16 @@ export function printBlankSheet(event: ShootingEvent): void {
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Planilla VacÃ­a - ${event.name}</title>
+ <title>Planilla Vacía - ${event.name}</title>
  <style>
-   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
+   ${getLRPrintStyles()}
  </style>
 </head>
 <body>
- <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla VacÃ­a</button>
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla Vacía</button>
  ${pageHtml}
 </body>
 </html>`;
 
-  openPrintModal(html, 'Planilla VacÃ­a');
+  openPrintModal(html, 'Planilla Vacía');
 }

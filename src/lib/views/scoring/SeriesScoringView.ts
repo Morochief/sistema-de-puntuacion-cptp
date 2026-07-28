@@ -3,6 +3,7 @@ import { navigate } from '../../router';
 import { db } from '../../db';
 import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../types';
 import { printSeriesCard } from '../../print';
+import { printCFSeriesCard } from '../../printCF';
 import {
  calculateSeriesTotal,
  calculateShotValue,
@@ -424,7 +425,11 @@ export async function renderSeries(seriesId: string): Promise<void> {
  document.getElementById('btn-print-series')?.addEventListener('click', () => {
   if (!event) { showToast('No se puede generar la planilla sin datos del evento.', 'error'); return; }
   const sp: Series = { ...series!, shots: currentShots, totalScore: calculateSeriesTotal(currentShots) };
-  printSeriesCard(event, participant!, sp);
+  if (isCentralFire(event.modality)) {
+    printCFSeriesCard(event, participant!, sp);
+  } else {
+    printSeriesCard(event, participant!, sp);
+  }
  });
 
  document.getElementById('btn-undo')?.addEventListener('click', async () => {
