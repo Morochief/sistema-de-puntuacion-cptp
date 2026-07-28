@@ -72,13 +72,14 @@ function getLandscapePrintStyles(): string {
 
    .a4-landscape-page {
     width: 287mm;
-    min-height: 186mm;
+    height: 206mm;
     margin: 10mm auto;
     background: #fff;
-    padding: 8px 14px;
+    padding: 4px 8px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
-    gap: 12px;
+    gap: 6px;
+    overflow: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
    }
@@ -86,13 +87,16 @@ function getLandscapePrintStyles(): string {
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      margin: 10mm auto 0 auto; /* Espacio superior libre de 18mm para perforación de carpeta */
-      padding: 6px 0; 
+      margin: 0; 
+      padding: 3px 6px; 
       box-shadow: none; 
       width: 287mm; 
-      min-height: 186mm;
+      height: 206mm; 
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
