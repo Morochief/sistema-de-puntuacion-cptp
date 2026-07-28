@@ -474,7 +474,7 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
   const participantSeries = (await db.series
     .where('participantId')
     .equals(participant.id!)
-    .toArray())
+    .filter((item: any) => !item.is_deleted).toArray())
     .filter((s) => s.eventId === event.id);
 
   const pageHtml = getCompetitorLandscapePageHtml(event, participant, participantSeries);

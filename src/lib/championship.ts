@@ -28,7 +28,7 @@ export interface ChampionshipRankingRow {
 }
 
 export async function getChampionshipData(year: number): Promise<{ rankings: ChampionshipRankingRow[], allEvents: ShootingEvent[] }> {
-  const allEvents = await db.events.toArray();
+  const allEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
   const yearEvents = allEvents
     .filter(e => {
       try {
@@ -45,9 +45,9 @@ export async function getChampionshipData(year: number): Promise<{ rankings: Cha
   }
 
   const eventIds = yearEvents.map(e => e.id!);
-  const allParticipants = await db.participants.where('eventId').anyOf(eventIds).toArray();
-  const allSeries = await db.series.where('eventId').anyOf(eventIds).toArray();
-  const masterCompetitors = await db.masterCompetitors.toArray();
+  const allParticipants = await db.participants.where('eventId').anyOf(eventIds).filter((item: any) => !item.is_deleted).toArray();
+  const allSeries = await db.series.where('eventId').anyOf(eventIds).filter((item: any) => !item.is_deleted).toArray();
+  const masterCompetitors = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
 
   const groupedByName = new Map<string, Participant[]>();
   for (const p of allParticipants) {

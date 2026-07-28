@@ -209,19 +209,15 @@ export async function renderDashboard(): Promise<void> {
     const eid = Number((e.currentTarget as HTMLElement).dataset.deleteId);
     if (!await showConfirm('Eliminar Evento', '¿Eliminar este evento, participantes y todas sus series? Esta acción no se puede deshacer.')) return;
     try {
-     await db.events.delete(eid);
-     await db.participants.where('eventId').equals(eid).delete();
-     await db.series.where('eventId').equals(eid).delete();
+      await db.events.update(eid, { is_deleted: true });
+      await db.participants.where('eventId').equals(eid).modify({ is_deleted: true });
+      await db.series.where('eventId').equals(eid).modify({ is_deleted: true });
       
-      // Eliminar de Supabase de manera asíncrona si hay conexión
-      if (navigator.onLine) {
-        const eventUuid = toDeterministicUuid(eid, 0);
-        supabase.from('events').delete().eq('id', eventUuid)
-          .then(({ error }) => {
-            if (error) console.error('[Sync] Error al borrar de Supabase:', error);
-            else console.log('[Sync] Evento eliminado de la nube con éxito');
-          });
-      }
+      const eventUuid = toDeterministicUuid(eid, 0);
+      try {
+        supabase.from('events').update({ is_deleted: true }).eq('id', eventUuid)
+          .then(({error}) => { if(error) console.error(error); });
+      } catch (e) {}
 
       showToast('Evento eliminado', 'success');
       renderDashboard();
@@ -264,9 +260,9 @@ export async function renderDashboard(): Promise<void> {
     // Vaciar base remota si hay conexión
     if (navigator.onLine) {
       Promise.all([
-        supabase.from('series').delete().neq('id', '00000000-0000-4000-0000-000000000000'),
-        supabase.from('participants').delete().neq('id', '00000000-0000-4000-0000-000000000000'),
-        supabase.from('events').delete().neq('id', '00000000-0000-4000-0000-000000000000')
+        supabase.from('series').update({ is_deleted: true }).neq('id', '00000000-0000-4000-0000-000000000000'),
+        supabase.from('participants').update({ is_deleted: true }).neq('id', '00000000-0000-4000-0000-000000000000'),
+        supabase.from('events').update({ is_deleted: true }).neq('id', '00000000-0000-4000-0000-000000000000')
       ]).then(() => {
         console.log('[Sync] Base de datos remota vaciada con éxito');
       }).catch(err => {

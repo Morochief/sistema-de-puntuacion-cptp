@@ -30,48 +30,16 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     console.log('[Sync] Iniciando subida local -> Supabase...');
 
     // Obtener datos locales
-    const localEvents = await db.events.toArray();
-    const localParticipants = await db.participants.toArray();
-    const localSeries = await db.series.toArray();
+    const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
+    const localParticipants = await db.participants.filter((item: any) => !item.is_deleted).toArray();
+    const localSeries = await db.series.filter((item: any) => !item.is_deleted).toArray();
 
     let eventsSynced = 0;
     let participantsSynced = 0;
     let seriesSynced = 0;
 
-    // ── 0. Borrar en la nube los registros que fueron eliminados localmente ──
-    const localEventIds = new Set(localEvents.map(e => toDeterministicUuid(e.id, 0)));
-    const localParticipantIds = new Set(localParticipants.map(p => toDeterministicUuid(p.id, 1)));
-    const localSeriesIds = new Set(localSeries.map(s => toDeterministicUuid(s.id, 2)));
-    const localMasterCompetitors = await db.masterCompetitors.toArray();
-    const localMasterIds = new Set(localMasterCompetitors.map(m => toDeterministicUuid(m.id, 3)));
-
-    // Borrar Series
-    const { data: cloudSeriesIds } = await supabase.from('series').select('id');
-    if (cloudSeriesIds) {
-      const sToDelete = cloudSeriesIds.map(s => s.id).filter(id => !localSeriesIds.has(id));
-      if (sToDelete.length > 0) {
-        await supabase.from('series').delete().in('id', sToDelete);
-      }
-    }
-
-    // Borrar Participantes
-    const { data: cloudParticipantIds } = await supabase.from('participants').select('id');
-    if (cloudParticipantIds) {
-      const pToDelete = cloudParticipantIds.map(p => p.id).filter(id => !localParticipantIds.has(id));
-      if (pToDelete.length > 0) {
-        await supabase.from('participants').delete().in('id', pToDelete);
-      }
-    }
-
-    // Borrar Eventos
-    const { data: cloudEventIds } = await supabase.from('events').select('id');
-    if (cloudEventIds) {
-      const eToDelete = cloudEventIds.map(e => e.id).filter(id => !localEventIds.has(id));
-      if (eToDelete.length > 0) {
-        await supabase.from('events').delete().in('id', eToDelete);
-      }
-    }
-
+    // --- Sincronización Destructiva Removida ---
+    // Ya no se ejecutan deletes en la nube. Todo el borrado es lógico usando is_deleted.
     // 1. Sincronizar Eventos
     if (localEvents.length > 0) {
       const eventsData = localEvents.map(e => ({
@@ -79,7 +47,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         name: e.name,
         date: e.date,
         location: e.location || null,
-        created_at: new Date(e.createdAt).toISOString()
+        created_at: new Date(e.createdAt).toISOString(),
+        is_deleted: !!e.is_deleted
       }));
 
       const { error: eErr } = await supabase
@@ -107,7 +76,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         tanda_s2: p.tandaS2 || null,
         spot_s2: p.spotS2 || null,
         sector: p.sector || null,
-        sector_s2: p.sectorS2 || null
+        sector_s2: p.sectorS2 || null,
+        is_deleted: !!p.is_deleted
       }));
 
       const { error: pErr } = await supabase
@@ -127,7 +97,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         series_number: s.seriesNumber,
         shots: s.shots,
         total_score: s.totalScore,
-        created_at: new Date(s.createdAt).toISOString()
+        created_at: new Date(s.createdAt).toISOString(),
+        is_deleted: !!s.is_deleted
       }));
 
       const { error: sErr } = await supabase
@@ -144,7 +115,8 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         id: toDeterministicUuid(m.id, 3),
         name: m.name,
         championship_tie_rank: m.championshipTieRank || null,
-        created_at: new Date(m.createdAt || Date.now()).toISOString()
+        created_at: new Date(m.createdAt || Date.now()).toISOString(),
+        is_deleted: !!m.is_deleted
       }));
 
       const { error: mErr } = await supabase
@@ -221,7 +193,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           name: e.name,
           date: e.date,
           location: e.location || '',
-          createdAt: new Date(e.created_at).getTime()
+          createdAt: new Date(e.created_at).getTime(),
+          is_deleted: !!e.is_deleted
         });
       }
     }
@@ -253,7 +226,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           tandaS2: p.tanda_s2 || undefined,
           spotS2: p.spot_s2 || undefined,
           sector: p.sector || undefined,
-          sectorS2: p.sector_s2 || undefined
+          sectorS2: p.sector_s2 || undefined,
+          is_deleted: !!p.is_deleted
         });
       }
     }
@@ -270,7 +244,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           seriesNumber: s.series_number,
           shots: s.shots,
           totalScore: s.total_score,
-          createdAt: new Date(s.created_at).getTime()
+          createdAt: new Date(s.created_at).getTime(),
+          is_deleted: !!s.is_deleted
         });
       }
     }
@@ -282,7 +257,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           id: localId,
           name: m.name,
           championshipTieRank: m.championship_tie_rank || undefined,
-          createdAt: new Date(m.created_at).getTime()
+          createdAt: new Date(m.created_at).getTime(),
+          is_deleted: !!m.is_deleted
         });
       }
     }

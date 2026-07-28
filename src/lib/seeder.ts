@@ -12,7 +12,7 @@ export async function handleSeedParticipants(id: number, participants: Participa
   // 1. Obtener tiradores reales del Padrón Maestro
   let padronTiradores = [];
   try {
-    padronTiradores = await db.masterCompetitors.toArray();
+    padronTiradores = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
   } catch (err) {
     console.warn('[Seeder] Error leyendo Padrón Maestro:', err);
   }

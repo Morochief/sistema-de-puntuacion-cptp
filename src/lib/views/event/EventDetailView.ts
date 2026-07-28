@@ -33,8 +33,8 @@ export async function renderEvent(eventId: string): Promise<void> {
  try {
   [event, participants, allSeries] = await Promise.all([
    db.events.get(id),
-   db.participants.where('eventId').equals(id).toArray(),
-   db.series.where('eventId').equals(id).toArray(),
+   db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray(),
+   db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray(),
   ]);
  } catch (err) {
   console.error('[DB] Error cargando evento:', err);
@@ -587,7 +587,7 @@ export async function renderEvent(eventId: string): Promise<void> {
      await db.series.where('participantId').equals(pid).delete();
 
      // Reordenar secuencialmente los participantes restantes del evento
-     const restantes = await db.participants.where('eventId').equals(id).toArray();
+     const restantes = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
      restantes.sort((a, b) => a.competitorNumber - b.competitorNumber);
      for (let i = 0; i < restantes.length; i++) {
        const nuevoNum = i + 1;
@@ -598,8 +598,8 @@ export async function renderEvent(eventId: string): Promise<void> {
 
      showToast('Inscripción eliminada. Tiradores reordenados consecutivamente.', 'info');
      // recargar datos y UI
-     participants = await db.participants.where('eventId').equals(id).toArray();
-     allSeries = await db.series.where('eventId').equals(id).toArray();
+     participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
+     allSeries = await db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
      participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
      renderListaInscritos();
      renderCuadroSorteo();
@@ -626,7 +626,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.setStatus);
     const val = (e.currentTarget as HTMLSelectElement).value as 'active' | 'dq' | 'dns';
     await db.participants.update(pid, { status: val });
-    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
     renderListaInscritos();
     renderListaSeries();
@@ -640,7 +640,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.setPayment);
     const val = (e.currentTarget as HTMLSelectElement).value as 'paid' | 'pending' | 'exempt';
     await db.participants.update(pid, { paymentStatus: val });
-    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
      renderListaInscritos();
      showToast(val === 'paid' ? 'Pago registrado como Abonado' : val === 'pending' ? 'Pago marcado como Pendiente' : 'Competidor marcado como Exento', 'info');
@@ -664,7 +664,7 @@ export async function renderEvent(eventId: string): Promise<void> {
        category: res.category,
        sharedRifleId: res.sharedRifleId
      });
-     participants = await db.participants.where('eventId').equals(id).toArray();
+     participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
      participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
      renderListaInscritos();
      renderCuadroSorteo();
@@ -680,7 +680,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     const pid = Number((e.currentTarget as HTMLElement).dataset.setRaffle);
     const checked = (e.currentTarget as HTMLInputElement).checked;
     await db.participants.update(pid, { presentForRaffle: checked });
-    participants = await db.participants.where('eventId').equals(id).toArray();
+    participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
     showToast(checked ? 'Marcado Presente para sorteo' : 'Marcado Ausente para sorteo', 'info');
    });
   });
@@ -945,7 +945,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     if (!await showConfirm('Vaciar Series', `¿Eliminar TODAS las series de ${esc(p.name)}? Esto dejará sus puntajes en cero.`)) return;
     try {
      await db.series.where('participantId').equals(pid).delete();
-     allSeries = await db.series.where('eventId').equals(id).toArray();
+     allSeries = await db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
      renderListaSeries();
      showToast(`Series de ${esc(p.name)} eliminadas.`, 'info');
     } catch (err) {
@@ -1175,7 +1175,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    showToast(`Inscrito Competidor #${chosenNumber}`, 'success');
 
    // recargar
-   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
@@ -1216,7 +1216,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  // --- HANDLER: POBLAR tiradores DEMO ---
  document.getElementById('btn-seed-participants')?.addEventListener('click', async () => {
   await handleSeedParticipants(id, participants, findFirstFreeSpot, async () => {
-   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
@@ -1231,7 +1231,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  // --- HANDLER: SIMULAR RESULTADOS (SERIES Y PUNTUACIONES DEMO) ---
  document.getElementById('btn-seed-scores')?.addEventListener('click', async () => {
   await handleSeedScores(id, participants, async () => {
-   allSeries = await db.series.where('eventId').equals(id).toArray();
+   allSeries = await db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    renderListaSeries();
    await renderEvent(String(id));
   });
@@ -1340,7 +1340,7 @@ export async function renderEvent(eventId: string): Promise<void> {
 
    showToast('¡Sorteo completado! Reglas aplicadas.', 'success');
 
-   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
@@ -1356,7 +1356,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  document.getElementById('btn-reorder-heats')?.addEventListener('click', async () => {
   if (participants.length === 0) { showToast('No hay competidores inscritos.', 'error'); return; }
   await showManualHeatsReorderModal(id, async () => {
-   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
@@ -1366,7 +1366,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  document.getElementById('btn-reorder-heats-s2')?.addEventListener('click', async () => {
   if (participants.length === 0) { showToast('No hay competidores inscritos.', 'error'); return; }
   await showManualHeatsReorderModal(id, async () => {
-   participants = await db.participants.where('eventId').equals(id).toArray();
+   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
@@ -1397,7 +1397,7 @@ export async function renderEvent(eventId: string): Promise<void> {
           await db.participants.put(p);
         }
         showToast('Sorteo deshecho. Tandas y puestos restablecidos.', 'info');
-        participants = await db.participants.where('eventId').equals(id).toArray();
+        participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
         participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
         renderListaInscritos();
         renderCuadroSorteo();
@@ -1413,7 +1413,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   document.getElementById('btn-resolve-ties')?.addEventListener('click', () => {
    showTieBreakerModal(Number(id), participants, allSeries, async () => {
     // recargar tiradores y refrescar
-    participants = await db.participants.where('eventId').equals(Number(id)).toArray();
+    participants = await db.participants.where('eventId').equals(Number(id)).filter((item: any) => !item.is_deleted).toArray();
     participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
     renderListaSeries();
    });
@@ -1432,7 +1432,7 @@ export async function renderEvent(eventId: string): Promise<void> {
 
  // --- EXPORTAR RANKING / TABLA DE POSICIONES ---
  document.getElementById('btn-print-ranking')?.addEventListener('click', async () => {
-  const freshParticipants = await db.participants.where('eventId').equals(Number(id)).toArray();
+  const freshParticipants = await db.participants.where('eventId').equals(Number(id)).filter((item: any) => !item.is_deleted).toArray();
   if (freshParticipants.length === 0) { showToast('No hay competidores inscritos.', 'info'); return; }
 
   printRankingCard(event!, freshParticipants, allSeries);

@@ -31,8 +31,8 @@ export async function exportEventBackup(eventId: number): Promise<void> {
     const event = await db.events.get(eventId);
     if (!event) { showToast('Evento no encontrado.', 'error'); return; }
 
-    const participants = await db.participants.where('eventId').equals(eventId).toArray();
-    const series       = await db.series.where('eventId').equals(eventId).toArray();
+    const participants = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
+    const series       = await db.series.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
 
     const backup: BackupFile = {
       version:    BACKUP_VERSION,

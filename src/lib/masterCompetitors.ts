@@ -10,7 +10,7 @@ import type { MasterCompetitor } from './types';
 import { esc, showToast, showConfirm, showPrompt } from './modals';
 
 export async function getAllMasterCompetitors(): Promise<MasterCompetitor[]> {
-  return await db.masterCompetitors.orderBy('name').toArray();
+  return await db.masterCompetitors.orderBy('name').filter((item: any) => !item.is_deleted).toArray();
 }
 
 export async function addMasterCompetitor(name: string, category = '', phone = ''): Promise<number> {
@@ -18,7 +18,7 @@ export async function addMasterCompetitor(name: string, category = '', phone = '
   if (!trimmedName) throw new Error('El nombre no puede estar vacio.');
 
   // Verificar si ya existe en el padrón (búsqueda case-insensitive en memoria)
-  const all = await db.masterCompetitors.toArray();
+  const all = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
   const existing = all.find(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === trimmedName.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase());
   if (existing) {
     return existing.id!;
@@ -47,12 +47,12 @@ export async function deleteMasterCompetitor(id: number): Promise<void> {
  */
 export async function migrateParticipantsToPadron(): Promise<number> {
   try {
-    const allParticipants = await db.participants.toArray();
+    const allParticipants = await db.participants.filter((item: any) => !item.is_deleted).toArray();
     console.log(`[Padron] Encontrados ${allParticipants.length} participantes para migrar.`);
     if (allParticipants.length === 0) return 0;
 
     // Cargar el padrón actual una sola vez
-    const currentPadron = await db.masterCompetitors.toArray();
+    const currentPadron = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
     console.log(`[Padron] Padron actual tiene ${currentPadron.length} entradas.`);
     const padronNames = new Set(currentPadron.map(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()));
 

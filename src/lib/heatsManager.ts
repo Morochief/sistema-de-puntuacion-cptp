@@ -458,7 +458,7 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
 
 
 
-  const participants = await db.participants.where('eventId').equals(eventId).toArray();
+  const participants = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
 
   for (const p of participants) {
 
@@ -495,7 +495,7 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
  */
 
 export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void, seriesNum: number = 1): Promise<void> {
-  const participants = await db.participants.where('eventId').equals(eventId).toArray();
+  const participants = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
 
   if (participants.length === 0) {
     showToast('No hay competidores en este evento.', 'info');

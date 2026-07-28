@@ -21,6 +21,7 @@ export interface Participant {
   paymentStatus?: 'paid' | 'pending' | 'exempt'; // Estado de inscripción (Abonado, Pendiente, Exento)
   presentForRaffle?: boolean;
   sharedRifleId?: string; // Ej: 'Rifle A', 'Rifle B'
+  is_deleted?: boolean;
 }
 
 export interface Series {
@@ -31,6 +32,7 @@ export interface Series {
   shots: Shot[];
   totalScore: number;
   createdAt: number;
+  is_deleted?: boolean;
 }
 
 export interface ShootingEvent {
@@ -40,6 +42,7 @@ export interface ShootingEvent {
   location: string;
   championshipDate?: string; // Ej: "1ª Fecha", "2ª Fecha", "Final"
   createdAt: number;
+  is_deleted?: boolean;
 }
 
 export interface MasterCompetitor {
@@ -49,4 +52,5 @@ export interface MasterCompetitor {
   phone?: string;
   championshipTieRank?: number;
   createdAt: number;
+  is_deleted?: boolean;
 }

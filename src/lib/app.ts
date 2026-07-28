@@ -39,7 +39,7 @@ window.addEventListener('load', () => {
   // Auto-download cloud data silently if local db is empty
   if (navigator.onLine) {
     setTimeout(async () => {
-      const localEvents = await db.events.toArray();
+      const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
       if (localEvents.length === 0) {
         console.log('[Sync] Base de datos vacía. Iniciando descarga automática...');
         const pullRes = await pullCloudDatabaseToLocal();
