@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CPTP .22 LR — Planilla oficial imprimible en formato horizontal (Landscape)
  *
  * Imprime dos series (Tandas) de un competidor una al lado de la otra
@@ -262,11 +262,11 @@ function getSeriesColumnHtml(
   // CF
   const hitGrande  = shots.find((s) => s.targetType === 'grande' && s.hit);
   const hitMediano = shots.find((s) => s.targetType === 'mediano' && s.hit);
-  const hitPequeno = shots.find((s) => s.targetType === 'pequeno' && s.hit);
+  const hitPequeno = shots.find((s) => s.targetType === 'pequeño' && s.hit);
 
   const missGrande = new Set(shots.filter((s) => s.targetType === 'grande' && !s.hit).map((s) => s.shotNumber));
   const missMediano = new Set(shots.filter((s) => s.targetType === 'mediano' && !s.hit).map((s) => s.shotNumber));
-  const missPequeno = new Set(shots.filter((s) => s.targetType === 'pequeno' && !s.hit).map((s) => s.shotNumber));
+  const missPequeno = new Set(shots.filter((s) => s.targetType === 'pequeño' && !s.hit).map((s) => s.shotNumber));
 
   const ptsGrande  = hitGrande?.value ?? 0;
   const ptsMediano = hitMediano?.value ?? 0;
