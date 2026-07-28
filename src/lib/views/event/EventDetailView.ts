@@ -59,8 +59,20 @@ export async function renderEvent(eventId: string): Promise<void> {
  // Ordenar participantes por número correlativo
  participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
 
- // ── Detección de modalidad ───────────────────────────────────────────────
- const modality: Modality = event.modality || '.22 LR';
+ // ── Detección de modalidad con auto-corrección de DB ───────────────────────
+ let modality: Modality = event.modality || '.22 LR';
+ if (event.name?.includes('.308') || event.championshipDate?.includes('.308')) {
+  modality = '.308';
+ } else if (event.name?.includes('.223') || event.championshipDate?.includes('.223')) {
+  modality = '.223';
+ }
+
+ // Si la DB tenía grabado .22 LR por error de migración anterior, corregirlo en DB
+ if (event.id && event.modality !== modality) {
+  event.modality = modality;
+  db.events.update(event.id, { modality }).catch(err => console.error('[DB] Auto-fix modality error:', err));
+ }
+
  const mConfig = getModalityConfig(modality);
  const isCF = modality === '.308' || modality === '.223';
  const maxSeriesPerEvent = mConfig.seriesPerEvent; // 2 para .22 LR, 1 para CF

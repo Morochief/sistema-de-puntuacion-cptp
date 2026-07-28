@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CPTP .22 LR — Planilla oficial imprimible en formato horizontal (Landscape)
  *
  * Imprime dos series (Tandas) de un competidor una al lado de la otra
@@ -238,8 +238,13 @@ function getSeriesColumnHtml(
   series: Series | undefined,
   seriesNumberLabel: number
 ): string {
-  const mConfig = getModalityConfig(event.modality || '.22 LR');
-  const isCF = event.modality === '.308' || event.modality === '.223';
+  let modality = event.modality || '.22 LR';
+  if (!event.modality && event.name) {
+    if (event.name.includes('.308')) modality = '.308' as any;
+    else if (event.name.includes('.223')) modality = '.223' as any;
+  }
+  const mConfig = getModalityConfig(modality);
+  const isCF = modality === '.308' || modality === '.223';
   const shots = series?.shots ?? [];
 
   // Buscar impactos y fallos
@@ -354,7 +359,7 @@ function getSeriesColumnHtml(
      </div>
      <div class="meta-box">
       <span class="lbl">CALIBRE</span>
-      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}`}
+      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}
      </div>
      <div class="meta-box">
       <span class="lbl">CATEGORIA</span>
