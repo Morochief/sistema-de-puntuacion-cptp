@@ -60,7 +60,7 @@ function renderScoreCell(
  */
 function getLRPrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 2mm 5mm; }
+     @page { size: A4 landscape; margin: 0; }
    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
    body {
@@ -81,8 +81,6 @@ function getLRPrintStyles(): string {
     gap: 12px;
     align-items: flex-start;
     min-height: 186mm;
-    page-break-after: always;
-    break-after: page;
    }
 
    @media print {
@@ -92,7 +90,10 @@ function getLRPrintStyles(): string {
       padding: 6px 8px; 
       box-shadow: none; 
       width: 287mm; 
-      height: 206mm;
+      height: 210mm;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
