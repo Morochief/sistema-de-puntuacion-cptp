@@ -79,6 +79,9 @@ function getLRPrintStyles(): string {
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
     gap: 12px;
+    min-height: 186mm;
+    page-break-after: always;
+    break-after: page;
    }
 
    @media print {
