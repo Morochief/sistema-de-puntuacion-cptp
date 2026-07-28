@@ -47,6 +47,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         name: e.name,
         date: e.date,
         location: e.location || null,
+        modality: e.modality || '.22 LR',
         created_at: new Date(e.createdAt).toISOString(),
         is_deleted: !!e.is_deleted
       }));
@@ -97,6 +98,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
         series_number: s.seriesNumber,
         shots: s.shots,
         total_score: s.totalScore,
+        bonus_active: !!s.bonusActive,
         created_at: new Date(s.createdAt).toISOString(),
         is_deleted: !!s.is_deleted
       }));
@@ -193,6 +195,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           name: e.name,
           date: e.date,
           location: e.location || '',
+          modality: e.modality || '.22 LR',
           createdAt: new Date(e.created_at).getTime(),
           is_deleted: !!e.is_deleted
         });
@@ -244,6 +247,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           seriesNumber: s.series_number,
           shots: s.shots,
           totalScore: s.total_score,
+          bonusActive: !!s.bonus_active,
           createdAt: new Date(s.created_at).getTime(),
           is_deleted: !!s.is_deleted
         });

@@ -1,6 +1,14 @@
+// ── Modalidades de Tiro ─────────────────────────────────────────────────────
+export type Modality = '.22 LR' | '.308' | '.223';
+
+// Tipos de blanco: .22 LR usa 15"/10"/5", fuego central usa Grande/Mediano/Pequeño
+export type TargetType22 = '15"' | '10"' | '5"';
+export type TargetTypeCF = 'grande' | 'mediano' | 'pequeño';
+export type AnyTargetType = TargetType22 | TargetTypeCF | 'additional';
+
 export interface Shot {
-  shotNumber: number;  // 1-10
-  targetType: '15"' | '10"' | '5"' | 'additional';
+  shotNumber: number;  // 1-10 (.22 LR) o 1-12 (.308/.223)
+  targetType: AnyTargetType;
   hit: boolean;
   value: number;
 }
@@ -31,6 +39,7 @@ export interface Series {
   seriesNumber: number;
   shots: Shot[];
   totalScore: number;
+  bonusActive?: boolean; // Solo .308/.223: si el primer tiro activó el bonus x2
   createdAt: number;
   is_deleted?: boolean;
 }
@@ -40,6 +49,7 @@ export interface ShootingEvent {
   name: string;
   date: string; // ISO date
   location: string;
+  modality?: Modality; // Modalidad del evento (.22 LR por defecto)
   championshipDate?: string; // Ej: "1ª Fecha", "2ª Fecha", "Final"
   createdAt: number;
   is_deleted?: boolean;

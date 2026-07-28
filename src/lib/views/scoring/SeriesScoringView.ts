@@ -1,7 +1,7 @@
 import { esc, showToast, showConfirm } from '../../modals';
 import { navigate } from '../../router';
 import { db } from '../../db';
-import type { ShootingEvent, Participant, Series, Shot } from '../../types';
+import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../types';
 import { printSeriesCard } from '../../print';
 import {
  calculateSeriesTotal,
@@ -13,6 +13,21 @@ import {
  getTargetLabel,
  getTargetBadgeClass,
 } from '../../scoring';
+import {
+ calculateSeriesTotalCF,
+ calculateShotValueCF,
+ deriveCurrentPhaseCF,
+ getNextPhaseCF,
+ getMaxPossibleRemainingCF,
+ getValueIfHitCF,
+ getTargetLabelCF,
+ getTargetBadgeClassCF,
+ CF_SHOTS_PER_SERIES,
+} from '../../scoringCentralFire';
+import { getModalityConfig } from '../../modalityConfig';
+
+// ── Helpers de abstracción por modalidad ─────────────────────────────────────
+function isCentralFire(m?: Modality): boolean { return m === '.308' || m === '.223'; }
 
 export async function renderSeries(seriesId: string): Promise<void> {
  const container = document.getElementById('series-container');
@@ -46,13 +61,21 @@ export async function renderSeries(seriesId: string): Promise<void> {
   return;
  }
 
+ // ── Detección de modalidad ───────────────────────────────────────────────
+ const modality: Modality = event?.modality || '.22 LR';
+ const isCF = isCentralFire(modality);
+ const mConfig = getModalityConfig(modality);
+ const maxShots = mConfig.shotsPerSeries;
+ const maxScore = mConfig.maxSeriesScore;
+ let bonusActive = !!series.bonusActive;
+
  let currentShots: Shot[] = [...series.shots].sort((a, b) => a.shotNumber - b.shotNumber);
 
  // ─ Persist ────────────────────────────────────────────────
  async function persistShots(): Promise<void> {
-  const total = calculateSeriesTotal(currentShots);
+  const total = isCF ? calculateSeriesTotalCF(currentShots) : calculateSeriesTotal(currentShots);
   try {
-   await db.series.update(id, { shots: currentShots, totalScore: total });
+   await db.series.update(id, { shots: currentShots, totalScore: total, bonusActive });
   } catch (err) {
    console.error('[DB] Error guardando:', err);
    showToast('Error al guardar. Verificá el almacenamiento.', 'error');
@@ -63,7 +86,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
  function renderProgressBar(): void {
   const bar = document.getElementById('shots-progress-bar');
   if (!bar) return;
-  bar.innerHTML = Array.from({ length: 10 }, (_, i) => {
+  bar.innerHTML = Array.from({ length: maxShots }, (_, i) => {
    const s = currentShots[i];
    if (!s) {
     return `<div class="shot-pip${currentShots.length === i ? ' current' : ''}"
@@ -74,7 +97,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
           aria-label="Disparo ${i+1}: ${s.hit ? 'acierto '+s.value+' pts' : 'fallo'}"></div>`;
   }).join('');
   const c = document.getElementById('shots-count');
-  if (c) c.textContent = `${currentShots.length}/10`;
+  if (c) c.textContent = `${currentShots.length}/${maxShots}`;
  }
 
  // ─ Historial ──────────────────────────────────────────────
@@ -87,8 +110,8 @@ export async function renderSeries(seriesId: string): Promise<void> {
    return;
   }
   hist.innerHTML = [...currentShots].map((s) => {
-   const label = getTargetLabel(s.targetType);
-   const badgeCls = getTargetBadgeClass(s.targetType);
+   const label = isCF ? getTargetLabelCF(s.targetType as any) : getTargetLabel(s.targetType as any);
+   const badgeCls = isCF ? getTargetBadgeClassCF(s.targetType as any) : getTargetBadgeClass(s.targetType as any);
    return `
    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
          background:${s.hit ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'};
@@ -114,15 +137,15 @@ export async function renderSeries(seriesId: string): Promise<void> {
   if (!panel) return;
 
   const nextShotNum = currentShots.length + 1;
-  const isComplete = nextShotNum > 10;
-  const total    = calculateSeriesTotal(currentShots);
-  const phase    = deriveCurrentPhase(currentShots);
+  const isComplete = nextShotNum > maxShots;
+  const total = isCF ? calculateSeriesTotalCF(currentShots) : calculateSeriesTotal(currentShots);
+  const phase = isCF ? deriveCurrentPhaseCF(currentShots) : deriveCurrentPhase(currentShots);
 
   // Actualizar score header
   const scoreEl = document.getElementById('series-total-score');
   if (scoreEl) {
    scoreEl.textContent = String(total);
-   scoreEl.setAttribute('aria-label', `Puntaje acumulado: ${total} de 67`);
+   scoreEl.setAttribute('aria-label', `Puntaje acumulado: ${total} de ${maxScore}`);
   }
 
   if (isComplete) {
@@ -135,18 +158,41 @@ export async function renderSeries(seriesId: string): Promise<void> {
            background:linear-gradient(135deg,#d97706,#f59e0b);
            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
            background-clip:text;">${total} pts</div>
-     <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">de 67 posibles</div>
+     <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">de ${maxScore} posibles${isCF && bonusActive ? ' (con Bonus)' : ''}</div>
     </div>`;
    return;
   }
 
-  const hitValue = getValueIfHit(nextShotNum, phase);
-  const maxIfHit = total + (hitValue ?? 1) +
-   getMaxPossibleRemaining(nextShotNum + 1, phase === 'additional' ? 'additional' : getNextPhase(phase));
-  const maxIfMiss = total + getMaxPossibleRemaining(nextShotNum + 1, phase);
-  const costOfMiss = maxIfHit - maxIfMiss;
-  const label = getTargetLabel(phase);
-  const badgeCls = getTargetBadgeClass(phase);
+  // ── Cálculos por modalidad ──
+  let hitValue: number | null;
+  let maxIfHit: number;
+  let maxIfMiss: number;
+  let costOfMiss: number;
+  let label: string;
+  let badgeCls: string;
+
+  if (isCF) {
+   hitValue = getValueIfHitCF(nextShotNum, phase as any, bonusActive);
+   const nextPhase = phase === 'additional' ? 'additional' : getNextPhaseCF(phase as any);
+   maxIfHit = total + (hitValue ?? (bonusActive ? 2 : 1)) +
+    getMaxPossibleRemainingCF(nextShotNum + 1, nextPhase as any, bonusActive);
+   maxIfMiss = total + getMaxPossibleRemainingCF(nextShotNum + 1, phase as any, bonusActive);
+   costOfMiss = maxIfHit - maxIfMiss;
+   label = getTargetLabelCF(phase as any);
+   badgeCls = getTargetBadgeClassCF(phase as any);
+  } else {
+   hitValue = getValueIfHit(nextShotNum, phase as any);
+   const nextPhase = phase === 'additional' ? 'additional' : getNextPhase(phase as any);
+   maxIfHit = total + (hitValue ?? 1) +
+    getMaxPossibleRemaining(nextShotNum + 1, nextPhase as any);
+   maxIfMiss = total + getMaxPossibleRemaining(nextShotNum + 1, phase as any);
+   costOfMiss = maxIfHit - maxIfMiss;
+   label = getTargetLabel(phase as any);
+   badgeCls = getTargetBadgeClass(phase as any);
+  }
+
+  // ── Botón BONUS (solo fuego central, solo disparo 1, solo si estamos en blanco Grande) ──
+  const showBonusBtn = isCF && nextShotNum === 1 && phase === 'grande';
 
   panel.innerHTML = `
    <div style="background:#ffffff;border-radius:11px;padding:20px 16px;">
@@ -155,6 +201,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
       <div style="font-family:'Rajdhani',sans-serif;font-size:1.7rem;font-weight:900;
             color:#0f172a;line-height:1;">Disparo ${nextShotNum}</div>
       <span class="${badgeCls}">${label}</span>
+      ${bonusActive ? '<span style="font-size:0.7rem;background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:6px;font-weight:800;border:1px solid #fde68a;">⚡ BONUS x2</span>' : ''}
      </div>
      <div style="text-align:right;">
       <div style="font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Acumulado</div>
@@ -185,6 +232,16 @@ export async function renderSeries(seriesId: string): Promise<void> {
      Máximo posible ahora: <strong style="color:#0f172a;">${maxIfHit} pts</strong>
     </div>
 
+    ${showBonusBtn ? `
+    <button class="btn-primary-custom" id="btn-do-bonus"
+        style="width:100%;font-size:1.3rem;padding:18px 8px;margin-bottom:14px;
+               background:linear-gradient(135deg,#d97706,#f59e0b);border:none;color:#fff;
+               font-family:'Rajdhani',sans-serif;font-weight:900;border-radius:12px;
+               box-shadow:0 4px 12px rgba(217,119,6,0.35);"
+        aria-label="Bonus — acierto en zona especial del Blanco Grande">
+     ⚡ BONUS
+    </button>` : ''}
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
      <button class="btn-hit" id="btn-do-hit"
          style="font-size:2rem;padding:24px 8px;"
@@ -199,28 +256,52 @@ export async function renderSeries(seriesId: string): Promise<void> {
     </div>
    </div>`;
 
-  // Bind O
+  // ── Bind BONUS ──
+  document.getElementById('btn-do-bonus')?.addEventListener('click', async () => {
+   bonusActive = true;
+   const sn = currentShots.length + 1;
+   const val = isCF
+    ? calculateShotValueCF(sn, 'grande', true, true)
+    : calculateShotValue(sn, 'grande' as any, true);
+   currentShots.push({ shotNumber: sn, targetType: 'grande', hit: true, value: val });
+   await persistShots();
+   renderActionPanel();
+   renderHistory();
+   renderProgressBar();
+   updateUndoButton();
+   showToast(`⚡ BONUS activado — +${val} pts`, 'success', 2000);
+  });
+
+  // ── Bind O (Acierto) ──
   document.getElementById('btn-do-hit')?.addEventListener('click', async () => {
    const sn = currentShots.length + 1;
-   const ph = deriveCurrentPhase(currentShots);
-   const val = calculateShotValue(sn, ph, true);
+   let ph: any;
+   let val: number;
+
+   if (isCF) {
+    ph = deriveCurrentPhaseCF(currentShots);
+    val = calculateShotValueCF(sn, ph, true, bonusActive);
+   } else {
+    ph = deriveCurrentPhase(currentShots);
+    val = calculateShotValue(sn, ph, true);
+   }
    currentShots.push({ shotNumber: sn, targetType: ph, hit: true, value: val });
 
-   // Si se acaba de impactar el 5", rellenar automáticamente
-   // los disparos restantes como adicionales (1 pt cada uno).
-   const newPhase = deriveCurrentPhase(currentShots);
+   // Auto-fill adicionales tras impactar el último blanco
+   const newPhase = isCF ? deriveCurrentPhaseCF(currentShots) : deriveCurrentPhase(currentShots);
    if (newPhase === 'additional') {
     const nextN = currentShots.length + 1;
-    for (let n = nextN; n <= 10; n++) {
-     currentShots.push({ shotNumber: n, targetType: 'additional', hit: true, value: 1 });
+    const addVal = isCF && bonusActive ? 2 : 1;
+    for (let n = nextN; n <= maxShots; n++) {
+     currentShots.push({ shotNumber: n, targetType: 'additional', hit: true, value: addVal });
     }
-    const addCount = 10 - sn;
+    const addCount = maxShots - sn;
     await persistShots();
     renderActionPanel();
     renderHistory();
     renderProgressBar();
     updateUndoButton();
-    showToast(` ${val} pts · +${addCount} adicionales automáticos`, 'success', 2500);
+    showToast(` ${val} pts · +${addCount} adicionales automáticos${bonusActive ? ' (x2)' : ''}`, 'success', 2500);
     return;
    }
 
@@ -232,11 +313,11 @@ export async function renderSeries(seriesId: string): Promise<void> {
    showToast(` Acierto — +${val} pts`, 'success', 1500);
   });
 
-  // Bind X
+  // ── Bind X (Fallo) ──
   document.getElementById('btn-do-miss')?.addEventListener('click', async () => {
    const sn = currentShots.length + 1;
-   const ph = deriveCurrentPhase(currentShots);
-   currentShots.push({ shotNumber: sn, targetType: ph, hit: false, value: 0 });
+   const ph = isCF ? deriveCurrentPhaseCF(currentShots) : deriveCurrentPhase(currentShots);
+   currentShots.push({ shotNumber: sn, targetType: ph as any, hit: false, value: 0 });
    await persistShots();
    renderActionPanel();
    renderHistory();
@@ -253,7 +334,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
  }
 
  // ─ HTML base ──────────────────────────────────────────────
- const total = calculateSeriesTotal(currentShots);
+ const total = isCF ? calculateSeriesTotalCF(currentShots) : calculateSeriesTotal(currentShots);
 
  container.innerHTML = `
   <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -293,13 +374,14 @@ export async function renderSeries(seriesId: string): Promise<void> {
            font-weight:700;color:#0056b3;line-height:1.2;">
       ${esc(participant.name)}
      </h2>
-     <span style="font-size:0.7rem;color:#64748b;">
-      Serie ${series!.seriesNumber} ${(() => {
-        const isS2 = series!.seriesNumber === 2;
-        const t = isS2 ? participant.tandaS2 : participant.tanda;
-        const s = isS2 ? participant.spotS2 : participant.spot;
-        return t ? `· Tanda ${t} – Mesa ${s || ''}` : '';
-      })()}
+      <span style="font-size:0.7rem;color:#64748b;">
+       ${isCF ? `Serie ${series!.seriesNumber} ${participant.tanda ? `· Turno ${participant.tanda}` : ''}` :
+       `Serie ${series!.seriesNumber} ${(() => {
+         const isS2 = series!.seriesNumber === 2;
+         const t = isS2 ? participant.tandaS2 : participant.tanda;
+         const s = isS2 ? participant.spotS2 : participant.spot;
+         return t ? `· Tanda ${t} – Mesa ${s || ''}` : '';
+       })()}`}
      </span>
     </div>
     <div style="text-align:right;flex-shrink:0;">
@@ -308,8 +390,8 @@ export async function renderSeries(seriesId: string): Promise<void> {
            background:linear-gradient(135deg,#f59e0b,#fbbf24);
            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
            background-clip:text;"
-        aria-live="polite" aria-label="Puntaje acumulado: ${total} de 67">${total}</div>
-     <div style="font-size:0.7rem;color:#475569;">/ 67 pts</div>
+        aria-live="polite" aria-label="Puntaje acumulado: ${total} de ${maxScore}">${total}</div>
+     <div style="font-size:0.7rem;color:#475569;">/ ${maxScore} pts</div>
     </div>
    </div>
   </div>
@@ -318,10 +400,10 @@ export async function renderSeries(seriesId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <span class="section-title">Disparos</span>
     <span id="shots-count" style="font-family:'JetBrains Mono',monospace;
-       font-size:0.8rem;color:#64748b;" aria-live="polite">${currentShots.length}/10</span>
+       font-size:0.8rem;color:#64748b;" aria-live="polite">${currentShots.length}/${maxShots}</span>
    </div>
    <div id="shots-progress-bar" class="shots-progress" role="progressbar"
-      aria-valuenow="${currentShots.length}" aria-valuemin="0" aria-valuemax="10"
+      aria-valuenow="${currentShots.length}" aria-valuemin="0" aria-valuemax="${maxShots}"
       aria-label="Progreso de disparos"></div>
   </div>
 
@@ -354,6 +436,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
    const firstAddIdx = currentShots.findIndex((s) => s.targetType === 'additional');
    const removedCount = currentShots.length - firstAddIdx;
    currentShots = currentShots.slice(0, firstAddIdx);
+   if (currentShots.length === 0) bonusActive = false;
    await persistShots();
    renderActionPanel();
    renderHistory();
@@ -363,6 +446,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
   } else {
    const removed = currentShots[currentShots.length - 1];
    currentShots = currentShots.slice(0, -1);
+   if (currentShots.length === 0) bonusActive = false;
    await persistShots();
    renderActionPanel();
    renderHistory();

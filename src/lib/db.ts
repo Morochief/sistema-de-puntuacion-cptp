@@ -76,4 +76,19 @@ db.version(7).stores({
   masterCompetitors: '++id, name, championshipTieRank, createdAt',
 });
 
+// Versión 8: Soporte multi-modalidad (.22 LR, .308, .223).
+// Agrega índice de modalidad a eventos. Migra eventos existentes a '.22 LR'.
+db.version(8).stores({
+  events: '++id, date, modality, createdAt',
+  participants: '++id, eventId, competitorNumber, status, paymentStatus',
+  series: '++id, eventId, participantId, seriesNumber',
+  masterCompetitors: '++id, name, championshipTieRank, createdAt',
+}).upgrade(async (tx) => {
+  await tx.table('events').toCollection().modify((event: any) => {
+    if (!event.modality) {
+      event.modality = '.22 LR';
+    }
+  });
+});
+
 export { db };

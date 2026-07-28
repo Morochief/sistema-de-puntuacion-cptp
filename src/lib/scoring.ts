@@ -1,4 +1,4 @@
-import type { Shot } from './types';
+import type { Shot, AnyTargetType } from './types';
 
 // ── Tablas de puntuación ────────────────────────────────────────────────────
 //
@@ -16,7 +16,7 @@ export const SCORING_TABLES = {
   '5"':  [30, 26, 23, 20, 16, 13, 11, 7] as const,   // índice = shotNumber - 3
 } as const satisfies Record<'15"' | '10"' | '5"', readonly number[]>;
 
-export type MainTarget = keyof typeof SCORING_TABLES; // '15"' | '10"' | '5"'
+export type MainTarget = '15"' | '10"' | '5"';
 export type ShotPhase  = MainTarget | 'additional';
 
 export const SHOTS_PER_SERIES = 10;

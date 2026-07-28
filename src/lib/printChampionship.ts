@@ -5,6 +5,7 @@ import { openPrintModal } from './print';
 
 export function exportChampionshipToExcel(
   year: number,
+  modality: string,
   events: ShootingEvent[],
   rows: ChampionshipRankingRow[],
   sortedBy: string
@@ -62,7 +63,7 @@ export function exportChampionshipToExcel(
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Campeonato_${year}_OrdenadoPor_${sortedBy}.csv`;
+    link.download = `Campeonato_${modality.replace(/[\.\s]/g, '')}_${year}_OrdenadoPor_${sortedBy}.csv`;
     link.click();
     showToast('Planilla de campeonato exportada con éxito.', 'success');
   } catch (err) {
@@ -73,6 +74,7 @@ export function exportChampionshipToExcel(
 
 export function printChampionshipPreview(
   year: number,
+  modality: string,
   events: ShootingEvent[],
   rows: ChampionshipRankingRow[],
   sortedBy: string
@@ -178,7 +180,7 @@ export function printChampionshipPreview(
       <header class="header">
         <div>
           <span class="sub-title">Club Paraguayo de Tiro de Long Range</span>
-          <h1 class="title-main">RANKING CAMPEONATO GENERAL ANUAL</h1>
+          <h1 class="title-main">RANKING CAMPEONATO GENERAL ANUAL - ${modality}</h1>
           <span style="font-size:11px;color:#333;font-weight:bold;">PLANILLA OFICIAL ACUMULADA (Orden: ${isSortedByBase ? 'BASE FIRME' : 'TOTAL'})</span>
         </div>
         <div class="date-info">

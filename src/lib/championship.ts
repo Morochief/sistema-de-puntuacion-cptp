@@ -6,7 +6,7 @@
  * - Total Actual (Top 3)
  */
 import { db } from './db';
-import type { ShootingEvent, Participant, Series, MasterCompetitor } from './types';
+import type { ShootingEvent, Participant, Series, MasterCompetitor, Modality } from './types';
 
 export interface ChampionshipScore {
   eventId: number;
@@ -27,10 +27,12 @@ export interface ChampionshipRankingRow {
   tieRank?: number;    // Posición táctica manual en caso de empate general
 }
 
-export async function getChampionshipData(year: number): Promise<{ rankings: ChampionshipRankingRow[], allEvents: ShootingEvent[] }> {
+export async function getChampionshipData(year: number, modality: Modality = '.22 LR'): Promise<{ rankings: ChampionshipRankingRow[], allEvents: ShootingEvent[] }> {
   const allEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
   const yearEvents = allEvents
     .filter(e => {
+      const eMod = e.modality || '.22 LR';
+      if (eMod !== modality) return false;
       try {
         const dateObj = new Date(e.date + 'T12:00:00');
         return dateObj.getFullYear() === year;

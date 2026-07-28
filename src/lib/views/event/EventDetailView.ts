@@ -8,7 +8,8 @@ import { sortRanking, showTieBreakerModal } from '../../tiebreaker';
 import { handleSeedParticipants, handleSeedScores } from '../../seeder';
 import { db } from '../../db';
 import { updateUIRoles } from '../../authManager';
-import type { ShootingEvent, Participant, Series, Shot } from '../../types';
+import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../types';
+import { getModalityConfig } from '../../modalityConfig';
 import { printEventCards, printRankingCard, printBlankSheet } from '../../print';
 import html2canvas from 'html2canvas';
 import { renderMasterCompetitorsModal } from '../../masterCompetitors';
@@ -57,6 +58,12 @@ export async function renderEvent(eventId: string): Promise<void> {
 
  // Ordenar participantes por número correlativo
  participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
+
+ // ── Detección de modalidad ───────────────────────────────────────────────
+ const modality: Modality = event.modality || '.22 LR';
+ const mConfig = getModalityConfig(modality);
+ const isCF = modality === '.308' || modality === '.223';
+ const maxSeriesPerEvent = mConfig.seriesPerEvent; // 2 para .22 LR, 1 para CF
 
  // --- RENDERIZADO DEL CONTENEDOR PRINCIPAL ---
  container.innerHTML = `
@@ -699,8 +706,8 @@ export async function renderEvent(eventId: string): Promise<void> {
   // Verificar si ya se sorteó (al menos uno tiene tanda asignada)
   const sortedParticipants = participants.filter(p => (activeSorteoTab === 1 ? p.tanda : p.tandaS2) !== undefined);
   
-  // Render tabs for Serie 1 / Serie 2 selection inside Sorteo view
-  const tabsHtml = `
+  // Render tabs for Serie 1 / Serie 2 selection inside Sorteo view (only if maxSeriesPerEvent > 1)
+  const tabsHtml = maxSeriesPerEvent > 1 ? `
     <div class="tabs tabs-boxed mb-4" style="background:#e2e8f0;border:1px solid #cbd5e1;display:flex;gap:4px;padding:4px;border-radius:12px;margin-bottom:16px;">
       <button id="sorteo-tab-btn-s1" class="tab ${activeSorteoTab === 1 ? 'tab-active' : ''}" style="flex:1;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.8rem;${activeSorteoTab === 1 ? 'color:#0f172a;' : 'color:#475569;'}">
         Ver Serie 1
@@ -709,38 +716,46 @@ export async function renderEvent(eventId: string): Promise<void> {
         Ver Serie 2
       </button>
     </div>
-  `;
+  ` : '';
 
   if (sortedParticipants.length === 0) {
    tableEl.innerHTML = tabsHtml + `
     <div style="text-align:center;padding:32px 16px;border:1px dashed #cbd5e1;border-radius:12px;">
-     <div style="font-size:0.8rem;color:#475569;">Sorteo pendiente para Serie ${activeSorteoTab}. Presioná el botón "Sortear Posiciones".</div>
+     <div style="font-size:0.8rem;color:#475569;">Sorteo pendiente${maxSeriesPerEvent > 1 ? ` para Serie ${activeSorteoTab}` : ''}. Presioná el botón "Sortear Posiciones".</div>
     </div>`;
     
     // Bind tab clicks even if empty
-    tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
-    tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
+    if (maxSeriesPerEvent > 1) {
+      tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
+      tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
+    }
     return;
   }
 
   let html = tabsHtml + `<div style="display:flex;flex-direction:column;gap:18px;">`;
 
-  // 8 Tandas de 4 spots cada una (32 competidores max)
-  for (let t = 1; t <= 8; t++) {
-    const getCompetitor = (spotNum: 1 | 2 | 3 | 4) => {
+  // N Tandas según config
+  for (let t = 1; t <= mConfig.maxHeats; t++) {
+    // Solo mostrar las tandas/turnos que tienen al menos un competidor sorteado (o siempre las primeras 8 en .22 LR para mantener UI constante)
+    const competitorsInHeat = participants.filter(p => (activeSorteoTab === 1 ? p.tanda === t : p.tandaS2 === t));
+    if (isCF && competitorsInHeat.length === 0) continue; // En CF ocultamos turnos vacíos (pueden ser hasta 50)
+    
+    const getCompetitor = (spotNum: number) => {
       return participants.find(p => (activeSorteoTab === 1 ? p.tanda === t && p.spot === spotNum : p.tandaS2 === t && p.spotS2 === spotNum));
     };
+
+    const spotsArray = Array.from({ length: mConfig.spotsPerHeat }, (_, i) => i + 1);
 
     html += `
      <div class="card-tactical" style="padding:14px;border-color:#e2e8f0;">
       <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:900;
             color:#0f172a;letter-spacing:0.08em;margin-bottom:10px;text-align:center;
             border-bottom:1px solid #f1f5f9;padding-bottom:6px;">
-       TANDA ${t} (${activeSorteoTab === 1 ? 'Serie 1' : 'Serie 2'})
+       ${isCF ? `TURNO ${t}` : `TANDA ${t} (${activeSorteoTab === 1 ? 'Serie 1' : 'Serie 2'})`}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
-        ${[1, 2, 3, 4].map(spotNum => {
-          const p = getCompetitor(spotNum as 1 | 2 | 3 | 4);
+        ${spotsArray.map(spotNum => {
+          const p = getCompetitor(spotNum);
           return renderSpotCell(spotNum, p);
         }).join('')}
       </div>
@@ -751,8 +766,10 @@ export async function renderEvent(eventId: string): Promise<void> {
   tableEl.innerHTML = html;
 
   // Bind tab clicks
-  tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
-  tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
+  if (maxSeriesPerEvent > 1) {
+    tableEl.querySelector('#sorteo-tab-btn-s1')?.addEventListener('click', () => { activeSorteoTab = 1; renderCuadroSorteo(); });
+    tableEl.querySelector('#sorteo-tab-btn-s2')?.addEventListener('click', () => { activeSorteoTab = 2; renderCuadroSorteo(); });
+  }
 
   // Bind click en spots con competidor para ver sus series
   tableEl.querySelectorAll('[data-goto-participant-id]').forEach(cell => {
@@ -784,7 +801,8 @@ export async function renderEvent(eventId: string): Promise<void> {
   }
   const btnReorderS2 = document.getElementById('btn-reorder-heats-s2') as HTMLButtonElement | null;
   if (btnReorderS2) {
-   btnReorderS2.disabled = participants.length === 0 || !participants.some(p => p.tanda !== undefined);
+   btnReorderS2.disabled = participants.length === 0;
+   btnReorderS2.style.display = maxSeriesPerEvent > 1 ? 'inline-block' : 'none';
   }
  }
 
@@ -877,7 +895,9 @@ export async function renderEvent(eventId: string): Promise<void> {
        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>${p.category ? ` <span style="font-size:0.75rem;color:#64748b;">(${esc(p.category.split('::')[0])})</span>` : ''}
       </div>
       <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
-       ${p.tanda ? `S1: Tanda ${p.tanda}·Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'}·Mesa ${p.spotS2 || '—'}` : 'Posición no sorteada'}
+       ${isCF
+        ? (p.tanda ? `Turno ${p.tanda}` : 'Turno no sorteado')
+        : (p.tanda ? `S1: Tanda ${p.tanda}·Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'}·Mesa ${p.spotS2 || '—'}` : 'Posición no sorteada')}
        ${pSeries.length > 0 ? `· Acumulado: <strong style="color:#22c55e;">${totalScore} pts</strong>` : ''}
       </div>
      </div>
@@ -887,7 +907,7 @@ export async function renderEvent(eventId: string): Promise<void> {
           style="font-size:0.7rem;padding:6px 10px;border-color:rgba(239,68,68,0.25);color:#ef4444;" aria-label="Limpiar series para ${esc(p.name)}" title="Eliminar las series de este tirador">
        Vaciar
       </button>` : ''}
-      ${pSeries.length < 2 ? `
+      ${pSeries.length < maxSeriesPerEvent ? `
       <button class="btn-primary-custom staff-only" data-add-series-for="${p.id}"
           style="font-size:0.7rem;padding:6px 10px;" aria-label="Nueva serie para ${esc(p.name)}">
        + Serie
@@ -913,8 +933,8 @@ export async function renderEvent(eventId: string): Promise<void> {
 
     try {
      const existingSeries = allSeries.filter(s => s.participantId === pid);
-     if (existingSeries.length >= 2) {
-      showToast('Límite alcanzado: Máximo 2 series por participante.', 'error');
+     if (existingSeries.length >= maxSeriesPerEvent) {
+      showToast(`Límite alcanzado: Máximo ${maxSeriesPerEvent} serie${maxSeriesPerEvent > 1 ? 's' : ''} por participante.`, 'error');
       btnEl.disabled = false;
       btnEl.textContent = '+ Serie';
       return;
@@ -1284,39 +1304,45 @@ export async function renderEvent(eventId: string): Promise<void> {
     const j = Math.floor(Math.random() * (i + 1));
     [listS1[i], listS1[j]] = [listS1[j], listS1[i]];
    }
+   
+   const spotsPerHeat = mConfig.spotsPerHeat;
+
    for (let i = 0; i < listS1.length; i++) {
-    listS1[i].tanda = Math.floor(i / 4) + 1;
-    listS1[i].spot = ((i % 4) + 1) as 1|2|3|4;
+    listS1[i].tanda = Math.floor(i / spotsPerHeat) + 1;
+    listS1[i].spot = ((i % spotsPerHeat) + 1) as 1|2|3|4;
    }
-   if (typeof applySpecialFamilySeedingRules === 'function') {
+   
+   if (mConfig.useFamilyRules && typeof applySpecialFamilySeedingRules === 'function') {
       applySpecialFamilySeedingRules(listS1);
    }
-   if (typeof applySharedRifleRules === 'function') {
+   if (mConfig.useSharedRifle && typeof applySharedRifleRules === 'function') {
       applySharedRifleRules(listS1);
    }
 
-   // 2. SORTEO SERIE 2 (Mismo grupo de tanda, pero mezclando las mesas/spots)
-   const groupsS1: Record<number, Participant[]> = {};
-   for (const p of listS1) {
-     if (p.tanda) {
-       if (!groupsS1[p.tanda]) groupsS1[p.tanda] = [];
-       groupsS1[p.tanda].push(p);
+   if (maxSeriesPerEvent > 1) {
+     // 2. SORTEO SERIE 2 (Mismo grupo de tanda, pero mezclando las mesas/spots)
+     const groupsS1: Record<number, Participant[]> = {};
+     for (const p of listS1) {
+       if (p.tanda) {
+         if (!groupsS1[p.tanda]) groupsS1[p.tanda] = [];
+         groupsS1[p.tanda].push(p);
+       }
      }
-   }
 
-   for (const tString in groupsS1) {
-     const t = Number(tString);
-     const competitorsInTanda = [...groupsS1[t]];
-     const spots = [1, 2, 3, 4].slice(0, competitorsInTanda.length);
-     // Mezclar spots
-     for (let i = spots.length - 1; i > 0; i--) {
-       const j = Math.floor(Math.random() * (i + 1));
-       [spots[i], spots[j]] = [spots[j], spots[i]];
+     for (const tString in groupsS1) {
+       const t = Number(tString);
+       const competitorsInTanda = [...groupsS1[t]];
+       const spots = [1, 2, 3, 4].slice(0, competitorsInTanda.length);
+       // Mezclar spots
+       for (let i = spots.length - 1; i > 0; i--) {
+         const j = Math.floor(Math.random() * (i + 1));
+         [spots[i], spots[j]] = [spots[j], spots[i]];
+       }
+       competitorsInTanda.forEach((p, idx) => {
+         p.tandaS2 = t;
+         p.spotS2 = spots[idx] as 1|2|3|4;
+       });
      }
-     competitorsInTanda.forEach((p, idx) => {
-       p.tandaS2 = t;
-       p.spotS2 = spots[idx] as 1|2|3|4;
-     });
    }
 
    // Guardar la lista combinada
@@ -1324,8 +1350,14 @@ export async function renderEvent(eventId: string): Promise<void> {
      const p1 = listS1.find(x => x.id === p.id);
      p.tanda = p1?.tanda;
      p.spot = p1?.spot;
-     p.tandaS2 = p1?.tandaS2;
-     p.spotS2 = p1?.spotS2;
+     
+     if (maxSeriesPerEvent > 1) {
+       p.tandaS2 = p1?.tandaS2;
+       p.spotS2 = p1?.spotS2;
+     } else {
+       p.tandaS2 = undefined;
+       p.spotS2 = undefined;
+     }
      p.sector = undefined;
    }
 

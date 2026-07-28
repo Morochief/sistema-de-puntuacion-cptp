@@ -1,6 +1,8 @@
 import { showToast } from '../modals';
 import { navigate } from '../router';
 import { db } from '../db';
+import type { Modality } from '../types';
+import { MODALITY_CONFIGS, ALL_MODALITIES } from '../modalityConfig';
 
 export async function renderNewEvent(): Promise<void> {
  const container = document.getElementById('new-event-container');
@@ -53,6 +55,25 @@ export async function renderNewEvent(): Promise<void> {
          placeholder="Ej: Campo de Tiro LPBC"
          maxlength="80" autocomplete="off" />
     </div>
+    <div class="field-group">
+     <label class="field-label">Modalidad</label>
+     <div id="modality-selector" style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${ALL_MODALITIES.map((m, i) => {
+        const cfg = MODALITY_CONFIGS[m];
+        return `<label style="flex:1;min-width:80px;cursor:pointer;">
+         <input type="radio" name="modality" value="${m}" ${i === 0 ? 'checked' : ''} style="display:none;" />
+         <div class="modality-pill" data-modality="${m}"
+           style="text-align:center;padding:10px 14px;border-radius:10px;font-family:'Rajdhani',sans-serif;
+                  font-weight:800;font-size:0.95rem;border:2px solid ${i === 0 ? cfg.color : '#cbd5e1'};
+                  background:${i === 0 ? cfg.bgColor : '#f8fafc'};
+                  color:${i === 0 ? cfg.color : '#64748b'};
+                  transition:all 0.2s;">
+          ${cfg.shortLabel}
+         </div>
+        </label>`;
+      }).join('')}
+     </div>
+    </div>
     <div style="display:flex;gap:12px;padding-top:8px;">
      <button type="button" class="btn-ghost-custom" style="flex:1;" id="btn-cancel-new">Cancelar</button>
      <button type="submit" class="btn-primary-custom" style="flex:2;" id="btn-submit-new">
@@ -70,16 +91,33 @@ export async function renderNewEvent(): Promise<void> {
  const form = document.getElementById('form-new-event');
  const btnSubmit = document.getElementById('btn-submit-new') as HTMLButtonElement | null;
 
+ // Modality pill interactive toggle
+ document.querySelectorAll('input[name="modality"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+   document.querySelectorAll('.modality-pill').forEach(pill => {
+    const el = pill as HTMLElement;
+    const m = el.dataset.modality as Modality;
+    const cfg = MODALITY_CONFIGS[m];
+    const isSelected = (radio as HTMLInputElement).value === m && (radio as HTMLInputElement).checked;
+    el.style.borderColor = isSelected ? cfg.color : '#cbd5e1';
+    el.style.background = isSelected ? cfg.bgColor : '#f8fafc';
+    el.style.color = isSelected ? cfg.color : '#64748b';
+   });
+  });
+ });
+
  form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name   = (document.getElementById('field-name') as HTMLInputElement).value.trim();
   const date   = (document.getElementById('field-date') as HTMLInputElement).value;
   const championshipDate = (document.getElementById('field-champ-date') as HTMLInputElement).value.trim();
   const location = (document.getElementById('field-location') as HTMLInputElement).value.trim();
+  const modalityRadio = document.querySelector('input[name="modality"]:checked') as HTMLInputElement | null;
+  const modality = (modalityRadio?.value || '.22 LR') as Modality;
   if (!name || !date) { showToast('Completá nombre y fecha.', 'error'); return; }
   if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Guardando…'; }
   try {
-   const eid = await db.events.add({ name, date, location, championshipDate, createdAt: Date.now() });
+   const eid = await db.events.add({ name, date, location, modality, championshipDate, createdAt: Date.now() });
    navigate(`/event/${eid}`);
   } catch (err) {
    console.error('[DB] Error creando evento:', err);

@@ -1,9 +1,11 @@
 import { getChampionshipData, sortChampionshipRanking, type ChampionshipRankingRow } from '../championship';
-import type { ShootingEvent } from '../types';
+import type { ShootingEvent, Modality } from '../types';
 import { esc } from '../modals';
 import { exportChampionshipToExcel, printChampionshipPreview } from '../printChampionship';
+import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
 
 let currentSortBy: 'baseFirme' | 'totalActual' = 'totalActual';
+let selectedModality: Modality = '.22 LR';
 
 export async function renderChampionshipPanel(container: HTMLElement): Promise<void> {
   const currentYear = new Date().getFullYear();
@@ -12,16 +14,23 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
   const loadAndDraw = async () => {
     container.innerHTML = `<div style="text-align:center;padding:32px;color:#64748b;font-size:0.9rem;">Cargando tabla de campeonato...</div>`;
     
-    const { rankings, allEvents } = await getChampionshipData(selectedYear);
+    const { rankings, allEvents } = await getChampionshipData(selectedYear, selectedModality);
+    const mConfig = MODALITY_CONFIGS[selectedModality];
 
     let html = `
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:24px;box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
           <div>
-            <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;color:#0056b3;margin:0;">Campeonato General Anual</h3>
+            <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;color:${mConfig.color};margin:0;">Campeonato General Anual - ${mConfig.shortLabel}</h3>
             <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b;font-weight:600;">Se suman los 3 mejores puntajes de los 4 eventos. El Top 2 compone la "Base Firme".</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:0.85rem;font-weight:700;color:#475569;">Modalidad:</label>
+            <select id="champ-modality-select" style="padding:6px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.88rem;background:#ffffff;color:#0f172a;font-weight:700;outline:none;cursor:pointer;">
+              ${ALL_MODALITIES.map(m => `
+                <option value="${m}" ${selectedModality === m ? 'selected' : ''}>${MODALITY_CONFIGS[m].shortLabel}</option>
+              `).join('')}
+            </select>
             <label style="font-size:0.85rem;font-weight:700;color:#475569;">Año:</label>
             <select id="champ-year-select" style="padding:6px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.88rem;background:#ffffff;color:#0f172a;font-weight:700;outline:none;cursor:pointer;">
               ${[currentYear, currentYear - 1, currentYear - 2].map(y => `
@@ -43,7 +52,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     if (allEvents.length === 0) {
       html += `
         <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
-          No hay eventos registrados para el año ${selectedYear}.
+          No hay eventos registrados para el año ${selectedYear} en ${mConfig.shortLabel}.
         </div>
       </div>`;
       container.innerHTML = html;
@@ -194,6 +203,10 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       selectedYear = Number((e.target as HTMLSelectElement).value);
       loadAndDraw();
     });
+    document.getElementById('champ-modality-select')?.addEventListener('change', (e) => {
+      selectedModality = (e.target as HTMLSelectElement).value as Modality;
+      loadAndDraw();
+    });
   };
 
   const bindSorting = () => {
@@ -213,11 +226,11 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
   const bindActions = (activeEvents: ShootingEvent[], rows: ChampionshipRankingRow[], sortedBy: string) => {
     document.getElementById('btn-excel-champ')?.addEventListener('click', () => {
-      exportChampionshipToExcel(selectedYear, activeEvents, rows, sortedBy);
+      exportChampionshipToExcel(selectedYear, selectedModality, activeEvents, rows, sortedBy);
     });
 
     document.getElementById('btn-print-champ')?.addEventListener('click', () => {
-      printChampionshipPreview(selectedYear, activeEvents, rows, sortedBy);
+      printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy);
     });
   };
 
