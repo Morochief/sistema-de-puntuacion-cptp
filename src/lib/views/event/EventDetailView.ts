@@ -171,7 +171,7 @@ export async function renderEvent(eventId: string): Promise<void> {
         ${isCF ? 'Reordenar' : 'Reordenar S1'}
       </button>
       <button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only"
-          style="display:${maxSeriesPerEvent > 1 ? 'inline-block' : 'none'};padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
+          style="display:${!isCF && maxSeriesPerEvent > 1 ? 'inline-block' : 'none'};padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 2">
         Reordenar S2
