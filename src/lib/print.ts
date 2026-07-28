@@ -59,7 +59,7 @@ function renderScoreCell(
  */
 function getLandscapePrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 2mm 5mm; }
+     @page { size: A4 landscape; margin: 3mm 4mm; }
    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
    body {
@@ -71,14 +71,14 @@ function getLandscapePrintStyles(): string {
    }
 
    .a4-landscape-page {
-    width: 287mm;
-    height: 206mm;
+    width: 289mm;
+    height: 196mm;
     margin: 10mm auto;
     background: #fff;
-    padding: 4px 8px;
+    padding: 3px 6px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
-    gap: 6px;
+    gap: 5px;
     overflow: hidden;
     page-break-inside: avoid;
     break-inside: avoid;
@@ -88,10 +88,10 @@ function getLandscapePrintStyles(): string {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
       margin: 0; 
-      padding: 3px 6px; 
+      padding: 2px 4px; 
       box-shadow: none; 
-      width: 287mm; 
-      height: 206mm; 
+      width: 289mm; 
+      height: 198mm; 
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
       overflow: hidden;
@@ -118,7 +118,7 @@ function getLandscapePrintStyles(): string {
     min-width: 0;
     border: 1.5px solid #000;
     border-radius: 6px;
-    padding: 3px 6px;
+    padding: 2px 5px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -150,15 +150,15 @@ function getLandscapePrintStyles(): string {
 
    .thick-hr { border: none; border-top: 2px solid #000; margin: 2px 0; }
 
-   .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 2px; }
+   .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 2px; }
    .meta-box {
-    border: 1.5px solid #000; border-radius: 18px; height: 40px;
+    border: 1.5px solid #000; border-radius: 18px; height: 34px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 2px;
+    text-align: center; padding: 1px;
    }
-   .meta-box .lbl { font-size: 8px; font-weight: 900; text-transform: uppercase; color: #000; }
-   .meta-box .vl { font-size: 13px; font-weight: 900; line-height: 1.05; }
-   .meta-box .vs { font-size: 12px; font-weight: 700; margin-top: 0.5px; }
+   .meta-box .lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; color: #000; }
+   .meta-box .vl { font-size: 12px; font-weight: 900; line-height: 1.05; }
+   .meta-box .vs { font-size: 11px; font-weight: 700; margin-top: 0.5px; }
 
    .table-wrap { border: 1.5px solid #000; border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
    table.score-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -199,16 +199,16 @@ function getLandscapePrintStyles(): string {
    .td-puntos  { font-size: 15px; font-weight: 900; background: #fffde7; }
    .td-adicional{ font-size: 14px; font-weight: 700; background: #fffde7; }
 
-   .totals-row { display: flex; gap: 6px; margin-top: 2px; }
+   .totals-row { display: flex; gap: 5px; margin-top: 2px; }
    .total-box {
-    flex: 1; border: 1.5px solid #000; border-radius: 8px; height: 38px;
-    display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+    flex: 1; border: 1.5px solid #000; border-radius: 8px; height: 32px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 8px;
    }
-   .total-lbl { font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
+   .total-lbl { font-size: 9px; font-weight: 900; text-transform: uppercase; }
    .total-val { display: flex; align-items: baseline; gap: 3px; }
-   .total-num { font-size: 20px; font-weight: 900; }
-   .total-word { font-size: 11px; font-weight: 300; color: #555; }
-   .visto-box { width: 36%; border: 1.5px solid #000; border-radius: 8px; height: 38px; padding: 3px 8px; position: relative; flex-shrink: 0; }
+   .total-num { font-size: 18px; font-weight: 900; }
+   .total-word { font-size: 10px; font-weight: 300; color: #555; }
+   .visto-box { width: 36%; border: 1.5px solid #000; border-radius: 8px; height: 32px; padding: 2px 8px; position: relative; flex-shrink: 0; }
    .visto-lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; color: #555; }
 
    .target-summary {
