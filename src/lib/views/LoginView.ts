@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import { checkAuth } from '../authManager';
-import { navigateTo } from '../router';
+import { navigate } from '../router';
 import { showToast } from '../modals';
 
 export async function renderLogin() {
@@ -82,7 +82,7 @@ export async function renderLogin() {
     } else {
       showToast('Sesión iniciada correctamente', 'success');
       await checkAuth();
-      navigateTo('dashboard');
+      navigate('/dashboard');
     }
   });
 }
