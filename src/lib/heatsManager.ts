@@ -494,7 +494,7 @@ export async function resetEventSeeding(eventId: number, onSaveCallback: () => v
 
  */
 
-export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void, seriesNum: number = 1): Promise<void> {
+export async function showManualHeatsReorderModal(eventId: number, onSaveCallback: () => void, seriesNum: number = 1, isCF: boolean = false): Promise<void> {
   const participants = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
 
   if (participants.length === 0) {
@@ -519,8 +519,8 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   modalBox.innerHTML = `
     <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">Reordenar Serie ${seriesNum}</h2>
-        <span style="font-size:0.75rem;color:#64748b;font-weight:600;">Elegí la Tanda con la lista y cambiá de Mesa (1-4) usando ▲ y ▼</span>
+        <h2 style="font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:900;color:#0056b3;margin:0;">${isCF ? 'Reordenar Turnos' : `Reordenar Serie ${seriesNum}`}</h2>
+        <span style="font-size:0.75rem;color:#64748b;font-weight:600;">${isCF ? 'Reordenamento de turnos consecutivos de tiro. Usá ▲ y ▼ para cambiar de posición.' : 'Elegí la Tanda con la lista y cambiá de Mesa (1-4) usando ▲ y ▼'}</span>
       </div>
       <button id="close-heats-modal" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;font-weight:bold;padding:8px;">X</button>
     </div>
@@ -564,7 +564,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
     const tandasHtml = sortedTandas.map(tandaNum => {
       const group = heatsMap.get(tandaNum)!;
-      const title = tandaNum === 0 ? '⚠️ Competidores sin Tanda Asignada' : `Tanda ${tandaNum}`;
+      const title = tandaNum === 0 ? (isCF ? '⚠️ Competidores sin Turno Asignado' : '⚠️ Competidores sin Tanda Asignada') : (isCF ? `Turno ${tandaNum}` : `Tanda ${tandaNum}`);
 
       const itemsHtml = group.map((p, gIdx) => {
         const pSpot = seriesNum === 1 ? p.spot : p.spotS2;
@@ -580,14 +580,15 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
             </div>
 
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              ${isCF ? '' : `
               <div style="display:flex;gap:4px;align-items:center;">
-                <span style="font-size:0.75rem;font-weight:700;color:#475569;">Tanda:</span>
+                <span style="font-size:0.75rem;font-weight:700;color:#475569;">Turno:</span>
                 <select data-move-p="${p.id}" style="padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.8rem;background:#fff;font-weight:bold;color:#0056b3;">
                   ${Array.from({ length: 8 }, (_, i) => i + 1).map(n => `
                     <option value="${n}" ${pTanda === n ? 'selected' : ''}>${n}</option>
                   `).join('')}
                 </select>
-              </div>
+              </div>`}
 
               <div style="display:flex;gap:4px;align-items:center;">
                 <span style="font-size:0.75rem;font-weight:700;color:#475569;margin-left:4px;">Mesa:</span>

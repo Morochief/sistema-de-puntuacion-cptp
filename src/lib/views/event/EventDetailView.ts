@@ -152,10 +152,10 @@ export async function renderEvent(eventId: string): Promise<void> {
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
       <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin:0;">
-       Sorteo de Mesas
+       ${isCF ? 'Orden de Tiro' : 'Sorteo de Mesas'}
       </h3>
       <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">
-       Sortea aleatoriamente en 8 Tandas (Spots 1-4). Reglas especiales de la organización aplicadas automáticamente.
+       ${isCF ? 'Asigná el turno de tiro a cada competidor. Podés reordenarlos cuando quieras.' : 'Sortea aleatoriamente en 8 Tandas (Spots 1-4). Reglas especiales de la organización aplicadas automáticamente.'}
       </p>
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -167,8 +167,8 @@ export async function renderEvent(eventId: string): Promise<void> {
       <button id="btn-reorder-heats" class="btn-ghost-custom staff-only"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 ? 'disabled' : ''}
-          title="Reasignar tandas manualmente para Serie 1">
-        Reordenar S1
+          title="Reordenar el orden de tiro">
+        ${isCF ? 'Reordenar' : 'Reordenar S1'}
       </button>
       <button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only"
           style="display:${maxSeriesPerEvent > 1 ? 'inline-block' : 'none'};padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
@@ -1399,7 +1399,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderListaInscritos();
    renderCuadroSorteo();
-  }, 1);
+  }, 1, isCF);
  });
 
  document.getElementById('btn-reorder-heats-s2')?.addEventListener('click', async () => {
