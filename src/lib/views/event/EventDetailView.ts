@@ -182,12 +182,13 @@ export async function renderEvent(eventId: string): Promise<void> {
           title="Reordenar el orden de tiro">
         ${isCF ? 'Reordenar' : 'Reordenar S1'}
       </button>
+      ${!isCF ? `
       <button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only"
-          style="display:${!isCF && maxSeriesPerEvent > 1 ? 'inline-block' : 'none'};padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
+          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 2">
         Reordenar S2
-      </button>
+      </button>` : ''}
       
       <button id="btn-undo-sorteo" class="btn-ghost-custom staff-only"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(183,32,28,0.35);color:#b7201c;"
@@ -814,7 +815,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   const btnReorderS2 = document.getElementById('btn-reorder-heats-s2') as HTMLButtonElement | null;
   if (btnReorderS2) {
    btnReorderS2.disabled = participants.length === 0;
-   btnReorderS2.style.display = maxSeriesPerEvent > 1 ? 'inline-block' : 'none';
+   btnReorderS2.style.display = !isCF && maxSeriesPerEvent > 1 ? 'inline-block' : 'none';
   }
  }
 
