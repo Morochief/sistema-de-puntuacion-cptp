@@ -1,4 +1,5 @@
 let activeSorteoTab: 1 | 2 = 1;
+let activeMainTab: 'tiradores' | 'series' | 'posiciones' = 'tiradores';
 import { esc, showToast, showConfirm, showPrompt, showEditParticipantModal } from '../../modals';
 import { navigate } from '../../router';
 import { exportRankingToExcel } from '../../excel';
@@ -80,19 +81,19 @@ export async function renderEvent(eventId: string): Promise<void> {
 
   <!-- TABS DE NAVEGACIÓN -->
   <div role="tablist" aria-label="Navegación del Evento" class="tabs tabs-boxed mb-6 bg-slate-200 border border-slate-300 flex gap-1 p-1 rounded-xl">
-   <button role="tab" aria-selected="true" aria-controls="tab-panel-tiradores" id="tab-btn-tiradores" class="tab tab-active flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-900 text-sm transition-all duration-200">
+   <button role="tab" aria-selected="${activeMainTab === 'tiradores' ? 'true' : 'false'}" aria-controls="tab-panel-tiradores" id="tab-btn-tiradores" class="tab ${activeMainTab === 'tiradores' ? 'tab-active' : ''} flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-900 text-sm transition-all duration-200">
     Sorteo (${participants.length}/32)
    </button>
-   <button role="tab" aria-selected="false" aria-controls="tab-panel-series" id="tab-btn-series" class="tab flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
+   <button role="tab" aria-selected="${activeMainTab === 'series' ? 'true' : 'false'}" aria-controls="tab-panel-series" id="tab-btn-series" class="tab ${activeMainTab === 'series' ? 'tab-active' : ''} flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
     Series
    </button>
-   <button role="tab" aria-selected="false" aria-controls="tab-panel-posiciones" id="tab-btn-posiciones" class="tab flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
+   <button role="tab" aria-selected="${activeMainTab === 'posiciones' ? 'true' : 'false'}" aria-controls="tab-panel-posiciones" id="tab-btn-posiciones" class="tab ${activeMainTab === 'posiciones' ? 'tab-active' : ''} flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-600 text-sm transition-all duration-200">
     Posiciones
    </button>
   </div>
 
   <!-- PANEL 1: REGISTRO Y SORTEO -->
-  <div id="tab-panel-tiradores" class="tab-panel">
+  <div id="tab-panel-tiradores" class="tab-panel ${activeMainTab === 'tiradores' ? '' : 'hidden'}">
    <!-- Formulario de Inscripción -->
    <div class="card-tactical" style="padding:16px;margin-bottom:20px;">
     <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin-bottom:12px;">
@@ -188,7 +189,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   </div>
 
   <!-- PANEL 2: SERIES Y PUNTUACIÓN -->
-  <div id="tab-panel-series" class="tab-panel hidden">
+  <div id="tab-panel-series" class="tab-panel ${activeMainTab === 'series' ? '' : 'hidden'}">
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Series por Tirador</div>
    <!-- Panel de Acciones y Herramientas Deportivas -->
@@ -246,14 +247,14 @@ export async function renderEvent(eventId: string): Promise<void> {
   </div>
 
   <!-- PANEL 3: POSICIONES -->
-  <div id="tab-panel-posiciones" class="tab-panel hidden">
+  <div id="tab-panel-posiciones" class="tab-panel ${activeMainTab === 'posiciones' ? '' : 'hidden'}">
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
     <div>
      <button class="btn-ghost-custom staff-only" id="btn-print-blank-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;margin-right:8px;" title="Imprimir planilla sin datos para llenado manual">
        Planilla Vacía
      </button>
-     <button class="btn-ghost-custom" id="btn-print-ranking-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">
+     <button class="btn-ghost-custom staff-only" id="btn-print-ranking-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">
        Imprimir Reportes
      </button>
     </div>
@@ -288,6 +289,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  }
  // --- LÓGICA DE TABS ---
  btnTiradores?.addEventListener('click', () => {
+  activeMainTab = 'tiradores';
   btnTiradores.classList.add('tab-active');
   btnSeries?.classList.remove('tab-active');
   btnPosiciones?.classList.remove('tab-active');
@@ -298,6 +300,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  });
 
  btnSeries?.addEventListener('click', () => {
+  activeMainTab = 'series';
   btnSeries.classList.add('tab-active');
   btnTiradores?.classList.remove('tab-active');
   btnPosiciones?.classList.remove('tab-active');
@@ -308,6 +311,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  });
 
  btnPosiciones?.addEventListener('click', () => {
+  activeMainTab = 'posiciones';
   btnPosiciones.classList.add('tab-active');
   btnTiradores?.classList.remove('tab-active');
   btnSeries?.classList.remove('tab-active');
@@ -379,7 +383,7 @@ export async function renderEvent(eventId: string): Promise<void> {
      </select>
     </div>
 
-    <div style="display:flex;align-items:center;gap:6px;">
+    <div class="staff-only" style="display:flex;align-items:center;gap:6px;">
      <label style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Pago:</label>
      <select id="p-filter-payment" class="select-tactical" style="font-size:0.8rem;padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
       <option value="all" ${pFilterPayment === 'all' ? 'selected' : ''}>Todos</option>
@@ -409,9 +413,9 @@ export async function renderEvent(eventId: string): Promise<void> {
      ? `<span style="font-size:0.65rem;background:#fef3c7;color:#d97706;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #fde68a;">DNS</span>`
      : '';
     const payBadge = p.paymentStatus === 'pending'
-     ? `<span style="font-size:0.65rem;background:#fff7ed;color:#ea580c;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #fed7aa;">$ Pendiente</span>`
+     ? `<span class="staff-only" style="font-size:0.65rem;background:#fff7ed;color:#ea580c;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #fed7aa;">$ Pendiente</span>`
      : p.paymentStatus === 'paid'
-     ? `<span style="font-size:0.65rem;background:#f0fdf4;color:#16a34a;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #bbf7d0;">$ Abonado</span>`
+     ? `<span class="staff-only" style="font-size:0.65rem;background:#f0fdf4;color:#16a34a;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #bbf7d0;">$ Abonado</span>`
      : '';
     const rifleBadge = p.sharedRifleId
      ? `<span style="font-size:0.65rem;background:#f3e8ff;color:#7e22ce;padding:2px 5px;border-radius:4px;font-weight:700;border:1px solid #d8b4fe;" title="Rifle Compartido">🎯 ${esc(p.sharedRifleId)}</span>`
