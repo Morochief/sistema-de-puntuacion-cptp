@@ -14,6 +14,7 @@ import { supabase } from '../supabase';
 export let dashSearchQuery = '';
 export let dashSortBy: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' = 'date_desc';
 export let dashModalityFilter = '';
+export let dashYearFilter: number | '' = '';
 export let dashPage = 1;
 export const DASH_ITEMS_PER_PAGE = 6;
 
@@ -39,6 +40,7 @@ export async function renderDashboard(): Promise<void> {
    page: dashPage,
    itemsPerPage: DASH_ITEMS_PER_PAGE,
    modalityFilter: dashModalityFilter,
+   yearFilter: dashYearFilter,
   });
  } catch (err) {
   console.error('[DB] Error cargando eventos:', err);
@@ -71,7 +73,7 @@ export async function renderDashboard(): Promise<void> {
     </button>
    </div>
 
-   <!-- Filtros de Modalidad -->
+   <!-- Filtros de Modalidad y Año -->
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span style="font-size:0.78rem;font-weight:700;color:#64748b;white-space:nowrap;">Modalidad:</span>
     ${['', '.22 LR', '.308', '.223'].map(m => {
@@ -83,6 +85,14 @@ export async function renderDashboard(): Promise<void> {
        font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.15s;"
      >${label}</button>`;
     }).join('')}
+
+    <span style="font-size:0.78rem;font-weight:700;color:#64748b;white-space:nowrap;margin-left:12px;">Año:</span>
+    <select id="dash-year-select" style="padding:5px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.85rem;background:#fff;color:#0f172a;font-weight:600;cursor:pointer;">
+      <option value="" ${dashYearFilter === '' ? 'selected' : ''}>Todos</option>
+      ${[2026, 2025, 2024, 2023, 2022].map(y => `
+        <option value="${y}" ${dashYearFilter === y ? 'selected' : ''}>${y}</option>
+      `).join('')}
+    </select>
    </div>
   </div>
  `;
@@ -209,6 +219,15 @@ export async function renderDashboard(): Promise<void> {
    dashPage = 1;
    renderDashboard();
   });
+ });
+
+ // Bind filtro de año
+ const yearSel = document.getElementById('dash-year-select') as HTMLSelectElement;
+ yearSel?.addEventListener('change', () => {
+  const val = yearSel.value;
+  dashYearFilter = val === '' ? '' : Number(val);
+  dashPage = 1;
+  renderDashboard();
  });
 
  // Bind paginador

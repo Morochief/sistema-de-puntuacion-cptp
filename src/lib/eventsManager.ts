@@ -13,6 +13,7 @@ export interface EventFilterOptions {
   page: number;
   itemsPerPage: number;
   modalityFilter?: string; // '' = todos, '.22 LR', '.308', '.223'
+  yearFilter?: number | ''; // '' = todos los años, o año específico ej: 2026
 }
 
 export async function getFilteredEvents(options: EventFilterOptions): Promise<{
@@ -34,6 +35,12 @@ export async function getFilteredEvents(options: EventFilterOptions): Promise<{
   // 1. Filtrado por modalidad
   if (options.modalityFilter && options.modalityFilter.trim()) {
     allEvents = allEvents.filter(e => e.modality === options.modalityFilter);
+  }
+
+  // Filtrado por año
+  if (options.yearFilter !== undefined && options.yearFilter !== '') {
+    const yearStr = String(options.yearFilter);
+    allEvents = allEvents.filter(e => e.date.startsWith(yearStr));
   }
 
   // 2. Filtrado por texto
