@@ -122,10 +122,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         `;
       }).join('');
 
-      const emptyCellsHtml = Array.from({ length: missingHeadersCount }, () => `
-        <td style="padding:10px 8px;text-align:center;color:#cbd5e1;background:#f8fafc;border:1px dashed #e2e8f0;">-</td>
-      `).join('');
-
       // Resaltado sutil para la fila si es Top 6
       const rowBg = isTop6 ? 'background:rgba(248,250,252,0.6);' : '';
 
