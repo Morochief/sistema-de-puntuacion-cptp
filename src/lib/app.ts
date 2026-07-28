@@ -9,7 +9,7 @@ import { renderDashboard, setupCloudSync, setupDashboardTabs } from './views/Das
 import { renderNewEvent } from './views/NewEventView';
 import { renderEvent } from './views/event/EventDetailView';
 import { renderSeries } from './views/scoring/SeriesScoringView';
-import { migrateParticipantsToPadron } from './masterCompetitors';
+import { migrateParticipantsToPadron, deduplicatePadron } from './masterCompetitors';
 import { pullCloudDatabaseToLocal } from './sync';
 import { renderLogin } from './views/LoginView';
 import { checkAuth, getCurrentRole, logout, updateUIRoles } from './authManager';
@@ -58,9 +58,13 @@ window.addEventListener('load', async () => {
   }
   
 
-  // Silent padron migration
+  // Silent padron migration + dedup
   setTimeout(async () => {
     try {
+      const removed = await deduplicatePadron();
+      if (removed > 0) {
+        showToast(`${removed} duplicados del Padron Maestro fusionados.`, 'info', 3000);
+      }
       const added = await migrateParticipantsToPadron();
       if (added > 0) {
         console.log(`[Padron] Migracion completada: ${added} tiradores nuevos agregados.`);

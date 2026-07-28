@@ -9,18 +9,34 @@ import { db } from './db';
 import type { MasterCompetitor } from './types';
 import { esc, showToast, showConfirm, showPrompt } from './modals';
 
+/**
+ * Normaliza un nombre: saca acentos, convierte a formato titulo (primera letra mayuscula de cada palabra).
+ * Ej: "josé giménez" -> "Jose Gimenez"
+ */
+export function normalizeName(raw: string): string {
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .trim();
+}
+
 export async function getAllMasterCompetitors(): Promise<MasterCompetitor[]> {
   return await db.masterCompetitors.orderBy('name').filter((item: any) => !item.is_deleted).toArray();
 }
 
 export async function addMasterCompetitor(name: string, category = '', phone = ''): Promise<number> {
-  const trimmedName = name.trim();
+  const trimmedName = normalizeName(name);
   if (!trimmedName) throw new Error('El nombre no puede estar vacio.');
 
-  // Verificar si ya existe en el padrón (búsqueda case-insensitive en memoria)
+  // Verificar si ya existe en el padrón (búsqueda normalizada)
   const all = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
-  const existing = all.find(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === trimmedName.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase());
+  const existing = all.find(c => normalizeName(c.name) === trimmedName);
   if (existing) {
+    // Si existe pero con distinta capitalización, actualizar al nombre normalizado
+    if (existing.name !== trimmedName) {
+      await db.masterCompetitors.update(existing.id!, { name: trimmedName });
+    }
     return existing.id!;
   }
 
@@ -41,6 +57,47 @@ export async function deleteMasterCompetitor(id: number): Promise<void> {
 }
 
 /**
+ * Deduplica el Padron Maestro: unifica registros con el mismo nombre normalizado
+ * (ej: "José Giménez" y "Jose Gimenez" se fusionan).
+ * Se llama al iniciar la app. Es idempotente.
+ */
+export async function deduplicatePadron(): Promise<number> {
+  const all = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
+  const grouped = new Map<string, MasterCompetitor[]>();
+
+  for (const mc of all) {
+    const key = normalizeName(mc.name).toLowerCase();
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(mc);
+  }
+
+  let removed = 0;
+  for (const [, entries] of grouped) {
+    if (entries.length <= 1) continue;
+    // Quedarse con el primero (el mas antiguo o el que tenga mas datos)
+    const keep = entries.sort((a, b) => {
+      const aScore = (a.phone ? 1 : 0) + (a.category ? 1 : 0) + (a.championshipTieRank ? 1 : 0);
+      const bScore = (b.phone ? 1 : 0) + (b.category ? 1 : 0) + (b.championshipTieRank ? 1 : 0);
+      return bScore - aScore; // el que mas datos tenga primero
+    })[0];
+
+    // Actualizar al nombre normalizado
+    const normalized = normalizeName(keep.name);
+    if (keep.name !== normalized) {
+      await db.masterCompetitors.update(keep.id!, { name: normalized });
+    }
+
+    for (let i = 1; i < entries.length; i++) {
+      await db.masterCompetitors.delete(entries[i].id!);
+      removed++;
+    }
+  }
+
+  if (removed > 0) console.log(`[Padron] Deduplicacion: ${removed} registros repetidos eliminados.`);
+  return removed;
+}
+
+/**
  * Migra todos los participantes únicos de todos los eventos existentes al Padrón Maestro.
  * Se llama en la inicialización de la app. Es idempotente (no duplica).
  * Retorna la cantidad de nuevos tiradores agregados.
@@ -54,14 +111,14 @@ export async function migrateParticipantsToPadron(): Promise<number> {
     // Cargar el padrón actual una sola vez
     const currentPadron = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
     console.log(`[Padron] Padron actual tiene ${currentPadron.length} entradas.`);
-    const padronNames = new Set(currentPadron.map(c => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()));
+    const padronNames = new Set(currentPadron.map(c => normalizeName(c.name).toLowerCase()));
 
     let added = 0;
     const seenInBatch = new Set<string>();
 
     for (const p of allParticipants) {
-      const nameTrimmed = p.name.trim();
-      const nameLower = nameTrimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      const normalized = normalizeName(p.name);
+      const nameLower = normalized.toLowerCase();
       if (!nameLower || seenInBatch.has(nameLower) || padronNames.has(nameLower)) continue;
 
       seenInBatch.add(nameLower);
@@ -69,7 +126,7 @@ export async function migrateParticipantsToPadron(): Promise<number> {
 
       try {
         await db.masterCompetitors.add({
-          name: nameTrimmed,
+          name: normalized,
           category: p.category?.trim() || '',
           phone: '',
           createdAt: Date.now()
