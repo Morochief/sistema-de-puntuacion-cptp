@@ -261,7 +261,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       }
     }
 
-    console.log('[Sync] Base de datos local (Dexie) reemplazada con éxito desde la nube.');
+    console.log('[Sync] Datos de la nube sincronizados con exito (upsert).');
     return { success: true };
   } catch (err: any) {
     console.error('[Sync] Error en pullCloudDatabaseToLocal:', err);
