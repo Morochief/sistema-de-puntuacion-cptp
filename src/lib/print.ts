@@ -79,21 +79,19 @@ function getLRPrintStyles(): string {
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
     gap: 12px;
-    page-break-inside: avoid;
-    break-inside: avoid;
    }
 
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      margin: 0 auto; 
+      margin: 0; 
       padding: 6px 8px; 
       box-shadow: none; 
-      width: 277mm; 
+      width: 287mm; 
+      height: 186mm;
+      overflow: hidden;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
-      page-break-inside: avoid;
-      break-inside: avoid;
     }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
