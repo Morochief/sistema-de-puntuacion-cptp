@@ -184,7 +184,7 @@ export async function renderDashboard(): Promise<void> {
      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
      Subir a la Nube
    </button>
-   <button id="btn-cloud-download" class="btn-ghost-custom staff-only"
+   <button id="btn-cloud-download" class="btn-ghost-custom"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #3b82f6;
            border-radius:10px;color:#3b82f6;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
