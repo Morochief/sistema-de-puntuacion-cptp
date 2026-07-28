@@ -57,19 +57,6 @@ window.addEventListener('load', async () => {
     });
   }
   
-  // Auto-pull desde la nube si la DB local esta vacia (upsert, no borra datos locales)
-  if (navigator.onLine) {
-    setTimeout(async () => {
-      const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
-      if (localEvents.length === 0) {
-        console.log('[Sync] Base de datos vacía. Iniciando descarga automática...');
-        const pullRes = await pullCloudDatabaseToLocal();
-        if (pullRes.success) {
-          await router();
-        }
-      }
-    }, 1200);
-  }
 
   // Silent padron migration
   setTimeout(async () => {
