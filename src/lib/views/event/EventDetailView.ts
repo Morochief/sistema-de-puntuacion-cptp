@@ -116,7 +116,7 @@ export async function renderEvent(eventId: string): Promise<void> {
         <option value="Rifle E">Rifle E</option>
       </select>
      </div>
-     <button id="btn-add-participant" class="btn-primary-custom" style="padding:10px 18px;"
+     <button id="btn-add-participant" class="btn-primary-custom staff-only" style="padding:10px 18px;"
          ${participants.length >= 32 ? 'disabled' : ''}>
       Inscribir
      </button>
@@ -124,14 +124,14 @@ export async function renderEvent(eventId: string): Promise<void> {
     <div style="font-size:0.72rem;color:#475569;margin-top:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
      <span>Asignación de número aleatoria al inscribir.</span>
      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button id="btn-padron-selector" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(0,86,179,0.35);color:#0056b3;"
+      <button id="btn-padron-selector" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           title="Seleccionar tirador del Padrón Maestro" ${participants.length >= 32 ? 'disabled' : ''}>
         Padrón Maestro
       </button>
-      <button id="btn-seed-participants" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);" title="Importar tiradores registrados en el Padrón Maestro que falten en este evento">
+      <button id="btn-seed-participants" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);" title="Importar tiradores registrados en el Padrón Maestro que falten en este evento">
         Importar Padrón en Lote
       </button>
-      <button id="btn-seed-scores" class="btn-ghost-custom" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(34,197,94,0.25);color:#22c55e;"
+      <button id="btn-seed-scores" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(34,197,94,0.25);color:#22c55e;"
           ${participants.length === 0 ? 'disabled' : ''}>
         Simular Resultados
       </button>
@@ -156,20 +156,20 @@ export async function renderEvent(eventId: string): Promise<void> {
           ${participants.length === 0 ? 'disabled' : ''}>
         Sortear Posiciones
       </button>
-      <button id="btn-reorder-heats" class="btn-ghost-custom"
+      <button id="btn-reorder-heats" class="btn-ghost-custom staff-only"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 1">
         Reordenar S1
       </button>
-      <button id="btn-reorder-heats-s2" class="btn-ghost-custom"
+      <button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 2">
         Reordenar S2
       </button>
       
-      <button id="btn-undo-sorteo" class="btn-ghost-custom"
+      <button id="btn-undo-sorteo" class="btn-ghost-custom staff-only"
           style="padding:12px 16px;font-size:0.8rem;border-color:rgba(183,32,28,0.35);color:#b7201c;"
           ${participants.some(p => p.tanda !== undefined) ? '' : 'disabled'}
           title="Deshacer sorteo y limpiar todas las asignaciones de tandas">
@@ -450,11 +450,11 @@ export async function renderEvent(eventId: string): Promise<void> {
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>
       </select>
       <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
-        ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
-        <button class="btn-ghost-custom" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
+        ${p.tanda === undefined || p.tandaS2 === undefined ? `<button class="btn-ghost-custom" class="btn-ghost-custom staff-only" data-assign-late="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;border-radius:8px;" title="Asignar a primera mesa libre">Asignar Mesa</button>` : ''}
+        <button class="btn-ghost-custom staff-only" data-edit-participant="${p.id}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;color:#0056b3;border-color:#cbd5e1;border-radius:8px;">
          Editar
         </button>
-        <button class="btn-danger-custom" data-remove-participant="${p.id}"
+        <button class="btn-danger-custom staff-only" data-remove-participant="${p.id}"
             aria-label="Eliminar inscripcion de ${esc(p.name)}" style="padding:6px 12px;font-size:0.75rem;font-weight:700;border-radius:8px;">
          Eliminar
         </button>
@@ -879,12 +879,12 @@ export async function renderEvent(eventId: string): Promise<void> {
      </div>
      <div style="display:flex;gap:6px;">
       ${pSeries.length > 0 ? `
-      <button class="btn-ghost-custom" data-clear-series-for="${p.id}"
+      <button class="btn-ghost-custom staff-only" data-clear-series-for="${p.id}"
           style="font-size:0.7rem;padding:6px 10px;border-color:rgba(239,68,68,0.25);color:#ef4444;" aria-label="Limpiar series para ${esc(p.name)}" title="Eliminar las series de este tirador">
        Vaciar
       </button>` : ''}
       ${pSeries.length < 2 ? `
-      <button class="btn-primary-custom" data-add-series-for="${p.id}"
+      <button class="btn-primary-custom staff-only" data-add-series-for="${p.id}"
           style="font-size:0.7rem;padding:6px 10px;" aria-label="Nueva serie para ${esc(p.name)}">
        + Serie
       </button>` : ''}
