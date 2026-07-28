@@ -192,7 +192,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Series por Tirador</div>
    <!-- Panel de Acciones y Herramientas Deportivas -->
-   <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.15);background:#ffffff;">
+   <div class="card-tactical staff-only" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.15);background:#ffffff;">
     <div style="display:flex;flex-direction:column;gap:12px;">
       
       <!-- Fila 1: Impresión -->
@@ -431,7 +431,7 @@ export async function renderEvent(eventId: string): Promise<void> {
         ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="S1: Tanda ${p.tanda} Mesa ${p.spot} | S2: Tanda ${p.tandaS2 || '—'} Mesa ${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
         ${statusBadge}${payBadge}${rifleBadge}
       </div>
-      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;font-weight:700;user-select:none;" title="Presente para sorteo">
+      <label class="staff-only" style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;font-weight:700;user-select:none;" title="Presente para sorteo">
        <input type="checkbox" data-set-raffle="${p.id}" ${isRaffleChecked ? 'checked' : ''} class="checkbox checkbox-xs checkbox-primary" style="cursor:pointer;--chkbg:#0056b3;--chkfg:#ffffff;" />
        <span>Sorteo</span>
       </label>
@@ -439,12 +439,12 @@ export async function renderEvent(eventId: string): Promise<void> {
      
      <!-- Fila 2: Acciones y Dropdowns -->
      <div style="display:flex; gap:8px; align-items:center; justify-content:flex-start; flex-wrap:wrap; width:100%; border-top:1px dashed #f1f5f9; padding-top:8px;">
-      <select data-set-status="${p.id}" class="select-tactical ${statusClass}" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado del competidor">
+      <select data-set-status="${p.id}" class="select-tactical ${statusClass} staff-only" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado del competidor">
        <option value="active" ${!p.status || p.status === 'active' ? 'selected' : ''}>Activo</option>
        <option value="dq" ${p.status === 'dq' ? 'selected' : ''}>DQ (Descalif.)</option>
        <option value="dns" ${p.status === 'dns' ? 'selected' : ''}>DNS (No asistió)</option>
       </select>
-      <select data-set-payment="${p.id}" class="select-tactical ${paymentClass}" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado de pago">
+      <select data-set-payment="${p.id}" class="select-tactical ${paymentClass} staff-only" style="font-size:0.75rem;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;" title="Estado de pago">
        <option value="paid" ${!p.paymentStatus || p.paymentStatus === 'paid' ? 'selected' : ''}>$ Abonado</option>
        <option value="pending" ${p.paymentStatus === 'pending' ? 'selected' : ''}>$ Pendiente</option>
        <option value="exempt" ${p.paymentStatus === 'exempt' ? 'selected' : ''}>Exento</option>

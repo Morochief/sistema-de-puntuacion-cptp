@@ -263,7 +263,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
     Volver
    </button>
    <div style="display:flex;gap:8px;">
-    <button class="btn-undo" id="btn-undo" aria-label="Deshacer último disparo" disabled>
+    <button class="btn-undo staff-only" id="btn-undo" aria-label="Deshacer último disparo" disabled>
      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.5" aria-hidden="true">
       <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
