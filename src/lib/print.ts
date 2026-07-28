@@ -121,7 +121,7 @@ function getLandscapePrintStyles(): string {
     padding: 3px 6px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     background: #fff;
     page-break-inside: avoid;
     break-inside: avoid;
