@@ -354,7 +354,7 @@ function getSeriesColumnHtml(
      </div>
      <div class="meta-box">
       <span class="lbl">CALIBRE</span>
-      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}
+      ${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `${isCF ? `<div style="font-size:16px;font-weight:900;font-family:'Rajdhani',sans-serif;margin-top:2px;">${event.modality}</div>` : `<img src="/22lr.svg" alt=".22 LR" style="height:22px;width:auto;object-fit:contain;" />`}`}
      </div>
      <div class="meta-box">
       <span class="lbl">CATEGORIA</span>
