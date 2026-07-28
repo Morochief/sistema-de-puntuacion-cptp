@@ -2,6 +2,7 @@ import { esc, showToast, showConfirm, showPrompt } from '../modals';
 import { navigate } from '../router';
 import { router } from '../app';
 import { db } from '../db';
+import { getCurrentRole } from '../authManager';
 import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
 import { renderChampionshipPanel } from './ChampionshipView';
@@ -91,11 +92,11 @@ export async function renderDashboard(): Promise<void> {
       </div>
      </div>
      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-      <button class="btn-ghost-custom" data-edit-event-id="${e.id}"
+      <button class="btn-ghost-custom admin-only" data-edit-event-id="${e.id}"
           aria-label="Editar evento ${esc(e.name)}"
           onclick="event.stopPropagation()"
           style="padding:6px 10px;font-size:0.72rem;font-weight:700;color:#0056b3;border-color:#0056b3;">Editar</button>
-      <button class="btn-danger-custom" data-delete-id="${e.id}"
+      <button class="btn-danger-custom admin-only" data-delete-id="${e.id}"
           aria-label="Eliminar evento ${esc(e.name)}"
           onclick="event.stopPropagation()">
        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -123,7 +124,7 @@ export async function renderDashboard(): Promise<void> {
  // Agregar el panel inferior para importar, vaciar base de datos + cloud sync
  listHtml += `
   <div style="margin-top:32px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:24px;width:100%;">
-   <button id="btn-import-backup" class="btn-ghost-custom"
+   <button id="btn-import-backup" class="btn-ghost-custom admin-only"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #0056b3;
            border-radius:10px;color:#0056b3;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
@@ -131,13 +132,13 @@ export async function renderDashboard(): Promise<void> {
      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
      Importar Evento
    </button>
-   <button id="btn-reset-db" class="btn-danger-custom"
+   <button id="btn-reset-db" class="btn-danger-custom admin-only"
        style="font-size:0.85rem;padding:12px 20px;border:2px solid #ef4444;
            border-radius:10px;background:#ef4444;color:#ffffff;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
      Vaciar Base de Datos
    </button>
-   <button id="btn-cloud-upload" class="btn-ghost-custom"
+   <button id="btn-cloud-upload" class="btn-ghost-custom staff-only"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #22c55e;
            border-radius:10px;color:#22c55e;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
@@ -145,7 +146,7 @@ export async function renderDashboard(): Promise<void> {
      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
      Subir a la Nube
    </button>
-   <button id="btn-cloud-download" class="btn-ghost-custom"
+   <button id="btn-cloud-download" class="btn-ghost-custom staff-only"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #3b82f6;
            border-radius:10px;color:#3b82f6;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
@@ -178,7 +179,7 @@ export async function renderDashboard(): Promise<void> {
   if (dashPage > 1) { dashPage--; renderDashboard(); }
  });
  container.querySelector('#dash-next-page')?.addEventListener('click', () => {
-  if (dashPage < totalPages) { dashPage++; renderDashboard(); }
+  if (dashPage >= totalPages) { dashPage++; renderDashboard(); }
  });
 
  // Bind Padrón Maestro button
@@ -370,7 +371,7 @@ export function setupDashboardTabs() {
     panelEventos.classList.remove('hidden');
     panelCampeonato.classList.add('hidden');
     if (dashTitle) dashTitle.textContent = 'Mis Eventos';
-    if (btnNewEvent) btnNewEvent.style.display = 'inline-flex';
+    if (btnNewEvent) btnNewEvent.style.display = getCurrentRole() === 'admin' ? 'inline-flex' : 'none';
     renderDashboard();
   });
 

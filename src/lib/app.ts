@@ -11,6 +11,8 @@ import { renderEvent } from './views/event/EventDetailView';
 import { renderSeries } from './views/scoring/SeriesScoringView';
 import { migrateParticipantsToPadron } from './masterCompetitors';
 import { pullCloudDatabaseToLocal } from './sync';
+import { renderLogin } from './views/LoginView';
+import { checkAuth, getCurrentRole, logout, updateUIRoles } from './authManager';
 
 export async function router(): Promise<void> {
   const route = getRoute();
@@ -21,7 +23,10 @@ export async function router(): Promise<void> {
       case 'new-event': await renderNewEvent(); break;
       case 'event':   await renderEvent(route.params.id); break;
       case 'series':   await renderSeries(route.params.id); break;
+      case 'login':   await renderLogin(); break;
     }
+    // Después de cada render, volver a aplicar los permisos
+    updateUIRoles();
   } catch (err) {
     console.error('[Router] Error inesperado:', err);
     showToast('Ocurrió un error inesperado. Recargá la app.', 'error', 5000);
@@ -33,8 +38,24 @@ window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
 
 // Setup on load
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   setupCloudSync();
+  await checkAuth();
+
+  // Navbar Listeners
+  const btnLogin = document.getElementById('nav-btn-login');
+  if (btnLogin) {
+    btnLogin.addEventListener('click', () => {
+      navigate('/login');
+    });
+  }
+  const btnLogout = document.getElementById('nav-btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      await logout();
+      navigate('/');
+    });
+  }
   
   // Auto-download cloud data silently if local db is empty
   if (navigator.onLine) {
@@ -64,6 +85,22 @@ window.addEventListener('load', () => {
   }, 2000);
 
   setupDashboardTabs();
+
+  // Auto-pull periódico para Espectadores (cada 30s)
+  setInterval(async () => {
+    if (navigator.onLine && getCurrentRole() === 'spectator') {
+      try {
+        const result = await pullCloudDatabaseToLocal();
+        if (result.success) {
+          // Si estamos en dashboard o evento, recargar vista actual
+          const r = getRoute();
+          if (r.view === 'dashboard' || r.view === 'event' || r.view === 'series') {
+            await router();
+          }
+        }
+      } catch (err) {}
+    }
+  }, 30000);
 });
 
 window.addEventListener('hashchange', () => {

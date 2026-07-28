@@ -5,6 +5,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="CPTP .22 LR Scoring" description="App de puntuación para tiro .22 Long Range — funciona offline">
   <div id="app-root">
 
+    <!-- ── Vista: Login ──────────────────────────────────── -->
+    <div id="view-login" class="view hidden">
+      <!-- JS renderiza aquí -->
+    </div>
+
     <!-- ── Vista: Dashboard ──────────────────────────────── -->
     <div id="view-dashboard" class="view">
       <!-- Hero header -->
@@ -18,8 +23,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               Mis Eventos
             </h1>
           </div>
-          <button id="btn-new-event" class="btn-primary-custom"
-                  style="white-space:nowrap;"
+          <button id="btn-new-event" class="btn-primary-custom admin-only"
+                  style="white-space:nowrap;display:none;"
                   aria-label="Crear nuevo evento de tiro">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             Nuevo Evento

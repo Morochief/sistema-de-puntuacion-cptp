@@ -13,6 +13,7 @@ export function getRoute(): { view: string; params: Record<string, string> } {
  if (matchSeries) return { view: 'series', params: { id: matchSeries[1] } };
 
  if (hash === '/new') return { view: 'new-event', params: {} };
+ if (hash === '/login') return { view: 'login', params: {} };
 
  return { view: 'dashboard', params: {} };
 }

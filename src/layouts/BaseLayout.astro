@@ -73,6 +73,20 @@ const { title, description } = Astro.props;
         <div style="display:flex;align-items:center;gap:6px;">
           <img class="navbar-flag" src="/flag-paraguay.svg" alt="Bandera de Paraguay" style="height:26px;width:auto;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.06);" />
           <div id="offline-indicator" style="display:none;"></div>
+          
+          <!-- Botón de Login (Oculto si está logueado) -->
+          <button id="nav-btn-login" style="display:none;align-items:center;gap:4px;background:rgba(0,86,179,0.1);border:1px solid rgba(0,86,179,0.3);color:#0056b3;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;padding:4px 8px;border-radius:6px;cursor:pointer;margin-left:8px;transition:all 0.2s;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+            ACCEDER
+          </button>
+
+          <!-- Botón de Logout (Oculto si es espectador) -->
+          <div id="nav-user-badge" style="display:none;background:#b7201c;color:#fff;font-family:'Orbitron',sans-serif;font-size:0.6rem;font-weight:900;padding:3px 6px;border-radius:4px;margin-left:8px;">
+            ADMIN
+          </div>
+          <button id="nav-btn-logout" style="display:none;align-items:center;gap:4px;background:none;border:none;color:#64748b;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;padding:4px 8px;cursor:pointer;transition:all 0.2s;" title="Cerrar sesión">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </button>
         </div>
 
         <!-- Logo Long Range (derecha) -->
