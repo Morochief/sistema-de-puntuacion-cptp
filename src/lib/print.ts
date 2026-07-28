@@ -1,8 +1,8 @@
-/**
- * CPTP .22 LR — Planilla oficial imprimible en formato horizontal (Landscape)
+﻿/**
+ * CPTP .22 LR â€” Planilla oficial imprimible en formato horizontal (Landscape)
  *
  * Imprime dos series (Tandas) de un competidor una al lado de la otra
- * en una sola hoja A4 horizontal para ahorrar papel y facilitar la fiscalización.
+ * en una sola hoja A4 horizontal para ahorrar papel y facilitar la fiscalizaciÃ³n.
  */
 
 import type { Series, ShootingEvent, Shot, Participant } from './types';
@@ -20,7 +20,7 @@ function formatDate(isoDate: string): string {
 }
 
 /**
- * Renderiza una celda de la tabla de puntuación.
+ * Renderiza una celda de la tabla de puntuaciÃ³n.
  */
 function renderScoreCell(
   colShotNum: number,
@@ -33,7 +33,7 @@ function renderScoreCell(
 
   if (isHit) {
     return `
-     <td class="score-cell cell-hit" title="Impactado aquí — ${cellValue} pts">
+     <td class="score-cell cell-hit" title="Impactado aquÃ­ â€” ${cellValue} pts">
       <span class="val">${cellValue}</span>
       <span class="pts-lbl">pts</span>
      </td>`;
@@ -43,7 +43,7 @@ function renderScoreCell(
     return `
      <td class="score-cell cell-miss" title="Fallo en disparo ${colShotNum}">
       <span class="val miss-val">${cellValue}</span>
-      <span class="miss-x">✕</span>
+      <span class="miss-x">âœ•</span>
      </td>`;
   }
 
@@ -55,11 +55,12 @@ function renderScoreCell(
 }
 
 /**
- * Retorna los estilos CSS para la planilla imprimible horizontal (Landscape).
+ * Retorna los estilos CSS para la planilla imprimible horizontal de .22 LR (dos columnas).
+ * Restaurado a los valores que funcionaban antes del agregado de CF.
  */
-function getLandscapePrintStyles(): string {
+function getLRPrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 3mm 4mm; }
+     @page { size: A4 landscape; margin: 2mm 5mm; }
    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
    body {
@@ -71,15 +72,14 @@ function getLandscapePrintStyles(): string {
    }
 
    .a4-landscape-page {
-    width: 289mm;
-    height: 196mm;
+    width: 287mm;
+    min-height: 186mm;
     margin: 10mm auto;
     background: #fff;
-    padding: 3px 6px;
+    padding: 8px 14px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
-    gap: 5px;
-    overflow: hidden;
+    gap: 12px;
     page-break-inside: avoid;
     break-inside: avoid;
    }
@@ -88,10 +88,10 @@ function getLandscapePrintStyles(): string {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
       margin: 0; 
-      padding: 2px 4px; 
+      padding: 6px 0; 
       box-shadow: none; 
-      width: 289mm; 
-      height: 198mm; 
+      width: 287mm; 
+      height: 186mm;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
       overflow: hidden;
@@ -110,15 +110,14 @@ function getLandscapePrintStyles(): string {
    }
    .print-btn:hover { background: #333; }
 
-   /* Columnas lado a lado */
-   .cf-full-width { width: 100% !important; flex: none !important; }
+   /* Columnas lado a lado para .22 LR */
    .series-column {
     flex: 1;
     width: 50%;
     min-width: 0;
     border: 1.5px solid #000;
     border-radius: 6px;
-    padding: 2px 5px;
+    padding: 3px 6px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -128,7 +127,7 @@ function getLandscapePrintStyles(): string {
     overflow: hidden;
    }
 
-   /* Sub-diseño de las tarjetas internas */
+   /* Sub-diseÃ±o de las tarjetas internas */
    .header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
    .logo-left { width: 50px; flex-shrink: 0; }
    .logo-left img, .logo-right img { width: 100%; height: auto; object-fit: contain; }
@@ -150,15 +149,15 @@ function getLandscapePrintStyles(): string {
 
    .thick-hr { border: none; border-top: 2px solid #000; margin: 2px 0; }
 
-   .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 2px; }
+   .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 2px; }
    .meta-box {
-    border: 1.5px solid #000; border-radius: 18px; height: 34px;
+    border: 1.5px solid #000; border-radius: 18px; height: 40px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 1px;
+    text-align: center; padding: 2px;
    }
-   .meta-box .lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; color: #000; }
-   .meta-box .vl { font-size: 12px; font-weight: 900; line-height: 1.05; }
-   .meta-box .vs { font-size: 11px; font-weight: 700; margin-top: 0.5px; }
+   .meta-box .lbl { font-size: 8px; font-weight: 900; text-transform: uppercase; color: #000; }
+   .meta-box .vl { font-size: 13px; font-weight: 900; line-height: 1.05; }
+   .meta-box .vs { font-size: 12px; font-weight: 700; margin-top: 0.5px; }
 
    .table-wrap { border: 1.5px solid #000; border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
    table.score-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -199,16 +198,16 @@ function getLandscapePrintStyles(): string {
    .td-puntos  { font-size: 15px; font-weight: 900; background: #fffde7; }
    .td-adicional{ font-size: 14px; font-weight: 700; background: #fffde7; }
 
-   .totals-row { display: flex; gap: 5px; margin-top: 2px; }
+   .totals-row { display: flex; gap: 6px; margin-top: 2px; }
    .total-box {
-    flex: 1; border: 1.5px solid #000; border-radius: 8px; height: 32px;
-    display: flex; align-items: center; justify-content: space-between; padding: 0 8px;
+    flex: 1; border: 1.5px solid #000; border-radius: 8px; height: 38px;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
    }
-   .total-lbl { font-size: 9px; font-weight: 900; text-transform: uppercase; }
+   .total-lbl { font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
    .total-val { display: flex; align-items: baseline; gap: 3px; }
-   .total-num { font-size: 18px; font-weight: 900; }
-   .total-word { font-size: 10px; font-weight: 300; color: #555; }
-   .visto-box { width: 36%; border: 1.5px solid #000; border-radius: 8px; height: 32px; padding: 2px 8px; position: relative; flex-shrink: 0; }
+   .total-num { font-size: 20px; font-weight: 900; }
+   .total-word { font-size: 11px; font-weight: 300; color: #555; }
+   .visto-box { width: 36%; border: 1.5px solid #000; border-radius: 8px; height: 38px; padding: 3px 8px; position: relative; flex-shrink: 0; }
    .visto-lbl { font-size: 7.5px; font-weight: 900; text-transform: uppercase; color: #555; }
 
    .target-summary {
@@ -221,7 +220,7 @@ function getLandscapePrintStyles(): string {
    .imp-title { font-size: 12px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
    .imp-list { width: 100%; list-style: none; padding: 0 2px; margin-bottom: 2px; }
    .imp-list li { font-size: 9px; font-weight: 700; text-transform: uppercase; margin-bottom: 1px; padding-left: 8px; position: relative; }
-   .imp-list li::before { content: '•'; position: absolute; left: 0; }
+   .imp-list li::before { content: 'â€¢'; position: absolute; left: 0; }
    .imp-banner { font-size: 8.5px; font-weight: 900; text-transform: uppercase; background: #000; color: #fff; padding: 2px 8px; text-align: center; margin-bottom: 1px; width: 90%; }
    .imp-banner.narrow { width: 70%; }
 
@@ -233,6 +232,34 @@ function getLandscapePrintStyles(): string {
    .legend-box.lhit { background: #000; color: #fff; }
    .legend-box.lmiss { background: #fff5f5; color: #e53e3e; font-size: 9px; }
   `;
+}
+
+/**
+ * Retorna los estilos CSS para la planilla imprimible horizontal de CF (.308 / .223) (una sola columna).
+ */
+function getCFPrintStyles(): string {
+  // Reutiliza todos los estilos base de .22 LR y solo sobreescribe lo que cambia para CF
+  const base = getLRPrintStyles();
+  const cfOverride = `
+   /* CF: columna Ãºnica a ancho completo */
+   .a4-landscape-page {
+    height: 196mm;
+    padding: 4px 8px;
+    gap: 0;
+   }
+   @media print {
+    .a4-landscape-page {
+      height: 198mm;
+      padding: 3px 6px;
+    }
+   }
+   .series-column {
+    width: 100% !important;
+    flex: none !important;
+    padding: 3px 8px;
+   }
+  `;
+  return base + cfOverride;
 }
 
 /**
@@ -276,11 +303,11 @@ function getSeriesColumnHtml(
   // CF
   const hitGrande  = shots.find((s) => s.targetType === 'grande' && s.hit);
   const hitMediano = shots.find((s) => s.targetType === 'mediano' && s.hit);
-  const hitPequeno = shots.find((s) => s.targetType === 'pequeño' && s.hit);
+  const hitPequeno = shots.find((s) => s.targetType === 'pequeÃ±o' && s.hit);
 
   const missGrande = new Set(shots.filter((s) => s.targetType === 'grande' && !s.hit).map((s) => s.shotNumber));
   const missMediano = new Set(shots.filter((s) => s.targetType === 'mediano' && !s.hit).map((s) => s.shotNumber));
-  const missPequeno = new Set(shots.filter((s) => s.targetType === 'pequeño' && !s.hit).map((s) => s.shotNumber));
+  const missPequeno = new Set(shots.filter((s) => s.targetType === 'pequeÃ±o' && !s.hit).map((s) => s.shotNumber));
 
   const ptsGrande  = hitGrande?.value ?? 0;
   const ptsMediano = hitMediano?.value ?? 0;
@@ -306,7 +333,7 @@ function getSeriesColumnHtml(
     if (!hitShot) {
       return `<span style="color:#888;">${label}: no impactado (${missSet.size} fallo${missSet.size !== 1 ? 's' : ''})</span>`;
     }
-    return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` — ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
+    return `<strong>${label}:</strong> ${hitShot.value} pts (disparo ${hitShot.shotNumber})${missSet.size > 0 ? ` â€” ${missSet.size} fallo${missSet.size !== 1 ? 's' : ''} previo${missSet.size !== 1 ? 's' : ''}` : ''}`;
   };
 
   return `
@@ -327,7 +354,7 @@ function getSeriesColumnHtml(
        <span class="field-lbl">Evento</span>
        <span class="field-lbl-r">Fecha</span>
        <div style="display:flex;justify-content:space-between;width:100%;align-items:flex-end;">
-        <span class="field-val" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${event.name}${event.championshipDate ? ` · ${event.championshipDate}` : ''}</span>
+        <span class="field-val" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${event.name}${event.championshipDate ? ` Â· ${event.championshipDate}` : ''}</span>
         <span class="field-date">${formatDate(event.date)}</span>
        </div>
       </div>
@@ -336,8 +363,8 @@ function getSeriesColumnHtml(
        <span class="field-val">
         ${participant.name} 
         ${seriesNumberLabel === 1
-          ? (participant.tanda ? ` (Tanda ${participant.tanda} · Mesa ${participant.spot})` : '')
-          : (participant.tandaS2 ? ` (Tanda ${participant.tandaS2} · Mesa ${participant.spotS2})` : '')
+          ? (participant.tanda ? ` (Tanda ${participant.tanda} Â· Mesa ${participant.spot})` : '')
+          : (participant.tandaS2 ? ` (Tanda ${participant.tandaS2} Â· Mesa ${participant.spotS2})` : '')
         }
        </span>
       </div>
@@ -371,7 +398,7 @@ function getSeriesColumnHtml(
      </div>
      <div class="meta-box">
       <span class="lbl">CATEGORIA</span>
-      <div class="vs" style="font-size:12px;font-weight:900;text-transform:uppercase;">${participant.category || '—'}</div>
+      <div class="vs" style="font-size:12px;font-weight:900;text-transform:uppercase;">${participant.category || 'â€”'}</div>
      </div>
     </div>
 
@@ -382,7 +409,7 @@ function getSeriesColumnHtml(
      <div class="legend-item" style="font-size:7px;color:#555;">Valores son de referencia</div>
     </div>
 
-    <!-- TABLA PRINCIPAL DE PUNTUACIÓN -->
+    <!-- TABLA PRINCIPAL DE PUNTUACIÃ“N -->
     <div class="table-wrap">
      <table class="score-table">
 ${isCF ? `<colgroup>
@@ -430,9 +457,9 @@ ${isCF ? `<colgroup>
         }).join('')}
        </tr>
 
-       <!-- ROW PEQUEÑO -->
+       <!-- ROW PEQUEÃ‘O -->
        <tr>
-        <td class="row-label" style="font-size:12px;">Pequeño</td>
+        <td class="row-label" style="font-size:12px;">PequeÃ±o</td>
         <td class="cell-empty"></td>
         <td class="cell-empty"></td>
         ${valsPequeno.map((v, i) => {
@@ -466,7 +493,7 @@ ${isCF ? `<colgroup>
         <td class="td-adicional" rowspan="3">${series ? addPts : ''}</td>
        </tr>
 
-       <!-- ROW 10" - columna 1 vacía, columnas 2 a 10 -->
+       <!-- ROW 10" - columna 1 vacÃ­a, columnas 2 a 10 -->
        <tr>
         <td class="row-label">10"</td>
         <td class="cell-empty"></td>
@@ -477,7 +504,7 @@ ${isCF ? `<colgroup>
         ${ vals10.length < 9 ? Array.from({ length: 9 - vals10.length }, () => '<td class="cell-empty"></td>').join('') : '' }
        </tr>
 
-       <!-- ROW 5" - columnas 1-2 vacías, columnas 3 a 10 -->
+       <!-- ROW 5" - columnas 1-2 vacÃ­as, columnas 3 a 10 -->
        <tr>
         <td class="row-label">5"</td>
         <td class="cell-empty"></td>
@@ -505,7 +532,7 @@ ${isCF ? `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
      <div class="target-summary">
       <p>${targetSummary('Grande', hitGrande, missGrande)}</p>
       <p>${targetSummary('Mediano', hitMediano, missMediano)}</p>
-      <p>${targetSummary('Pequeño', hitPequeno, missPequeno)}</p>
+      <p>${targetSummary('PequeÃ±o', hitPequeno, missPequeno)}</p>
       ${series && addShots.length > 0 ? `<p><strong>Adicionales:</strong> ${addShots.length} disparos - ${addPts} pts</p>` : series ? '' : '<p style="color:#aaa;">Adicionales: firma de fiscal al culminar</p>'}
      </div>` : `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
      <div class="target-summary">
@@ -520,7 +547,7 @@ ${isCF ? `<!-- RESUMEN DE BLANCOS IMPACTADOS -->
      <div class="total-box">
       <span class="total-lbl">Total</span>
       <div class="total-val">
-       <span class="total-num">${total || '—'}</span>
+       <span class="total-num">${total || 'â€”'}</span>
        <span class="total-word">pts</span>
       </div>
      </div>
@@ -546,7 +573,7 @@ ${isCF ? `<!-- IMPORTANTE -->
       <li>Marcar acierto con "O", fallo con "X"</li>
       <li>Firma de fiscal es obligatoria tras la serie</li>
      </ul>
-     <div class="imp-banner">Protección visual y auditiva obligatoria</div>
+     <div class="imp-banner">ProtecciÃ³n visual y auditiva obligatoria</div>
     </div>`}
     </div>
 
@@ -555,7 +582,9 @@ ${isCF ? `<!-- IMPORTANTE -->
 }
 
 /**
- * Genera la página A4 horizontal que agrupa las series de un tirador en dos columnas (Series 1 y 2).
+ * Genera la pÃ¡gina A4 horizontal para un tirador.
+ * - .22 LR: dos columnas (Serie 1 y Serie 2) lado a lado.
+ * - CF (.308/.223): una sola columna a ancho completo.
  */
 function getCompetitorLandscapePageHtml(
   event: ShootingEvent,
@@ -563,20 +592,36 @@ function getCompetitorLandscapePageHtml(
   seriesList: Series[],
   pageBreakStyle: string = ''
 ): string {
-  // Buscar Serie 1 y Serie 2
-  const s1 = seriesList.find((s) => s.seriesNumber === 1);
-  const s2 = seriesList.find((s) => s.seriesNumber === 2);
+  // Detectar modalidad
+  let modality = event.modality || '.22 LR';
+  if (!event.modality && event.name) {
+    if (event.name.includes('.308')) modality = '.308' as any;
+    else if (event.name.includes('.223')) modality = '.223' as any;
+  }
+  const isCF = modality === '.308' || modality === '.223';
 
-  // Generar columnas
-  const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
-  const col2Html = getSeriesColumnHtml(event, participant, s2, 2);
-
-  return `
+  if (isCF) {
+    // CF: solo una columna (Serie 1), ancho completo
+    const s1 = seriesList.find((s) => s.seriesNumber === 1);
+    const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
+    return `
+   <div class="a4-landscape-page" ${pageBreakStyle}>
+     ${col1Html}
+   </div>
+  `;
+  } else {
+    // .22 LR: dos columnas lado a lado
+    const s1 = seriesList.find((s) => s.seriesNumber === 1);
+    const s2 = seriesList.find((s) => s.seriesNumber === 2);
+    const col1Html = getSeriesColumnHtml(event, participant, s1, 1);
+    const col2Html = getSeriesColumnHtml(event, participant, s2, 2);
+    return `
    <div class="a4-landscape-page" ${pageBreakStyle}>
      ${col1Html}
      ${col2Html}
    </div>
   `;
+  }
 }
 
 /** Genera y abre la planilla imprimible horizontal (Series 1 y 2 juntas) para un tirador */
@@ -594,9 +639,9 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Planilla CPTP — ${participant.name} — Series 1 y 2</title>
+ <title>Planilla CPTP â€” ${participant.name} â€” Series 1 y 2</title>
  <style>
-   ${getLandscapePrintStyles()}
+   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
  </style>
 </head>
 <body>
@@ -605,10 +650,10 @@ export async function printSeriesCard(event: ShootingEvent, participant: Partici
 </body>
 </html>`;
 
-  openPrintModal(html, `Planilla CPTP — ${participant.name}`);
+  openPrintModal(html, `Planilla CPTP â€” ${participant.name}`);
 }
 
-/** Genera y abre una planilla única que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
+/** Genera y abre una planilla Ãºnica que concatena todas las series del evento agrupadas por tirador (una hoja por tirador) */
 export function printEventCards(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
   // Agrupar series por participante
   const pagesHtml = participants.map((p, idx) => {
@@ -622,9 +667,9 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Todas las Planillas — ${event.name}</title>
+ <title>Todas las Planillas â€” ${event.name}</title>
  <style>
-   ${getLandscapePrintStyles()}
+   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
  </style>
 </head>
 <body>
@@ -633,7 +678,7 @@ export function printEventCards(event: ShootingEvent, participants: Participant[
 </body>
 </html>`;
 
-  openPrintModal(html, `Todas las Planillas — ${event.name}`);
+  openPrintModal(html, `Todas las Planillas â€” ${event.name}`);
 }
 
 export function printRankingCard(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
@@ -680,8 +725,8 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        : `<div class="pos-number">${pos}</div>`;
         
       const laneLabel = p.tanda
-       ? `S1: T${p.tanda}·M${p.spot} | S2: T${p.tandaS2 || '—'}·M${p.spotS2 || '—'}`
-       : 'Sin posición';
+       ? `S1: T${p.tanda}Â·M${p.spot} | S2: T${p.tandaS2 || 'â€”'}Â·M${p.spotS2 || 'â€”'}`
+       : 'Sin posiciÃ³n';
       const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
       return `
@@ -689,7 +734,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
         <td class="td-pos">${posHtml}</td>
         <td class="td-name">
          <div class="name-text">${esc(p.name).toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR · ${laneLabel} ${p.category ? `· ${esc(p.category)}` : ''}</div>
+         <div class="sub-text">COMPETIDOR Â· ${laneLabel} ${p.category ? `Â· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val">${scoreDisplay}</div>
@@ -727,10 +772,10 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 
     return `
       <tr class="rank-row" style="background:#fffbeb;">
-        <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">★</div></td>
+        <td class="td-pos"><div style="font-size:16px;font-weight:900;color:#d97706;text-align:center;">â˜…</div></td>
         <td class="td-name">
          <div class="name-text">${esc(p.name).toUpperCase()}</div>
-         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `· ${esc(p.category)}` : ''}</div>
+         <div class="sub-text">COMPETIDOR #${p.competitorNumber} ${p.category ? `Â· ${esc(p.category)}` : ''}</div>
         </td>
         <td class="td-score">
          <div class="score-val" style="font-size:14px;color:#d97706;">${reason.join(' / ')}</div>
@@ -739,7 +784,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   }).join('');
 
   if (perfectRowsHtml.trim() === '') {
-    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">Ningún tirador alcanzó puntaje perfecto (67 o 134).</td></tr>`;
+    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">NingÃºn tirador alcanzÃ³ puntaje perfecto (67 o 134).</td></tr>`;
   }
 
   // Helper to build a page
@@ -758,7 +803,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
      <div class="header-left" style="flex:1;margin-left:8px;">
       <span class="category">Campeonato Nacional Long Range</span>
       <h1 class="title-main">TABLA DE POSICIONES</h1>
-      <span class="event-name">${event.name.toUpperCase()} ${titleExtra ? `· <span style="color:#0056b3;font-weight:900;">${titleExtra.toUpperCase()}</span>` : ''}</span>
+      <span class="event-name">${event.name.toUpperCase()} ${titleExtra ? `Â· <span style="color:#0056b3;font-weight:900;">${titleExtra.toUpperCase()}</span>` : ''}</span>
      </div>
      
      <div class="header-right" style="margin-right:8px;">
@@ -786,7 +831,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
     </table>
 
     <footer class="footer">
-     <div>Club Paraguayo de Tiro de Long Range · Planilla Oficial</div>
+     <div>Club Paraguayo de Tiro de Long Range Â· Planilla Oficial</div>
      <div class="footer-right">CPTP Scoring</div>
     </footer>
   </div>
@@ -796,7 +841,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Ranking — ${event.name}</title>
+ <title>Ranking â€” ${event.name}</title>
  <style>
   @page { size: A4 portrait; margin: 0; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -895,7 +940,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
 </body>
 </html>`;
 
-  openPrintModal(html, `Ranking — ${event.name}`);
+  openPrintModal(html, `Ranking â€” ${event.name}`);
 }
 export function openPrintModal(htmlContent: string, title: string): void {
   (window as any).cptpOpenPrintModalGlobal = openPrintModal;
@@ -978,16 +1023,16 @@ export function printBlankSheet(event: ShootingEvent): void {
 <html lang="es">
 <head>
  <meta charset="UTF-8"/>
- <title>Planilla Vacía - ${event.name}</title>
+ <title>Planilla VacÃ­a - ${event.name}</title>
  <style>
-   ${getLandscapePrintStyles()}
+   ${(()=>{ let m=event.modality||".22 LR"; if(!event.modality&&event.name){if(event.name.includes(".308"))m=".308";else if(event.name.includes(".223"))m=".223";} return(m===".308"||m===".223")?getCFPrintStyles():getLRPrintStyles(); })()}
  </style>
 </head>
 <body>
- <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla Vacía</button>
+ <button class="print-btn no-print" onclick="window.print()">Imprimir Planilla VacÃ­a</button>
  ${pageHtml}
 </body>
 </html>`;
 
-  openPrintModal(html, 'Planilla Vacía');
+  openPrintModal(html, 'Planilla VacÃ­a');
 }
