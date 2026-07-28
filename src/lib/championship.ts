@@ -31,6 +31,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
   const allEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
   const yearEvents = allEvents
     .filter(e => {
+      if (e.isPilot) return false; // Eventos piloto no cuentan
       const eMod = e.modality || '.22 LR';
       if (eMod !== modality) return false;
       try {
@@ -65,7 +66,6 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
   for (const [normName, parts] of groupedByName.entries()) {
     const masterInfo = masterCompetitors.find(mc => mc.name.normalize('NFD').replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() === normName);
     
-    // Buscar la categoría real usada en los eventos, priorizando una que no sea 'General'
     let bestCategory = 'General';
     for (const p of parts) {
       if (p.category && p.category !== 'General') {
@@ -95,7 +95,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
     for (const e of yearEvents) {
       const pForEvent = parts.find(p => p.eventId === e.id);
       if (!pForEvent) {
-        row.events[e.id!] = null; // null = DNS o no inscripto
+        row.events[e.id!] = null;
         scoresList.push({ eventId: e.id!, score: 0, status: 'dns' });
       } else {
         hasParticipated = true;
@@ -112,25 +112,22 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
 
     if (!hasParticipated) continue;
 
-    // Ordenar puntajes de mayor a menor
     const sortedScores = [...scoresList].sort((a, b) => b.score - a.score);
     let totalActual = 0;
     let baseFirme = 0;
 
-    const userParticipations = yearEvents.filter(e => row.events[e.id!] !== null).length;
+    const totalEvents = yearEvents.length;
 
     for (let i = 0; i < sortedScores.length; i++) {
       const s = sortedScores[i];
       const isBaseFirme = i < 2;
-      const isTaken = i < 3; // Top 3
-      const isAtRisk = i === 2 && userParticipations < 4; // El 3ro en discordia si faltan fechas al tirador
+      const isTaken = i < 3; // Siempre Top 3
+      const isAtRisk = i === 2 && totalEvents >= 4; // Solo hay riesgo si hay 4+ eventos
       const isDiscarded = i >= 3;
 
       if (isBaseFirme) baseFirme += s.score;
       if (isTaken) totalActual += s.score;
 
-      // Asignar el score al evento correspondiente. 
-      // Ignoramos si es null (DNS puro sin anotarse).
       if (row.events[s.eventId] !== null) {
          row.events[s.eventId] = {
            eventId: s.eventId,

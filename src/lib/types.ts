@@ -53,6 +53,7 @@ export interface ShootingEvent {
   championshipDate?: string; // Ej: "1ª Fecha", "2ª Fecha", "Final"
   createdAt: number;
   is_deleted?: boolean;
+  isPilot?: boolean; // Si es true, no cuenta para el campeonato general
 }
 
 export interface MasterCompetitor {

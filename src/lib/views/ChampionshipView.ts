@@ -22,7 +22,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
           <div>
             <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;color:${mConfig.color};margin:0;">Campeonato General Anual - ${mConfig.shortLabel}</h3>
-            <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b;font-weight:600;">Se suman los 3 mejores puntajes de los 4 eventos. El Top 2 compone la "Base Firme".</p>
+            <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b;font-weight:600;">Se suman los 3 mejores puntajes de todos los eventos del año. El Top 2 compone la "Base Firme".</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <label style="font-size:0.85rem;font-weight:700;color:#475569;">Modalidad:</label>
@@ -60,23 +60,18 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       return;
     }
 
-    // Cabecera Eventos (Max 4)
-    const headerEvents = allEvents.slice(0, 4);
-    const eventHeadersHtml = headerEvents.map((e, idx) => `
-      <th style="padding:8px 4px;text-align:center;font-size:0.75rem;color:#0056b3;width:11%;min-width:65px;" title="${esc(e.name)}">
+    // Cabecera Eventos (dinamica segun cantidad de eventos)
+    const totalEventCount = allEvents.length;
+    const eventHeadersHtml = allEvents.map((e, idx) => {
+      const baseWidth = totalEventCount <= 4 ? 11 : Math.min(11, Math.floor(70 / totalEventCount));
+      return `
+      <th style="padding:8px 4px;text-align:center;font-size:0.75rem;color:#0056b3;width:${baseWidth}%;min-width:55px;" title="${esc(e.name)}">
         <div style="font-weight:900;text-transform:uppercase;">E${idx + 1}</div>
         <div style="font-size:0.65rem;color:#64748b;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin:auto;margin-top:2px;">
           ${esc(e.championshipDate || e.name)}
         </div>
-      </th>
-    `).join('');
-
-    const missingHeadersCount = Math.max(0, 4 - headerEvents.length);
-    const emptyHeadersHtml = Array.from({ length: missingHeadersCount }, (_, i) => `
-      <th style="padding:8px 4px;text-align:center;font-size:0.75rem;color:#94a3b8;width:11%;min-width:65px;font-weight:500;">
-        E${headerEvents.length + i + 1} (Pendiente)
-      </th>
-    `).join('');
+      </th>`;
+    }).join('');
 
     // Ordenar Data
     const sortedRankings = sortChampionshipRanking(rankings, currentSortBy);
@@ -93,7 +88,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       else posHtml = `<span style="font-weight:700;color:#64748b;padding-left:6px;">${pos}</span>`;
 
       // Celdas
-      const cellsHtml = headerEvents.map(e => {
+      const cellsHtml = allEvents.map(e => {
         const item = row.events[e.id!];
         if (!item) {
           return `<td style="padding:10px 8px;text-align:center;color:#cbd5e1;" class="cell-discarded">-</td>`;
@@ -142,7 +137,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
             <div style="font-size:0.7rem;color:#64748b;font-weight:600;margin-top:2px;">${esc(row.category)}</div>
           </td>
           ${cellsHtml}
-          ${emptyCellsHtml}
           <td style="padding:10px 4px;text-align:center;width:85px;background:${currentSortBy === 'baseFirme' ? '#f0fdf4' : 'transparent'};">
             <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:${currentSortBy === 'baseFirme' ? '#16a34a' : '#64748b'};">
               ${row.baseFirme}
@@ -165,7 +159,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               <th style="padding:10px 4px;text-align:center;color:#0056b3;width:40px;">Pos</th>
               <th style="padding:10px 6px;color:#0056b3;">Tirador</th>
               ${eventHeadersHtml}
-              ${emptyHeadersHtml}
               
               <!-- CABECERAS ORDENABLES -->
               <th id="th-sort-base" style="padding:10px 4px;text-align:center;color:#16a34a;width:85px;cursor:pointer;background:${currentSortBy === 'baseFirme' ? '#dcfce7' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Base Firme">
@@ -195,7 +188,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     container.innerHTML = html;
     bindYearSelect();
     bindSorting();
-    bindActions(allEvents.slice(0, 4), sortedRankings, currentSortBy);
+    bindActions(allEvents, sortedRankings, currentSortBy);
   };
 
   const bindYearSelect = () => {

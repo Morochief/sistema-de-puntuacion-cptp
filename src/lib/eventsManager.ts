@@ -120,6 +120,13 @@ export async function showEditEventModal(eventId: number, onSaveCallback: () => 
         </div>
       </div>
 
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="edit-event-pilot" ${event.isPilot ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;" />
+        <label for="edit-event-pilot" style="font-size:0.85rem;font-weight:600;color:#b7201c;cursor:pointer;">
+          Evento Piloto (no cuenta para el Campeonato General)
+        </label>
+      </div>
+
       <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
         <button type="button" id="btn-cancel-edit" class="btn-ghost-custom" style="padding:10px 18px;">Cancelar</button>
         <button type="submit" class="btn-primary-custom" style="padding:10px 18px;background:#0056b3;color:#ffffff;border-radius:8px;font-weight:bold;">Guardar Cambios</button>
@@ -147,10 +154,11 @@ export async function showEditEventModal(eventId: number, onSaveCallback: () => 
     const date = (modalBox.querySelector('#edit-event-date') as HTMLInputElement).value;
     const location = (modalBox.querySelector('#edit-event-loc') as HTMLInputElement).value.trim();
     const championshipDate = (modalBox.querySelector('#edit-event-champ') as HTMLInputElement).value.trim();
+    const isPilot = (modalBox.querySelector('#edit-event-pilot') as HTMLInputElement).checked;
 
     if (!name || !date) return;
 
-    await db.events.update(eventId, { name, date, location, championshipDate });
+    await db.events.update(eventId, { name, date, location, championshipDate, isPilot });
     showToast('Evento actualizado correctamente.', 'success');
     close();
     onSaveCallback();
