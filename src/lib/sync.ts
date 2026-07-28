@@ -178,15 +178,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     const { data: cloudMaster, error: mErr } = await supabase.from('master_competitors').select('*');
     if (mErr) throw new Error(`Error descargando padrón maestro: ${mErr.message}`);
 
-    // 2. Limpiar locales completamente para recibir el estado oficial de la nube
-    await Promise.all([
-      db.events.clear(),
-      db.participants.clear(),
-      db.series.clear(),
-      db.masterCompetitors.clear()
-    ]);
-
-    // 3. Escribir datos de la nube en Dexie
+    // 2. Escribir datos de la nube en Dexie sin borrar locales (upsert)
+    //    Los datos locales que no existen en la nube se conservan.
     if (cloudEvents) {
       for (const e of cloudEvents) {
         const localId = fromDeterministicUuid(e.id);

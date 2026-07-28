@@ -57,8 +57,19 @@ window.addEventListener('load', async () => {
     });
   }
   
-  // Removed: auto-pull was destroying local data when SW refreshed.
-  // User must click "Bajar de la Nube" manually.
+  // Auto-pull desde la nube si la DB local esta vacia (upsert, no borra datos locales)
+  if (navigator.onLine) {
+    setTimeout(async () => {
+      const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
+      if (localEvents.length === 0) {
+        console.log('[Sync] Base de datos vacía. Iniciando descarga automática...');
+        const pullRes = await pullCloudDatabaseToLocal();
+        if (pullRes.success) {
+          await router();
+        }
+      }
+    }, 1200);
+  }
 
   // Silent padron migration
   setTimeout(async () => {
@@ -84,8 +95,20 @@ window.addEventListener('load', async () => {
   }
 
 
-  // Removed: auto-pull was destroying local data when SW refreshed.
-  // User must click "Bajar de la Nube" manually.
+  // Auto-pull periódico para Espectadores (cada 30s) - usa upsert, no borra datos locales
+  setInterval(async () => {
+    if (navigator.onLine && getCurrentRole() === 'spectator') {
+      try {
+        const result = await pullCloudDatabaseToLocal();
+        if (result.success) {
+          const r = getRoute();
+          if (r.view === 'dashboard' || r.view === 'event' || r.view === 'series') {
+            await router();
+          }
+        }
+      } catch (err) {}
+    }
+  }, 30000);
 });
 
 window.addEventListener('hashchange', () => {
