@@ -79,6 +79,7 @@ function getLRPrintStyles(): string {
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
     display: flex;
     gap: 12px;
+    align-items: flex-start;
     min-height: 186mm;
     page-break-after: always;
     break-after: page;
@@ -109,7 +110,6 @@ function getLRPrintStyles(): string {
 
    /* Columnas lado a lado para .22 LR */
    .series-column {
-    flex: 1;
     width: 50%;
     min-width: 0;
     border: 1.5px solid #000;
@@ -121,7 +121,6 @@ function getLRPrintStyles(): string {
     background: #fff;
     page-break-inside: avoid;
     break-inside: avoid;
-    overflow: hidden;
    }
 
    /* Sub-diseÃ±o de las tarjetas internas */
