@@ -88,8 +88,7 @@ function getLRPrintStyles(): string {
       padding: 6px 8px; 
       box-shadow: none; 
       width: 287mm; 
-      height: 186mm;
-      overflow: hidden;
+      height: 206mm;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
