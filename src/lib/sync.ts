@@ -14,7 +14,7 @@ export interface SyncResult {
  * Traduce un ID numérico local de Dexie a un UUID válido en formato estándar RFC4122
  * de manera determinista según la tabla, evitando colisiones e invalidación de tipos en Postgres.
  */
-export function toDeterministicUuid(id: number | undefined, namespace: 0 | 1 | 2): string {
+export function toDeterministicUuid(id: number | undefined, namespace: 0 | 1 | 2 | 3): string {
   if (id === undefined) return '00000000-0000-4000-0000-000000000000';
   const paddedId = String(id).padStart(12, '0');
   const namespaceStr = String(namespace).padStart(4, '0');
@@ -33,6 +33,7 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
     const localParticipants = await db.participants.filter((item: any) => !item.is_deleted).toArray();
     const localSeries = await db.series.filter((item: any) => !item.is_deleted).toArray();
+    const localMasterCompetitors = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
 
     let eventsSynced = 0;
     let participantsSynced = 0;
