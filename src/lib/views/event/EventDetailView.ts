@@ -6,6 +6,7 @@ import { exportEventBackup, importEventBackup } from '../../backup';
 import { sortRanking, showTieBreakerModal } from '../../tiebreaker';
 import { handleSeedParticipants, handleSeedScores } from '../../seeder';
 import { db } from '../../db';
+import { updateUIRoles } from '../../authManager';
 import type { ShootingEvent, Participant, Series, Shot } from '../../types';
 import { printEventCards, printRankingCard, printBlankSheet } from '../../print';
 import html2canvas from 'html2canvas';

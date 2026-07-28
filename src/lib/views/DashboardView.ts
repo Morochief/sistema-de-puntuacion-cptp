@@ -2,7 +2,7 @@ import { esc, showToast, showConfirm, showPrompt } from '../modals';
 import { navigate } from '../router';
 import { router } from '../app';
 import { db } from '../db';
-import { getCurrentRole } from '../authManager';
+import { getCurrentRole, updateUIRoles } from '../authManager';
 import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
 import { renderChampionshipPanel } from './ChampionshipView';
@@ -62,7 +62,7 @@ export async function renderDashboard(): Promise<void> {
      <option value="name_desc" ${dashSortBy === 'name_desc' ? 'selected' : ''}>Nombre (Z-A)</option>
     </select>
 
-    <button id="btn-open-master-padron" class="btn-ghost-custom"
+    <button id="btn-open-master-padron" class="btn-ghost-custom admin-only"
         style="padding:9px 16px;border:1.5px solid #0056b3;color:#0056b3;font-weight:700;border-radius:10px;background:#ffffff;"
         title="Administrar el Padrón Maestro de Tiradores">
       Padrón Maestro

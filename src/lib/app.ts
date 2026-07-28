@@ -85,6 +85,15 @@ window.addEventListener('load', async () => {
   }, 2000);
 
   setupDashboardTabs();
+  // Observador global para aplicar roles cuando cambia el DOM dinamicamente
+  const appRoot = document.getElementById('app-root');
+  if (appRoot) {
+    const observer = new MutationObserver(() => {
+      updateUIRoles();
+    });
+    observer.observe(appRoot, { childList: true, subtree: true });
+  }
+
 
   // Auto-pull periódico para Espectadores (cada 30s)
   setInterval(async () => {
@@ -107,5 +116,14 @@ window.addEventListener('hashchange', () => {
   setTimeout(() => {
     setupCloudSync();
     setupDashboardTabs();
+  // Observador global para aplicar roles cuando cambia el DOM dinamicamente
+  const appRoot = document.getElementById('app-root');
+  if (appRoot) {
+    const observer = new MutationObserver(() => {
+      updateUIRoles();
+    });
+    observer.observe(appRoot, { childList: true, subtree: true });
+  }
+
   }, 100);
 });
