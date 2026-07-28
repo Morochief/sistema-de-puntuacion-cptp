@@ -95,7 +95,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   <!-- PANEL 1: REGISTRO Y SORTEO -->
   <div id="tab-panel-tiradores" class="tab-panel ${activeMainTab === 'tiradores' ? '' : 'hidden'}">
    <!-- Formulario de Inscripción -->
-   <div class="card-tactical" style="padding:16px;margin-bottom:20px;">
+   <div class="card-tactical staff-only" style="padding:16px;margin-bottom:20px;">
     <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin-bottom:12px;">
      Inscribir Competidor
     </h3>
@@ -141,7 +141,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    </div>
 
    <!-- Sorteo Acción -->
-   <div class="card-tactical" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.25);">
+   <div class="card-tactical staff-only" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.25);">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
       <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin:0;">
