@@ -12,7 +12,7 @@ import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../t
 import { getModalityConfig } from '../../modalityConfig';
 import { printEventCards, printRankingCard, printBlankSheet } from '../../print';
 import html2canvas from 'html2canvas';
-import { renderMasterCompetitorsModal } from '../../masterCompetitors';
+import { renderMasterCompetitorsModal, addMasterCompetitor } from '../../masterCompetitors';
 import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, applySharedRifleRules, resetEventSeeding, showManualHeatsReorderModal } from '../../heatsManager';
 
 
