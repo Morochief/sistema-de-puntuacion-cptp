@@ -73,7 +73,6 @@ function getLRPrintStyles(): string {
 
    .a4-landscape-page {
     width: 287mm;
-    min-height: 186mm;
     margin: 10mm auto;
     background: #fff;
     padding: 8px 14px;
@@ -87,14 +86,12 @@ function getLRPrintStyles(): string {
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      margin: 0; 
-      padding: 6px 0; 
+      margin: 0 auto; 
+      padding: 6px 8px; 
       box-shadow: none; 
-      width: 287mm; 
-      height: 186mm;
+      width: 277mm; 
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
-      overflow: hidden;
       page-break-inside: avoid;
       break-inside: avoid;
     }
