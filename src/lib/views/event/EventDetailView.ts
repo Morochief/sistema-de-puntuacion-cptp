@@ -171,7 +171,7 @@ export async function renderEvent(eventId: string): Promise<void> {
         Reordenar S1
       </button>
       <button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only"
-          style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
+          style="display:${maxSeriesPerEvent > 1 ? 'inline-block' : 'none'};padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;"
           ${participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : ''}
           title="Reasignar tandas manualmente para Serie 2">
         Reordenar S2
@@ -857,27 +857,29 @@ export async function renderEvent(eventId: string): Promise<void> {
 
    const seriesCards = pSeries.length > 0
     ? pSeries.map(s => {
-      const shotDots = Array.from({ length: 10 }, (_, i) => {
-       const sh = s.shots[i];
-       if (!sh) return `<span class="shot-dot" style="background:#e2e8f0;color:#94a3b8;">·</span>`;
-       return `<span class="shot-dot ${sh.hit ? 'hit' : 'miss'}">${sh.hit ? 'O' : 'X'}</span>`;
-      }).join('');
-      return `
-      <div class="series-card" data-series-id="${s.id}" role="button" tabindex="0"
-         style="background:#f8fafc;border:1px solid #e2e8f0;padding:10px 12px;margin-top:6px;border-radius:10px;">
-       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-        <div style="flex:1;min-width:0;">
-         <div style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;color:#64748b;margin-bottom:6px;">
-          SERIE ${s.seriesNumber}
+       const maxShots = isCF ? 12 : 10;
+       const maxScore = isCF ? (s.bonusActive ? 96 : 87) : 67;
+       const shotDots = Array.from({ length: maxShots }, (_, i) => {
+        const sh = s.shots[i];
+        if (!sh) return `<span class="shot-dot" style="background:#e2e8f0;color:#94a3b8;">·</span>`;
+        return `<span class="shot-dot ${sh.hit ? 'hit' : 'miss'}">${sh.hit ? 'O' : 'X'}</span>`;
+       }).join('');
+       return `
+       <div class="series-card" data-series-id="${s.id}" role="button" tabindex="0"
+          style="background:#f8fafc;border:1px solid #e2e8f0;padding:10px 12px;margin-top:6px;border-radius:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+         <div style="flex:1;min-width:0;">
+          <div style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;color:#64748b;margin-bottom:6px;">
+           SERIE ${s.seriesNumber}
+          </div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">${shotDots}</div>
          </div>
-         <div style="display:flex;gap:3px;flex-wrap:wrap;">${shotDots}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-         <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:#d97706;">
-          ${s.totalScore}
+         <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:#d97706;">
+           ${s.totalScore}
+          </div>
+          <div style="font-size:0.6rem;color:#475569;">/ ${maxScore} pts</div>
          </div>
-         <div style="font-size:0.6rem;color:#475569;">/ 67 pts</div>
-        </div>
        </div>
       </div>`;
      }).join('')
@@ -1112,10 +1114,10 @@ export async function renderEvent(eventId: string): Promise<void> {
   container.innerHTML = `
     ${buildTable('Total del Evento', rankTotal)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;">
-      ${buildTable('Serie 1', rankS1)}
-      ${buildTable('Serie 2', rankS2)}
+      ${maxSeriesPerEvent > 1 ? buildTable('Serie 1', rankS1) : ''}
+      ${maxSeriesPerEvent > 1 ? buildTable('Serie 2', rankS2) : ''}
     </div>
-    ${perfectTable}
+    ${maxSeriesPerEvent > 1 ? perfectTable : ''}
   `;
 
   // Imprimir Button in Tab

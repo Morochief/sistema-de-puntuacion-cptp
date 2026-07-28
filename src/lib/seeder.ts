@@ -116,39 +116,54 @@ export async function handleSeedParticipants(id: number, participants: Participa
 
    if (!await showConfirm('Simular Puntuaciones', '¿Simular puntuaciones de prueba para todos los competidores? Esto borrará las series actuales de este evento.')) return;
 
-  try {
-   // 1. Limpiar series anteriores para este evento
-   await db.series.where('eventId').equals(id).delete();
+   try {
+    const event = await db.events.get(Number(id));
+    const modality = event?.modality || '.22 LR';
+    const isCF = modality === '.308' || modality === '.223';
+    
+    // 1. Limpiar series anteriores para este evento
+    await db.series.where('eventId').equals(id).delete();
 
-   const bulkSeries: Series[] = [];
+    const bulkSeries: Series[] = [];
 
-   // Función helper para generar disparos siguiendo el reglamento exacto
+    // Generar series para cada participante
+    for (const p of participants) {
+     if (isCF) {
+      const s1 = generateRealisticSeriesShotsCF();
+      bulkSeries.push({
+       eventId: id,
+       participantId: p.id!,
+       seriesNumber: 1,
+       shots: s1.shots,
+       totalScore: s1.totalScore,
+       bonusActive: s1.bonusActive,
+       createdAt: Date.now()
+      });
+     } else {
+      const s1 = generateRealisticSeriesShots();
+      bulkSeries.push({
+       eventId: id,
+       participantId: p.id!,
+       seriesNumber: 1,
+       shots: s1.shots,
+       totalScore: s1.totalScore,
+       createdAt: Date.now()
+      });
 
-   // Generar 2 series para cada participante
-   for (const p of participants) {
-    const s1 = generateRealisticSeriesShots();
-    bulkSeries.push({
-     eventId: id,
-     participantId: p.id!,
-     seriesNumber: 1,
-     shots: s1.shots,
-     totalScore: s1.totalScore,
-     createdAt: Date.now()
-    });
+      const s2 = generateRealisticSeriesShots();
+      bulkSeries.push({
+       eventId: id,
+       participantId: p.id!,
+       seriesNumber: 2,
+       shots: s2.shots,
+       totalScore: s2.totalScore,
+       createdAt: Date.now() + 1000
+      });
+     }
+    }
 
-    const s2 = generateRealisticSeriesShots();
-    bulkSeries.push({
-     eventId: id,
-     participantId: p.id!,
-     seriesNumber: 2,
-     shots: s2.shots,
-     totalScore: s2.totalScore,
-     createdAt: Date.now() + 1000
-    });
-   }
-
-   await db.series.bulkAdd(bulkSeries);
-   showToast('Se simularon 2 series para cada tirador con éxito', 'success');
+    await db.series.bulkAdd(bulkSeries);
+    showToast(`Se simularon ${isCF ? '1' : '2'} series para cada tirador con éxito`, 'success');
 
    await onComplete();
   } catch (err) {
@@ -213,3 +228,62 @@ export    function generateRealisticSeriesShots(): { shots: Shot[], totalScore: 
     const totalScore = shots.reduce((sum, s) => sum + s.value, 0);
     return { shots, totalScore };
    }
+
+ export function generateRealisticSeriesShotsCF(): { shots: Shot[], totalScore: number, bonusActive: boolean } {
+    const shots: Shot[] = [];
+    let shotNum = 1;
+    let bonusActive = false;
+
+    // Blanco Grande
+    let hitGrande = false;
+    while (shotNum <= 12 && !hitGrande) {
+     const hit = Math.random() > 0.15;
+     if (hit) {
+      if (shotNum === 1) bonusActive = Math.random() > 0.5;
+      const baseVal = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1][shotNum - 1] || 1;
+      shots.push({ shotNumber: shotNum, targetType: 'grande', hit: true, value: baseVal });
+      hitGrande = true;
+     } else {
+      shots.push({ shotNumber: shotNum, targetType: 'grande', hit: false, value: 0 });
+     }
+     shotNum++;
+    }
+
+    // Blanco Mediano
+    let hitMediano = false;
+    while (shotNum <= 12 && hitGrande && !hitMediano) {
+     const hit = Math.random() > 0.25;
+     if (hit) {
+      const baseVal = [24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4][shotNum - 2] || 4;
+      shots.push({ shotNumber: shotNum, targetType: 'mediano', hit: true, value: baseVal });
+      hitMediano = true;
+     } else {
+      shots.push({ shotNumber: shotNum, targetType: 'mediano', hit: false, value: 0 });
+     }
+     shotNum++;
+    }
+
+    // Blanco Pequeño
+    let hitPequeno = false;
+    while (shotNum <= 12 && hitMediano && !hitPequeno) {
+     const hit = Math.random() > 0.4;
+     if (hit) {
+      const baseVal = [42, 38, 34, 30, 26, 22, 18, 14, 11, 7][shotNum - 3] || 7;
+      shots.push({ shotNumber: shotNum, targetType: 'pequeno', hit: true, value: baseVal });
+      hitPequeno = true;
+     } else {
+      shots.push({ shotNumber: shotNum, targetType: 'pequeno', hit: false, value: 0 });
+     }
+     shotNum++;
+    }
+
+    // Adicionales
+    if (hitPequeno) {
+     for (let n = shotNum; n <= 12; n++) {
+      shots.push({ shotNumber: n, targetType: 'additional', hit: true, value: bonusActive ? 2 : 1 });
+     }
+    }
+
+    const totalScore = shots.reduce((acc, s) => acc + s.value, 0);
+    return { shots, totalScore, bonusActive };
+ }
