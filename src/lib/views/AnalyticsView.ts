@@ -405,6 +405,33 @@ export async function renderAnalytics(): Promise<void> {
       }
     });
     
+    // CHART X: Factor X
+    xChart = new Chart(ctxX, {
+      type: 'bar',
+      data: {
+        labels: xData.labels,
+        datasets: [{
+          label: 'Moscas (X) Promedio',
+          data: xData.data1,
+          backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#1e293b' }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#1e293b' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
     // CHART 3: Top Shooters
     topChart = new Chart(ctxTop, {
       type: 'bar',
