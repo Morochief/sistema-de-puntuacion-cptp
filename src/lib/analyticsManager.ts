@@ -133,10 +133,8 @@ export async function getPrecisionFactorData(modality: string, year: string): Pr
       sumX += seriesXCount;
     }
     
-    const avgX = Number((sumX / series.length).toFixed(2));
-    
     labels.push(label);
-    data1.push(avgX);
+    data1.push(sumX);
   }
   
   return { labels, data1 };

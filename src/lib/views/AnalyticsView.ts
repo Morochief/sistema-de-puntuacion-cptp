@@ -86,7 +86,7 @@ export async function renderAnalytics(): Promise<void> {
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#10b981;"></div> <!-- Emerald -->
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Precisión (Factor X)</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Evolución del promedio de Moscas (X) por evento.</p>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de Moscas (X) pegadas en el evento.</p>
         <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-factor-x"></canvas>
         </div>
@@ -411,7 +411,7 @@ export async function renderAnalytics(): Promise<void> {
       data: {
         labels: xData.labels,
         datasets: [{
-          label: 'Moscas (X) Promedio',
+          label: 'Total Moscas (X)',
           data: xData.data1,
           backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
           borderColor: '#10b981',
