@@ -58,8 +58,8 @@ function renderScoreCell(
  */
 function getLRPrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 0; }
-   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+     @page { size: A4 landscape; margin: 5mm; }
+   *, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; }
 
    body {
     font-family: Arial, Helvetica, sans-serif;
@@ -81,29 +81,37 @@ function getLRPrintStyles(): string {
     align-items: flex-start;
    }
 
-   @media print {
-    body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @media print {
+    body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
     .a4-landscape-page { 
       display: flex !important;
+      flex-direction: row !important;
       flex-wrap: nowrap !important;
       justify-content: space-between !important;
-      margin: 0;
-      padding: 4mm;
-      box-shadow: none;
-      width: 297mm;
-      height: 210mm;
-      overflow: hidden;
-      -webkit-print-color-adjust: exact; 
-      print-color-adjust: exact; 
-      page-break-after: always;
+      align-items: stretch !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 190mm !important;
+      max-height: 190mm !important;
+      overflow: hidden !important;
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+      page-break-after: always !important;
+      break-after: page !important;
     }
     .series-column {
-      width: 49% !important;
-      flex: 0 0 49% !important;
-      border: 1.5px solid #000;
-      border-radius: 6px;
-      padding: 2px 5px;
-      background: #fff;
+      width: 48.5% !important;
+      max-width: 48.5% !important;
+      flex: 0 0 48.5% !important;
+      border: 1.5px solid #000 !important;
+      border-radius: 6px !important;
+      padding: 2px 4px !important;
+      background: #fff !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
