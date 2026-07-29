@@ -119,10 +119,10 @@ export async function renderDashboard(): Promise<void> {
      <div style="min-width:0;flex:1;">
       <h3 style="margin:0 0 4px;font-size:1.05rem;font-weight:700;color:#0056b3;
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.name)}</h3>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-       <span style="font-size:0.78rem;color:#64748b;">${formatDate(e.date)}</span>
-       ${e.location ? `<span style="color:#cbd5e1;font-size:0.7rem;">·</span><span style="font-size:0.78rem;color:#64748b;">${esc(e.location)}</span>` : ''}
-       ${e.championshipDate ? `<span style="font-size:0.72rem;background:#eff6ff;color:#0056b3;padding:2px 6px;border-radius:4px;font-weight:600;">${esc(e.championshipDate)}</span>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;">
+       <span style="font-size:0.72rem;background:#d52b1e;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;">${formatDate(e.date)}</span>
+       ${e.location ? `<span style="font-size:0.72rem;background:#ffffff;color:#0f172a;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #cbd5e1;">${esc(e.location)}</span>` : ''}
+       ${e.championshipDate ? `<span style="font-size:0.72rem;background:#0038a8;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;">${esc(e.championshipDate)}</span>` : ''}
        ${e.modality ? `<span style="font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:700;background:${mColor}18;color:${mColor};border:1px solid ${mColor}40;">${esc(e.modality)}</span>` : ''}
       </div>
      </div>

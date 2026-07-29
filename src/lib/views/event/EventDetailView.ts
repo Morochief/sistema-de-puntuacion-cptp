@@ -105,10 +105,13 @@ export async function renderEvent(eventId: string): Promise<void> {
   <div style="margin-bottom:20px;">
    <div class="section-title" style="margin-bottom:2px;display:flex;align-items:center;gap:8px;">
      Evento
-     ${event.championshipDate ? `<span style="font-size:0.75rem;background:#eff6ff;color:#0056b3;padding:2px 8px;border-radius:12px;font-weight:700;text-transform:none;">${esc(event.championshipDate)}</span>` : ''}
    </div>
    <h1 style="margin:0 0 4px;font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;color:#0056b3;line-height:1.2;">${esc(event.name)}</h1>
-   <p style="margin:0;font-size:0.85rem;color:#64748b;">${formatDate(event.date)} ${event.location ? '· ' + esc(event.location) : ''}</p>
+   <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;">
+    <span style="font-size:0.75rem;background:#d52b1e;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;">${formatDate(event.date)}</span>
+    ${event.location ? `<span style="font-size:0.75rem;background:#ffffff;color:#0f172a;padding:2px 6px;border-radius:4px;font-weight:700;border:1px solid #cbd5e1;">${esc(event.location)}</span>` : ''}
+    ${event.championshipDate ? `<span style="font-size:0.75rem;background:#0038a8;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;">${esc(event.championshipDate)}</span>` : ''}
+   </div>
   </div>
   <div role="tablist" aria-label="Navegacion del Evento" class="tabs tabs-boxed mb-6 bg-slate-200 border border-slate-300 flex gap-1 p-1 rounded-xl">
    <button role="tab" aria-selected="${activeMainTab === 'tiradores' ? 'true' : 'false'}" id="tab-btn-tiradores" class="tab ${activeMainTab === 'tiradores' ? 'tab-active' : ''} flex-1 rounded-lg font-['Rajdhani'] font-bold text-slate-900 text-sm transition-all duration-200">Sorteo (${participants.length}/32)</button>
