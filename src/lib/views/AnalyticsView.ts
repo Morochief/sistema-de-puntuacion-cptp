@@ -59,7 +59,7 @@ export async function renderAnalytics(): Promise<void> {
     <!-- GRID DE GRÁFICOS (MODO TÁCTICO) -->
     
     <!-- SECCIÓN: CRECIMIENTO GLOBAL Y RETENCIÓN -->
-    <div style="display:grid; grid-template-columns: 1fr; gap:32px; margin-bottom:32px;">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       
       <!-- Chart 1: Social Growth -->
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
@@ -83,10 +83,10 @@ export async function renderAnalytics(): Promise<void> {
     </div>
 
     <!-- SECCIÓN: RENDIMIENTO DEL CAMPO Y EFECTIVIDAD -->
-    <div style="display:grid; grid-template-columns: 1fr; gap:32px; margin-bottom:32px;">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       
-      <!-- Chart 2: Competitive Growth -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+      <!-- Chart 2: Competitive Growth (Ocupa ambas columnas en Desktop) -->
+      <div class="lg:col-span-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#d52b1e;"></div>
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Curva Competitiva</h2>
         <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Puntaje promedio vs Score Top a través del tiempo.</p>
@@ -124,7 +124,7 @@ export async function renderAnalytics(): Promise<void> {
     </div>
 
     <!-- SECCIÓN INDIVIDUAL Y RANKINGS -->
-    <div style="display:grid; grid-template-columns: 1fr; gap:32px;">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
       <!-- Chart 3: Top Shooters -->
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
