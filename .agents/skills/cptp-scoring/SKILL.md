@@ -1,4 +1,4 @@
-﻿---
+---
 name: cptp-scoring
 description: >
   Referencia COMPLETA y ABSOLUTA del sistema de puntuacion CPTP (Club Paraguayo de Tiro - Long Range).
@@ -415,7 +415,8 @@ git log --oneline -5                   # Ultimos commits
 |---|---|---|
 | Boton no aparece para admin | updateUIRoles() no llamado | Llamar despues de cada render |
 | Cambios no visibles en cliente | SW cacheado | Ctrl+Shift+R |
-| Impresion en 2 hojas .22 LR | CSS CF contamino print.ts | Mantener archivos separados |
+| Impresion en 2 hojas .22 LR | `</div>` extra rompe flexbox o `width/height` en `mm` excede pagina | Revisar pares de `</div>` y usar `width:100%; height:auto` en `@media print` |
+| Bordes estirados (print) | Contenedor flex con `align-items: stretch` | Usar `align-items: flex-start` en `@media print` |
 | addMasterCompetitor undefined | Falta import en EventDetailView | Agregar import |
 | Datos sin sincronizar | is_deleted no filtrado | Usar .filter(!item.is_deleted) |
 | Reordenar S2 aparece en CF | isCF no aplicado | Usar !isCF en display |
