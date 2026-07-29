@@ -86,7 +86,7 @@ export async function renderAnalytics(): Promise<void> {
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#10b981;"></div> <!-- Emerald -->
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Precisión (Factor X)</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de blancos acertados a 5" (.22 LR) y blancos pequeños en Fuego Central.</p>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de blancos acertados a 5" (.22 LR) y blancos pequeños en Gran Calibre.</p>
         <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-factor-x"></canvas>
         </div>
