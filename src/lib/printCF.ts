@@ -54,6 +54,7 @@ function getCFPrintStyles(): string {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
     .a4-landscape-page {
       display: flex !important;
+      align-items: flex-start !important;
       margin: 0 auto !important;
       padding: 0 !important;
       box-shadow: none !important;
