@@ -62,7 +62,9 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `modalityConfig.ts` | Centralized per-modality configuration (targets, shot counts, bonus rules, heat sizing, family/shared-rifle toggles) |
 | `authManager.ts` | Supabase Auth session check + role-based UI toggling (`admin`/`staff`/`spectator`) |
 | `eventsManager.ts` | Event CRUD helpers — filtering by year/modality/text, sorting, pagination (6/page), edit modal |
-| `heatsManager.ts` | Heat/tanda assignment logic: automatic draw, Dominguez family seeding rule (Ángel & Facundo), shared-rifle rotation, manual reorder modal (different UI for .22 LR vs CF), reset seeding |
+| `heatsManager.ts` | Barrel (re-export) — modules below |
+| `heatsRules.ts` | Dominguez family seeding rules (S1 & S2), shared-rifle rotation logic |
+| `heatsReorder.ts` | Manual heat reorder modal (different UI for .22 LR vs CF), reset seeding |
 | `championship.ts` | Pure math module for the annual "Campeonato General" — Base Firme (Top 2) / Total Actual (Top 3), tiebreakers |
 | `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants and deduplication |
 | `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties within an event |
@@ -200,7 +202,7 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
   - `updateUIRoles()` is re-invoked after every route render and via a `MutationObserver` watching `#app-root`, so dynamically-injected DOM (e.g., modals) is also re-secured
 - Login/logout controlled from the navbar (`#nav-btn-login`, `#nav-btn-logout`, `#nav-user-badge`)
 
-## Heat Seeding System (`heatsManager.ts` — 758 lines)
+## Heat Seeding System (`heatsRules.ts` + `heatsReorder.ts`)
 
 ### Automatic Draw (`automaticDrawHeats`)
 - Participants are sorted into sectors (A/B) and assigned to 4-person groups

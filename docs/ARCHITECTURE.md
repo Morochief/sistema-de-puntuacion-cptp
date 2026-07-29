@@ -201,7 +201,9 @@ scoring.ts ─────────────► types.ts
 scoringCentralFire.ts ──► types.ts, modalityConfig.ts
 modalityConfig.ts ──────► types.ts
 championship.ts ────────► db.ts, types.ts
-heatsManager.ts ────────► db.ts, types.ts, modals.ts
+heatsManager.ts ────────► db.ts, types.ts, modals.ts (barrel)
+heatsRules.ts ──────────► types.ts
+heatsReorder.ts ────────► db.ts, types.ts, modals.ts, heatsRules.ts
 eventsManager.ts ───────► db.ts, types.ts, modals.ts
 tiebreaker.ts ──────────► db.ts, types.ts, modals.ts
 backup.ts ──────────────► db.ts, types.ts, modals.ts
@@ -377,7 +379,9 @@ cptp-scoring/
 │       ├── scoringCentralFire.ts  # .308/.223 scoring engine (12 shots, bonus, 96 max)
 │       ├── modalityConfig.ts      # Per-modality configuration (single source of truth)
 │       ├── eventsManager.ts       # Event list filter/sort/paginate + edit modal
-│       ├── heatsManager.ts        # Heat/tanda seeding (family rules, shared rifle, manual reorder)
+│       ├── heatsManager.ts        # Barrel (re-export)
+│       ├── heatsRules.ts          # Reglas Dominguez + rifle compartido
+│       ├── heatsReorder.ts        # Modal reorden manual + reset sorteo
 │       ├── championship.ts        # Annual championship scoring math (Base Firme + Total Actual)
 │       ├── masterCompetitors.ts   # Padron Maestro CRUD + management modal
 │       ├── tiebreaker.ts          # Manual tie resolution logic + modal

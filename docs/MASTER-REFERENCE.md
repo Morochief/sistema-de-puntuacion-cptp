@@ -117,8 +117,8 @@ Máximos:
 ┌───────▼──────┐ ┌──────▼───────┐ ┌─────▼──────┐ ┌───────▼───────────┐
 │ Business      │ │ Ops modules  │ │ Print /     │ │ Auth & RBAC        │
 │ Logic:        │ │ eventsManager│ │ Export:      │ │ authManager.ts     │
-│ scoring.ts    │ │ heatsManager │ │ print.ts    │ │ (Supabase Auth)    │
-│ scoringCF.ts  │ │ championship │ │ printChamp. │ │                    │
+│ scoring.ts    │ │ heatsRules  │ │ print.ts    │ │ (Supabase Auth)    │
+│ scoringCF.ts  │ │ heatsReorder│ │ printModal  │ │                    │
 │ modalityConf. │ │ tiebreaker   │ │ excel.ts    │ │                    │
 │               │ │ masterComp.  │ │             │ │                    │
 └───────┬───────┘ └──────┬───────┘ └─────┬──────┘ └───────┬────────────┘
@@ -310,7 +310,9 @@ Tres funciones clave en cada motor:
 | Archivo | Líneas | Responsabilidad |
 |---|---|---|
 | `eventsManager.ts` | 166 | CRUD eventos, filtros, ordenamiento, paginación, edición |
-| `heatsManager.ts` | 758 | Sorteo de tandas, reglas Domínguez, rifle compartido, reorden manual |
+| `heatsManager.ts` | — | Barrel (re-export) |
+| `heatsRules.ts` | 400 | Reglas Domínguez (S1+S2) + rifle compartido |
+| `heatsReorder.ts` | 350 | Modal reorden manual + reset sorteo |
 | `championship.ts` | 175 | Campeonato General Anual: Base Firme (Top 2) + Total Actual (Top 3) |
 | `masterCompetitors.ts` | — | CRUD Padrón Maestro, migración automática, dedup |
 | `tiebreaker.ts` | — | Desempates manuales |
@@ -333,8 +335,11 @@ Auto-pull para espectadores cada 30 segundos.
 
 | Archivo | Líneas | Responsabilidad |
 |---|---|---|
-| `print.ts` | 887 | Planillas A4 horizontal (2 series lado a lado), tarjetas ranking, planillas en blanco |
-| `printCF.ts` | — | Planillas para Fuego Central |
+| `print.ts` | — | Barrel (re-export). Ver módulos abajo |
+| `printModal.ts` | 112 | Modal iframe para impresión (compartido LR + CF) |
+| `printScoreSheet.ts` | 558 | Planillas .22 LR A4 landscape (2 series lado a lado) |
+| `printRankingCard.ts` | 300 | Tarjeta de posiciones A4 vertical |
+| `printCF.ts` | 421 | Planillas Fuego Central (1 serie, columna bonus) |
 | `printChampionship.ts` | — | Impresión + CSV del Campeonato General |
 | `excel.ts` | — | Export CSV con BOM UTF-8 |
 
@@ -357,7 +362,7 @@ Todas las planillas se renderizan en un **iframe dentro de un modal** para mante
 
 ### 7.1. Reglas de la Familia Domínguez
 
-Codificadas en `heatsManager.ts` (758 líneas):
+Codificadas en `heatsRules.ts` + `heatsReorder.ts`:
 
 1. **Ángel Domínguez** y **Facundo Domínguez** NUNCA en la misma tanda
 2. **Facundo** debe tirar SIEMPRE en tanda ANTERIOR (menor número) que **Ángel**
@@ -523,7 +528,7 @@ La característica de multi-modalidad se implementó mediante parches secuencial
 | `patch2.cjs` (50 líneas) | `print.ts` | Columna vacía para CF en lugar de duplicar la primera |
 | `patch5.cjs` (43 líneas) | `print.ts` | Div dummy para mantener layout |
 | `patch_print.py` (256 líneas) | `print.ts` | Versión Python completa del parche CF |
-| `fix_heats.cjs` (236 líneas) | `heatsManager.ts` | Modal de reorden para CF: lista secuencial plana con flechas |
+| `fix_heats.cjs` (236 líneas) | `heatsReorder.ts` | Modal de reorden para CF: lista secuencial plana con flechas |
 | `patch_active_tab.py` (43 líneas) | `EventDetailView.ts` | Sistema de tabs activos |
 | `patch_event_buttons.py` (30 líneas) | `EventDetailView.ts` | Clase staff-only a botones de acción |
 | `patch_series_buttons.py` (12 líneas) | `SeriesScoringView.ts` | staff-only a botones de nueva/serie |
@@ -694,11 +699,16 @@ cptp-scoring/
 │       ├── modalityConfig.ts (151)
 │       ├── championship.ts (175)
 │       ├── eventsManager.ts (166)
-│       ├── heatsManager.ts (758)
+│       ├── heatsManager.ts (barrel)
+│       ├── heatsRules.ts
+│       ├── heatsReorder.ts
 │       ├── masterCompetitors.ts
 │       ├── tiebreaker.ts
 │       ├── backup.ts
-│       ├── print.ts (887)
+│       ├── print.ts
+│       ├── printModal.ts
+│       ├── printScoreSheet.ts
+│       ├── printRankingCard.ts
 │       ├── printCF.ts
 │       ├── printChampionship.ts
 │       ├── excel.ts
