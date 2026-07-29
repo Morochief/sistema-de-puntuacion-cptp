@@ -20,7 +20,7 @@ export async function renderAnalytics(): Promise<void> {
   let currentDistEvent = -1; // -1 significa "Ultima Fecha" o sin seleccionar
   
   const layout = `
-  <div class="max-w-[1200px] mx-auto p-4 animate-fade-in" style="font-family: 'Rajdhani', sans-serif; background-color:#020617; min-height:100vh; padding:24px; border-radius:12px; border: 1px solid #1e293b;">
+  <div class="w-full max-w-[1600px] mx-auto p-4 animate-fade-in" style="font-family: 'Rajdhani', sans-serif; background-color:#020617; min-height:100vh; padding:24px; border-radius:12px; border: 1px solid #1e293b;">
     
     <div style="margin-bottom:20px;">
       <button class="btn-ghost-custom" id="btn-back-analytics" aria-label="Volver al inicio" style="color:#94a3b8; display:flex; align-items:center; gap:6px; font-weight:600; text-transform:uppercase; letter-spacing:1px; background:transparent; border:1px solid #334155; padding:6px 12px; border-radius:4px; transition:all 0.2s;">
