@@ -88,14 +88,13 @@ function getLRPrintStyles(): string {
       flex-direction: row !important;
       flex-wrap: nowrap !important;
       justify-content: space-between !important;
-      align-items: stretch !important;
+      align-items: flex-start !important;
       margin: 0 auto !important;
       padding: 0 !important;
       box-shadow: none !important;
       width: 100% !important;
       max-width: 100% !important;
-      height: 190mm !important;
-      max-height: 190mm !important;
+      height: auto !important;
       overflow: hidden !important;
       -webkit-print-color-adjust: exact !important; 
       print-color-adjust: exact !important; 
