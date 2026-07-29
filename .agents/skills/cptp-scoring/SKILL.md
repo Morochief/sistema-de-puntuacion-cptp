@@ -304,15 +304,12 @@ MutationObserver en #app-root re-aplica updateUIRoles() cuando cambia el DOM.
 - Cache versionada post-build por inject-sw-cache.js
 - Manifest: display standalone, orientation portrait
 - Offline indicator parpadeante en navbar
-- Toda la logica de negocio funciona sin internet (IndexedDB)
-
----
-
-## Impresion
-
-- **print.ts** → SOLO .22 LR → 2 columnas (Serie 1 + Serie 2), height: 186mm, gap: 12px
-- **printCF.ts** → SOLO .308/.223 → 1 columna, height: 175mm, columna Bonus
-- NUNCA mezclar CSS ni logica entre los dos archivos
+- Toda la logica de negocio funciona
+1. IMPRESION: printScoreSheet.ts y printCF.ts son COMPLETAMENTE separados
+   - Ambos requieren usar medidas relativas en `@media print` y tienen configurado `margin-top: 18mm` en `@page` para dejar espacio y perforar las hojas.
+   - printScoreSheet.ts -> SOLO .22 LR -> dos columnas. DEBE usar `width: 100%; height: auto; align-items: flex-start;` en el contenedor flex, NUNCA dimensiones fijas en mm porque rompe el salto de página en Chrome. NUNCA dejes etiquetas `</div>` extra.
+   - printCF.ts -> SOLO .308/.223 -> una columna, layout ancho completo. Tambien DEBE llevar `align-items: flex-start;` para evitar el estiramiento vertical.
+   - NUNCA mezclar CSS ni logica entre los dos archivos
 - Todas las planillas se renderizan en iframe dentro de modal
 - printChampionship.ts para el campeonato general
 
@@ -415,8 +412,8 @@ git log --oneline -5                   # Ultimos commits
 |---|---|---|
 | Boton no aparece para admin | updateUIRoles() no llamado | Llamar despues de cada render |
 | Cambios no visibles en cliente | SW cacheado | Ctrl+Shift+R |
-| Impresion en 2 hojas .22 LR | `</div>` extra rompe flexbox o `width/height` en `mm` excede pagina | Revisar pares de `</div>` y usar `width:100%; height:auto` en `@media print` |
-| Bordes estirados (print) | Contenedor flex con `align-items: stretch` | Usar `align-items: flex-start` en `@media print` |
+| Impresion estirada a 2 hojas | `</div>` extra rompe flexbox o `width/height` en `mm` excede pagina | Revisar pares de `</div>` y usar `width:100%; height:auto` en `@media print` |
+| Bordes estirados (print) | Contenedor flex con `align-items: stretch` | Usar `align-items: flex-start` en `@media print` para LR y CF |
 | addMasterCompetitor undefined | Falta import en EventDetailView | Agregar import |
 | Datos sin sincronizar | is_deleted no filtrado | Usar .filter(!item.is_deleted) |
 | Reordenar S2 aparece en CF | isCF no aplicado | Usar !isCF en display |
