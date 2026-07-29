@@ -97,6 +97,43 @@ export async function getCompetitiveGrowthData(modality: string, year: string): 
   return { labels, data1, data2 };
 }
 
+export async function getPrecisionFactorData(modality: string, year: string): Promise<ChartDataset> {
+  const events = await getAnalyticsEvents(modality, year);
+  const labels: string[] = [];
+  const data1: number[] = []; // Promedio de X
+
+  for (const e of events) {
+    if (!e.id) continue;
+    
+    // Traer todas las series válidas del evento
+    const series = await db.series.where('eventId').equals(e.id).filter((s: any) => !s.is_deleted).toArray();
+    
+    const [year, month, day] = e.date.split('T')[0].split('-');
+    const dateShort = `${day}-${month}`; // "DD-MM"
+    const mod = e.modality || '.22 LR';
+    const label = e.championshipDate ? `${e.championshipDate} ${mod}` : `${e.name.substring(0, 12)} (${dateShort}) ${mod}`;
+    
+    if (series.length === 0) {
+      labels.push(label);
+      data1.push(0);
+      continue;
+    }
+    
+    let sumX = 0;
+    
+    for (const s of series) {
+      sumX += (s.xCount || 0);
+    }
+    
+    const avgX = Number((sumX / series.length).toFixed(2));
+    
+    labels.push(label);
+    data1.push(avgX);
+  }
+  
+  return { labels, data1 };
+}
+
 export async function getTopShootersData(modality: string, year: string): Promise<ChartDataset> {
   const events = await getAnalyticsEvents(modality, year);
   const eventIds = events.map(e => e.id!);

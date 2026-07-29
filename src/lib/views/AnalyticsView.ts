@@ -5,7 +5,8 @@ import {
   getShooterHistoryData,
   getTargetEffectivenessData,
   getScoreDistributionData,
-  getRetentionData 
+  getRetentionData,
+  getPrecisionFactorData
 } from '../analyticsManager';
 import { db } from '../db';
 import Chart from 'chart.js/auto';
@@ -78,6 +79,16 @@ export async function renderAnalytics(): Promise<void> {
         <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Distribución de participación anual (Eventos asistidos).</p>
         <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-retention"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart: Factor X -->
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#10b981;"></div> <!-- Emerald -->
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Precisión (Factor X)</h2>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Evolución del promedio de Moscas (X) por evento.</p>
+        <div style="position:relative; height:350px; width:100%;">
+          <canvas id="chart-factor-x"></canvas>
         </div>
       </div>
 
@@ -176,6 +187,7 @@ export async function renderAnalytics(): Promise<void> {
   let retChart: Chart | null = null;
   let distChart: Chart | null = null;
   let effChart: Chart | null = null;
+  let xChart: Chart | null = null;
   
   // Estilo global táctico para tooltips y fuentes
   Chart.defaults.font.family = "'Rajdhani', sans-serif";
@@ -187,6 +199,7 @@ export async function renderAnalytics(): Promise<void> {
     const topData = await getTopShootersData(currentModality, currentYear);
     const retentionData = await getRetentionData(currentModality, currentYear);
     const effectivenessData = await getTargetEffectivenessData(currentModality, currentYear);
+    const xData = await getPrecisionFactorData(currentModality, currentYear);
     
     // Configurar select de eventos para Distribución de Puntajes
     const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
@@ -232,6 +245,7 @@ export async function renderAnalytics(): Promise<void> {
     const ctxRet = document.getElementById('chart-retention') as HTMLCanvasElement;
     const ctxDist = document.getElementById('chart-distribution') as HTMLCanvasElement;
     const ctxEff = document.getElementById('chart-effectiveness') as HTMLCanvasElement;
+    const ctxX = document.getElementById('chart-factor-x') as HTMLCanvasElement;
     
     if (socialChart) socialChart.destroy();
     if (compChart) compChart.destroy();
@@ -240,6 +254,7 @@ export async function renderAnalytics(): Promise<void> {
     if (retChart) retChart.destroy();
     if (distChart) distChart.destroy();
     if (effChart) effChart.destroy();
+    if (xChart) xChart.destroy();
     
     // CHART 1: Social
     socialChart = new Chart(ctxSocial, {
