@@ -127,6 +127,16 @@ src/
         │   └── EventStandingsView.ts    # Tab Posiciones
         └── scoring/
             └── SeriesScoringView.ts
+
+---
+
+## Estética y UI/UX (Módulo de Analíticas)
+
+El módulo de Analíticas (`AnalyticsView.ts`) NO DEBE usar fondos blancos genéricos ni tipografía "Inter" corporativa. Su estándar estético es **"Inteligencia Táctica (INTEL)"**:
+- **Fondo General**: `Slate 950` (`#020617`).
+- **Tarjetas/Contenedores**: `Slate 900` (`#0f172a`) con bordes en `Slate 800` (`#1e293b`).
+- **Tipografía**: `Orbitron` para los títulos principales (estilo militar/visor) y `Rajdhani` para los textos y labels de Chart.js.
+- **Gráficos (Chart.js)**: Utilizan grid de **1 sola columna (1fr)** para maximizar la legibilidad de los nombres largos, y colores tácticos de la bandera paraguaya (Azul `#0038a8`, Rojo `#d52b1e`) combinados con neones tácticos (Esmeralda, Ámbar).
 ```
 
 ---
