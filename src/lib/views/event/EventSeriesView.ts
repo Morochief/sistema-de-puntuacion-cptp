@@ -21,20 +21,19 @@ export function renderListaSeries(
   const containerEl = document.getElementById(containerId);
   if (!containerEl) return;
 
-  const validParticipants = participants.filter(p =>
-    p.tanda !== undefined || allSeries.some(s => s.participantId === p.id)
-  ).sort((a, b) => {
+  const hasSorteoOrSeries = participants.some(p => p.tanda !== undefined) || allSeries.length > 0;
+  if (!hasSorteoOrSeries && participants.length > 0) {
+    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">Debe realizar el sorteo de tandas primero para poder cargar puntuaciones.</div>`;
+    return;
+  }
+
+  const validParticipants = [...participants].sort((a, b) => {
     const tA = a.tanda ?? 999; const tB = b.tanda ?? 999;
     if (tA !== tB) return tA - tB;
     const sA = a.spot ?? 999; const sB = b.spot ?? 999;
     if (sA !== sB) return sA - sB;
     return a.competitorNumber - b.competitorNumber;
   });
-
-  if (validParticipants.length === 0) {
-    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">Debe realizar el sorteo de tandas primero para poder cargar puntuaciones.</div>`;
-    return;
-  }
 
   containerEl.innerHTML = validParticipants.map((p) => {
     const pSeries = allSeries.filter(s => s.participantId === p.id);
