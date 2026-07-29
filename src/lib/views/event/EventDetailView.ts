@@ -103,7 +103,10 @@ export async function renderEvent(eventId: string): Promise<void> {
    </button>
   </div>
   <div style="margin-bottom:20px;">
-   <div class="section-title" style="margin-bottom:2px;">Evento</div>
+   <div class="section-title" style="margin-bottom:2px;display:flex;align-items:center;gap:8px;">
+     Evento
+     ${event.championshipDate ? `<span style="font-size:0.75rem;background:#eff6ff;color:#0056b3;padding:2px 8px;border-radius:12px;font-weight:700;text-transform:none;">${esc(event.championshipDate)}</span>` : ''}
+   </div>
    <h1 style="margin:0 0 4px;font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;color:#0056b3;line-height:1.2;">${esc(event.name)}</h1>
    <p style="margin:0;font-size:0.85rem;color:#64748b;">${formatDate(event.date)} ${event.location ? '· ' + esc(event.location) : ''}</p>
   </div>
