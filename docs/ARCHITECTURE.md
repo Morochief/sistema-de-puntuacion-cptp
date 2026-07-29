@@ -21,7 +21,8 @@
 ┌───────────────────────────────▼───────────────────────────────────────┐
 │                  Views (vanilla DOM, src/lib/views/)                  │
 │  DashboardView · NewEventView · LoginView · ChampionshipView          │
-│  EventDetailView · SeriesScoringView                                  │
+│  EventDetailView · EventRosterView                                  │
+│  EventSeriesView · EventStandingsView                                │
 └───────┬───────────────┬───────────────┬───────────────┬──────────────┘
         │               │               │               │
 ┌───────▼──────┐ ┌──────▼───────┐ ┌─────▼──────┐ ┌───────▼───────────┐
@@ -192,8 +193,9 @@ app.ts
      ├── ChampionshipView.ts ► championship.ts, printChampionship.ts, excel.ts,
      │                        db.ts, modals.ts
      ├── event/EventDetailView.ts ──► db.ts, modalityConfig.ts, print.ts,
-     │      printCF.ts, heatsManager.ts, masterCompetitors.ts, tiebreaker.ts,
-     │      backup.ts, seeder.ts, html2canvas, authManager.ts
+     │      printCF.ts, EventRosterView.ts, EventSeriesView.ts, EventStandingsView.ts,
+     │      heatsRules.ts, heatsReorder.ts, masterCompetitors.ts, tiebreaker.ts, backup.ts,
+     │      seeder.ts, html2canvas, authManager.ts
      └── scoring/SeriesScoringView.ts ──► db.ts, scoring.ts, scoringCentralFire.ts,
             modalityConfig.ts, print.ts, printCF.ts, modals.ts
 
@@ -204,6 +206,9 @@ championship.ts ────────► db.ts, types.ts
 heatsManager.ts ────────► db.ts, types.ts, modals.ts (barrel)
 heatsRules.ts ──────────► types.ts
 heatsReorder.ts ────────► db.ts, types.ts, modals.ts, heatsRules.ts
+EventRosterView.ts ─────► db.ts, types.ts, modals.ts
+EventSeriesView.ts ─────► db.ts, types.ts, modals.ts, router.ts
+EventStandingsView.ts ──► types.ts, tiebreaker.ts, printRankingCard.ts, printScoreSheet.ts, printCF.ts
 eventsManager.ts ───────► db.ts, types.ts, modals.ts
 tiebreaker.ts ──────────► db.ts, types.ts, modals.ts
 backup.ts ──────────────► db.ts, types.ts, modals.ts
@@ -398,7 +403,10 @@ cptp-scoring/
 │           ├── LoginView.ts
 │           ├── ChampionshipView.ts
 │           ├── event/
-│           │   └── EventDetailView.ts
+│           │   └── EventDetailView.ts     # Orchestrator (3 tabs)
+│           ├── EventRosterView.ts       # Tiradores tab
+│           ├── EventSeriesView.ts       # Series tab
+│           ├── EventStandingsView.ts    # Posiciones tab
 │           └── scoring/
 │               └── SeriesScoringView.ts
 ├── package.json                   # scripts: dev, build, preview

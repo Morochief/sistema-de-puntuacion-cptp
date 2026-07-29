@@ -353,7 +353,10 @@ Todas las planillas se renderizan en un **iframe dentro de un modal** para mante
 | `NewEventView.ts` | Formulario de creación de evento |
 | `LoginView.ts` | Formulario de login Supabase |
 | `ChampionshipView.ts` | Tabla del Campeonato General con selector año/modalidad |
-| `event/EventDetailView.ts` | Roster, inscripciones, sorteo, series, posiciones, impresión |
+| `event/EventDetailView.ts` | Orquestador: carga datos, renderiza shell con 3 tabs |
+| `event/EventRosterView.ts` | Tab Tiradores: inscripción, sorteo, cuadro de tandas |
+| `event/EventSeriesView.ts` | Tab Series: lista de series por tirador |
+| `event/EventStandingsView.ts` | Tab Posiciones: ranking, premios |
 | `scoring/SeriesScoringView.ts` | Puntuación disparo por disparo con feedback visual |
 
 ---
@@ -719,7 +722,11 @@ cptp-scoring/
 │           ├── NewEventView.ts
 │           ├── LoginView.ts
 │           ├── ChampionshipView.ts
-│           ├── event/EventDetailView.ts
+│           ├── event/
+│           │   ├── EventDetailView.ts
+│           │   ├── EventRosterView.ts
+│           │   ├── EventSeriesView.ts
+│           │   └── EventStandingsView.ts
 │           └── scoring/SeriesScoringView.ts
 ├── package.json
 ├── astro.config.mjs

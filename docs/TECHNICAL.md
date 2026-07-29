@@ -44,7 +44,10 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | NewEventView | `views/NewEventView.ts` | Form to create a new shooting event (name, date, location, modality, championship date) |
 | LoginView | `views/LoginView.ts` | Supabase email/password login form |
 | ChampionshipView | `views/ChampionshipView.ts` | Renders the annual championship ranking panel with year/modality selector |
-| EventDetailView | `views/event/EventDetailView.ts` | Event roster with 3 tabs (Tiradores/Series/Posiciones), heat/seeding management, print/export triggers, html2canvas usage |
+| EventDetailView | `views/event/EventDetailView.ts` | Orchestrator — loads data, renders shell with 3 tabs, delegates to sub-views |
+| EventRosterView | `views/event/EventRosterView.ts` | Tab "Tiradores": participant registration, heat seeding, roster grid, filter/sort list |
+| EventSeriesView | `views/event/EventSeriesView.ts` | Tab "Series": per-shooter series list, new series creation, clear series |
+| EventStandingsView | `views/event/EventStandingsView.ts` | Tab "Posiciones": event rankings, per-series tables, perfect score awards |
 | SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series (modality-aware) |
 
 ## Module Map (`src/lib/`)
