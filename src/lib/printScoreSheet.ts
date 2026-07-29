@@ -58,7 +58,7 @@ function renderScoreCell(
  */
 function getLRPrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 5mm; }
+     @page { size: A4 landscape; margin-top: 18mm; margin-bottom: 5mm; margin-left: 5mm; margin-right: 5mm; }
    *, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; }
 
    body {
