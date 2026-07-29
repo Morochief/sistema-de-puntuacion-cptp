@@ -406,6 +406,16 @@ git log --oneline -5                   # Ultimos commits
 
 ---
 
+## Diseño Visual y Patrones de UI
+
+### Metadatos de Eventos (Bandera de Paraguay)
+En `DashboardView.ts` y `EventDetailView.ts`, los metadatos del evento forman la bandera de Paraguay alineando los siguientes badges en orden:
+1. **Fecha**: Fondo rojo (`#d52b1e`), texto blanco (`#ffffff`).
+2. **Ubicación**: Fondo blanco (`#ffffff`), borde sutil (`1px solid #cbd5e1`), texto oscuro (`#0f172a`).
+3. **Fecha del Campeonato**: Fondo azul (`#0038a8`), texto blanco (`#ffffff`).
+
+---
+
 ## Errores Comunes y Soluciones
 
 | Error | Causa | Solucion |
