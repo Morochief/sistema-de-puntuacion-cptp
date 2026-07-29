@@ -66,7 +66,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `modalityConfig.ts` | Centralized per-modality configuration (targets, shot counts, bonus rules, heat sizing, family/shared-rifle toggles) |
 | `authManager.ts` | Supabase Auth session check + role-based UI toggling (`admin`/`staff`/`spectator`) |
 | `eventsManager.ts` | Event CRUD helpers — filtering by year/modality/text, sorting, pagination (6/page), edit modal |
-| `analyticsManager.ts`| Capa de datos (Dexie) para Chart.js. Soporta filtros de año/modalidad y extraccion de historial por tirador (Top 5, crecimiento) |
+| `analyticsManager.ts`| Capa de datos para Chart.js: Crecimiento Social, Retención, Curva Competitiva, Distribución (Campana Gauss), Efectividad por Blanco (Embudo), Top 5 e Historial Individual. |
 | `heatsManager.ts` | Barrel (re-export) — modules below |
 | `heatsRules.ts` | Dominguez family seeding rules (S1 & S2), shared-rifle rotation logic |
 | `heatsReorder.ts` | Manual heat reorder modal (different UI for .22 LR vs CF), reset seeding |

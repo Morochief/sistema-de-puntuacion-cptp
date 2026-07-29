@@ -173,3 +173,117 @@ export async function getShooterHistoryData(masterName: string, modality: string
   
   return { labels, data1 };
 }
+
+export async function getTargetEffectivenessData(modality: string, year: string): Promise<ChartDataset> {
+  const events = await getAnalyticsEvents(modality, year);
+  const eventIds = events.map(e => e.id!);
+  
+  if (eventIds.length === 0) return { labels: [], data1: [] };
+
+  const isCF = modality === '.308' || modality === '.223';
+  const targets = isCF ? ['grande', 'mediano', 'pequeño'] : ['15"', '10"', '5"'];
+  const labels = isCF ? ['Blanco Grande', 'Blanco Mediano', 'Blanco Pequeño'] : ['Blanco 15"', 'Blanco 10"', 'Blanco 5"'];
+  
+  const stats: Record<string, { hits: number, total: number }> = {};
+  for (const t of targets) stats[t] = { hits: 0, total: 0 };
+
+  for (const eid of eventIds) {
+    const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
+    for (const s of series) {
+      if (!s.shots) continue;
+      for (const shot of s.shots) {
+        if (targets.includes(shot.targetType)) {
+          stats[shot.targetType].total++;
+          if (shot.hit) stats[shot.targetType].hits++;
+        }
+      }
+    }
+  }
+
+  const data1 = targets.map(t => {
+    const total = stats[t].total;
+    if (total === 0) return 0;
+    return Number(((stats[t].hits / total) * 100).toFixed(1));
+  });
+
+  return { labels, data1 };
+}
+
+export async function getScoreDistributionData(modality: string, year: string): Promise<ChartDataset> {
+  const events = await getAnalyticsEvents(modality, year);
+  const eventIds = events.map(e => e.id!);
+  
+  const isCF = modality === '.308' || modality === '.223';
+  
+  // Buckets setup
+  let buckets: { label: string, min: number, max: number, count: number }[];
+  if (isCF) {
+    buckets = [
+      { label: '0-20', min: 0, max: 20, count: 0 },
+      { label: '21-40', min: 21, max: 40, count: 0 },
+      { label: '41-60', min: 41, max: 60, count: 0 },
+      { label: '61-80', min: 61, max: 80, count: 0 },
+      { label: '81+', min: 81, max: 999, count: 0 }
+    ];
+  } else {
+    buckets = [
+      { label: '0-15', min: 0, max: 15, count: 0 },
+      { label: '16-30', min: 16, max: 30, count: 0 },
+      { label: '31-45', min: 31, max: 45, count: 0 },
+      { label: '46-60', min: 46, max: 60, count: 0 },
+      { label: '61+', min: 61, max: 999, count: 0 }
+    ];
+  }
+
+  for (const eid of eventIds) {
+    const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
+    for (const s of series) {
+      const score = s.totalScore || 0;
+      for (const b of buckets) {
+        if (score >= b.min && score <= b.max) {
+          b.count++;
+          break;
+        }
+      }
+    }
+  }
+
+  return {
+    labels: buckets.map(b => b.label),
+    data1: buckets.map(b => b.count)
+  };
+}
+
+export async function getRetentionData(modality: string, year: string): Promise<ChartDataset> {
+  const events = await getAnalyticsEvents(modality, year);
+  const eventIds = events.map(e => e.id!);
+  
+  if (eventIds.length === 0) return { labels: [], data1: [] };
+
+  const participantEventMap = new Map<string, Set<number>>();
+
+  for (const eid of eventIds) {
+    const participants = await db.participants.where('eventId').equals(eid).filter((p: any) => !p.is_deleted && p.status !== 'dq' && p.status !== 'dns').toArray();
+    for (const p of participants) {
+      const name = p.name.trim().toLowerCase();
+      if (!participantEventMap.has(name)) participantEventMap.set(name, new Set());
+      participantEventMap.get(name)!.add(eid);
+    }
+  }
+
+  let tourists = 0; // 1 fecha
+  let regulars = 0; // 2-3 fechas
+  let veterans = 0; // 4+ fechas
+
+  for (const [name, eventSet] of participantEventMap.entries()) {
+    const count = eventSet.size;
+    if (count === 1) tourists++;
+    else if (count >= 2 && count <= 3) regulars++;
+    else if (count >= 4) veterans++;
+  }
+
+  return {
+    labels: ['Turistas (1 Fecha)', 'Regulares (2-3 Fechas)', 'Fieles (4+ Fechas)'],
+    data1: [tourists, regulars, veterans]
+  };
+}

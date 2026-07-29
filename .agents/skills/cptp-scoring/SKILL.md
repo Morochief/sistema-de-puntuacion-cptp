@@ -393,6 +393,19 @@ MutationObserver en #app-root re-aplica updateUIRoles() cuando cambia el DOM.
 ```typescript
 import { getModalityConfig } from './modalityConfig';
 
+// Importacion: EventSeriesView.ts, eventsManager.ts, SeriesScoringView.ts, tiebreaker.ts
+// Reglas: Seeder, Dominguez, 67 max (.22 LR), 96 max (CF)
+
+---
+
+## Feature Backlog (Aprobado para el Futuro)
+
+**1. Rendimiento por Rifle Compartido (Analytics)**
+- **Concepto**: Muchos tiradores usan rifles prestados (`sharedRifleId` como 'Rifle A', 'Rifle B').
+- **Objetivo**: Crear un gráfico en `AnalyticsView.ts` que agrupe y promedie los puntajes (`totalScore`) basándose en el rifle utilizado.
+- **Valor**: Permitirá a la comisión directiva del CPTP identificar estadísticamente si un rifle está rindiendo por debajo de la media (posible cañón desgastado, mira descalibrada, problema de munición).
+- **Implementación futura**: Añadir `getRiflePerformanceData()` en `analyticsManager.ts`.
+
 // En EventDetailView / SeriesScoringView:
 const modality: Modality = event?.modality || '.22 LR';
 const isCF = modality === '.308' || modality === '.223';
