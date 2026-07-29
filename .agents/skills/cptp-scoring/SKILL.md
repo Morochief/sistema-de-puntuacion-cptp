@@ -110,13 +110,18 @@ src/
     ├── excel.ts                   # Export CSV con BOM UTF-8
     ├── seeder.ts                  # Datos de prueba / simulacion
     ├── modals.ts                  # esc(), showToast, showConfirm, showPrompt
-    └── views/
+    ├── views/
         ├── DashboardView.ts
         ├── NewEventView.ts
         ├── LoginView.ts
         ├── ChampionshipView.ts
-        ├── event/EventDetailView.ts
-        └── scoring/SeriesScoringView.ts
+        ├── event/
+        │   ├── EventDetailView.ts       # Orquestador (~500 lineas)
+        │   ├── EventRosterView.ts       # Tab Tiradores
+        │   ├── EventSeriesView.ts       # Tab Series
+        │   └── EventStandingsView.ts    # Tab Posiciones
+        └── scoring/
+            └── SeriesScoringView.ts
 ```
 
 ---
