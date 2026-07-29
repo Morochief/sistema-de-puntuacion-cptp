@@ -415,6 +415,7 @@ git log --oneline -5                   # Ultimos commits
 | Impresion estirada a 2 hojas | `</div>` extra rompe flexbox o `width/height` en `mm` excede pagina | Revisar pares de `</div>` y usar `width:100%; height:auto` en `@media print` |
 | Bordes estirados (print) | Contenedor flex con `align-items: stretch` | Usar `align-items: flex-start` en `@media print` para LR y CF |
 | addMasterCompetitor undefined | Falta import en EventDetailView | Agregar import |
+| Fecha Campeonato no visible en UI | No se renderiza en header de EventDetailView | Agregar el badge interpolado en el HTML del `section-title` |
 | Datos sin sincronizar | is_deleted no filtrado | Usar .filter(!item.is_deleted) |
 | Reordenar S2 aparece en CF | isCF no aplicado | Usar !isCF en display |
 | Boton "Nuevo Evento" oculto | No es admin | Solo admin puede crear eventos |
