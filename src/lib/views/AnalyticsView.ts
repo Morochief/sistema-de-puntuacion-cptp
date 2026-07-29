@@ -135,10 +135,21 @@ export async function renderAnalytics(): Promise<void> {
     </div>
 
     <!-- SECCIÓN INDIVIDUAL Y RANKINGS -->
-    <div class="grid grid-cols-1 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
+      <!-- Chart: Campeonato Anual -->
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#eab308;"></div> <!-- Yellow/Gold -->
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Ranking Campeonato Anual</h2>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de puntos en el año (Top 10).</p>
+        <div style="position:relative; height:400px; width:100%;">
+          <canvas id="chart-championship"></canvas>
+        </div>
+      </div>
+
       <!-- Chart 3: Top Shooters -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#d52b1e;"></div>
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Top 5 Promedios</h2>
         <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Mejores promedios históricos de la liga (Mínimo 2 series).</p>
         <div style="position:relative; height:400px; width:100%;">
@@ -147,7 +158,8 @@ export async function renderAnalytics(): Promise<void> {
       </div>
 
       <!-- Chart 4: Shooter Individual -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
+      <div class="lg:col-span-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#38bdf8;"></div>
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
           <div>
             <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Historial Individual</h2>
@@ -188,6 +200,7 @@ export async function renderAnalytics(): Promise<void> {
   let distChart: Chart | null = null;
   let effChart: Chart | null = null;
   let xChart: Chart | null = null;
+  let champChart: Chart | null = null;
   
   // Estilo global táctico para tooltips y fuentes
   Chart.defaults.font.family = "'Rajdhani', sans-serif";
@@ -200,6 +213,7 @@ export async function renderAnalytics(): Promise<void> {
     const retentionData = await getRetentionData(currentModality, currentYear);
     const effectivenessData = await getTargetEffectivenessData(currentModality, currentYear);
     const xData = await getPrecisionFactorData(currentModality, currentYear);
+    const champData = await getAnnualChampionshipData(currentModality, currentYear);
     
     // Configurar select de eventos para Distribución de Puntajes
     const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
@@ -246,6 +260,7 @@ export async function renderAnalytics(): Promise<void> {
     const ctxDist = document.getElementById('chart-distribution') as HTMLCanvasElement;
     const ctxEff = document.getElementById('chart-effectiveness') as HTMLCanvasElement;
     const ctxX = document.getElementById('chart-factor-x') as HTMLCanvasElement;
+    const ctxChamp = document.getElementById('chart-championship') as HTMLCanvasElement;
     
     if (socialChart) socialChart.destroy();
     if (compChart) compChart.destroy();
@@ -255,6 +270,7 @@ export async function renderAnalytics(): Promise<void> {
     if (distChart) distChart.destroy();
     if (effChart) effChart.destroy();
     if (xChart) xChart.destroy();
+    if (champChart) champChart.destroy();
     
     // CHART 1: Social
     socialChart = new Chart(ctxSocial, {
@@ -428,6 +444,31 @@ export async function renderAnalytics(): Promise<void> {
         scales: {
           y: { beginAtZero: true, grid: { color: '#1e293b' } },
           x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // CHART CHAMPIONSHIP: Ranking Anual
+    champChart = new Chart(ctxChamp, {
+      type: 'bar',
+      data: {
+        labels: champData.labels,
+        datasets: [{
+          label: 'Total Acumulado',
+          data: champData.data1,
+          backgroundColor: 'rgba(234, 179, 8, 0.7)', // Yellow
+          borderColor: '#eab308',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: '#1e293b' } },
+          y: { grid: { display: false } }
         }
       }
     });

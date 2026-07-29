@@ -140,6 +140,47 @@ export async function getPrecisionFactorData(modality: string, year: string): Pr
   return { labels, data1 };
 }
 
+export async function getAnnualChampionshipData(modality: string, year: string): Promise<ChartDataset> {
+  const events = await getAnalyticsEvents(modality, year);
+  const eventIds = events.map(e => e.id!);
+  
+  if (eventIds.length === 0) return { labels: [], data1: [] };
+
+  const shooterMap = new Map<string, number>();
+  
+  for (const eid of eventIds) {
+    const participants = await db.participants.where('eventId').equals(eid).filter((p: any) => !p.is_deleted && p.status !== 'dq' && p.status !== 'dns').toArray();
+    const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
+    
+    for (const p of participants) {
+      const pName = p.name.trim().toLowerCase();
+      const pSeries = series.filter(s => s.participantId === p.id);
+      
+      let sum = 0;
+      for (const s of pSeries) sum += (s.totalScore || 0);
+      
+      if (!shooterMap.has(pName)) {
+        shooterMap.set(pName, 0);
+      }
+      shooterMap.set(pName, shooterMap.get(pName)! + sum);
+    }
+  }
+
+  const totals = Array.from(shooterMap.entries())
+    .map(([name, score]) => ({
+      name: name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      score
+    }));
+
+  totals.sort((a, b) => b.score - a.score);
+  const top10 = totals.slice(0, 10);
+
+  return {
+    labels: top10.map(t => t.name),
+    data1: top10.map(t => t.score)
+  };
+}
+
 export async function getTopShootersData(modality: string, year: string): Promise<ChartDataset> {
   const events = await getAnalyticsEvents(modality, year);
   const eventIds = events.map(e => e.id!);
