@@ -442,6 +442,9 @@ En `DashboardView.ts` y `EventDetailView.ts`, los metadatos del evento forman la
 2. **Ubicación**: Fondo blanco (`#ffffff`), borde sutil (`1px solid #cbd5e1`), texto oscuro (`#0f172a`).
 3. **Fecha del Campeonato**: Fondo azul (`#0038a8`), texto blanco (`#ffffff`).
 
+### Formatos de Fechas (Estándar Paraguayo)
+Toda fecha mostrada en la UI (listados, gráficos, selectores) debe usar el formato latino/paraguayo **`DD-MM-YYYY`** o su versión corta **`DD-MM`**. Está estrictamente prohibido usar el formato norteamericano `MM-DD-YYYY` o mostrar ISO crudo `YYYY-MM-DD` en la interfaz visual de usuario (solo usar ISO para base de datos).
+
 ---
 
 ## Errores Comunes y Soluciones

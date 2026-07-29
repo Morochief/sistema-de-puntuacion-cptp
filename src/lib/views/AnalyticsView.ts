@@ -205,7 +205,8 @@ export async function renderAnalytics(): Promise<void> {
         for (const e of filteredEvents) {
           const opt = document.createElement('option');
           opt.value = e.id!.toString();
-          opt.textContent = `${e.championshipDate || e.name} (${e.date.split('T')[0]})`;
+          const [year, month, day] = e.date.split('T')[0].split('-');
+          opt.textContent = `${e.championshipDate || e.name} (${day}-${month}-${year})`;
           distEventSelect.appendChild(opt);
         }
         currentDistEvent = filteredEvents[0].id!;

@@ -41,7 +41,8 @@ export async function getSocialGrowthData(modality: string, year: string): Promi
     const activeCount = participants.filter(p => p.status !== 'dq' && p.status !== 'dns').length;
     
     // Usamos el campeonato o el nombre corto + la fecha para diferenciar
-    const dateShort = e.date.split('T')[0].substring(5); // "MM-DD"
+    const [year, month, day] = e.date.split('T')[0].split('-');
+    const dateShort = `${day}-${month}`; // "DD-MM"
     const label = e.championshipDate ? e.championshipDate : `${e.name.substring(0, 12)} (${dateShort})`;
     
     labels.push(label);
@@ -63,7 +64,8 @@ export async function getCompetitiveGrowthData(modality: string, year: string): 
     // Traer todas las series válidas del evento
     const series = await db.series.where('eventId').equals(e.id).filter((s: any) => !s.is_deleted).toArray();
     
-    const dateShort = e.date.split('T')[0].substring(5);
+    const [year, month, day] = e.date.split('T')[0].split('-');
+    const dateShort = `${day}-${month}`; // "DD-MM"
     const label = e.championshipDate ? e.championshipDate : `${e.name.substring(0, 12)} (${dateShort})`;
     
     if (series.length === 0) {

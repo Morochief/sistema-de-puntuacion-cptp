@@ -49,7 +49,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | EventSeriesView | `views/event/EventSeriesView.ts` | Tab "Series": per-shooter series list, new series creation, clear series |
 | EventStandingsView | `views/event/EventStandingsView.ts` | Tab "Posiciones": event rankings, per-series tables, perfect score awards |
 | SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series (modality-aware) |
-| AnalyticsView     | `views/AnalyticsView.ts`             | Business Intelligence dashboard (Chart.js) con UI Táctica Oscura, full-width (1fr) y filtros por año/tirador |
+| AnalyticsView     | `views/AnalyticsView.ts`             | Business Intelligence dashboard (Chart.js) con UI Táctica Oscura, full-width (1fr) y filtros por año/tirador. Las fechas siempre en formato DD-MM o DD-MM-YYYY. |
 
 ## Module Map (`src/lib/`)
 
