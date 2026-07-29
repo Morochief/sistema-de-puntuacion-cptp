@@ -83,7 +83,8 @@ function getLRPrintStyles(): string {
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      display: block;
+      display: flex;
+      gap: 12px;
       margin: 0;
       padding: 4mm;
       box-shadow: none;
@@ -92,11 +93,11 @@ function getLRPrintStyles(): string {
       overflow: hidden;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
+      page-break-after: always;
     }
     .series-column {
-      float: left;
-      width: 46%;
-      margin: 0 2%;
+      flex: 1;
+      width: 48%;
       border: 1.5px solid #000;
       border-radius: 6px;
       padding: 2px 5px;
