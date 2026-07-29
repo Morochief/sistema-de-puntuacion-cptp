@@ -71,6 +71,12 @@ export async function renderDashboard(): Promise<void> {
         title="Administrar el Padrón Maestro de Tiradores">
       Padrón Maestro
     </button>
+    <button id="btn-open-analytics" class="btn-ghost-custom"
+        style="padding:9px 16px;border:1.5px solid #8b5cf6;color:#8b5cf6;font-weight:700;border-radius:10px;background:#ffffff;display:flex;align-items:center;gap:6px;"
+        title="Ver Analíticas y Estadísticas del CPTP">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Analíticas
+    </button>
    </div>
 
    <!-- Filtros de Modalidad y Año -->
@@ -241,6 +247,11 @@ export async function renderDashboard(): Promise<void> {
  // Bind Padrón Maestro button
  container.querySelector('#btn-open-master-padron')?.addEventListener('click', () => {
   renderMasterCompetitorsModal();
+ });
+
+ // Bind Analíticas button
+ container.querySelector('#btn-open-analytics')?.addEventListener('click', () => {
+  navigate('/analytics');
  });
 
 

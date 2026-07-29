@@ -14,6 +14,7 @@ export function getRoute(): { view: string; params: Record<string, string> } {
 
  if (hash === '/new') return { view: 'new-event', params: {} };
  if (hash === '/login') return { view: 'login', params: {} };
+ if (hash === '/analytics') return { view: 'analytics', params: {} };
 
  return { view: 'dashboard', params: {} };
 }

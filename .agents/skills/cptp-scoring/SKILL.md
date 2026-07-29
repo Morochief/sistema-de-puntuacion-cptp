@@ -107,11 +107,16 @@ src/
     ├── printRankingCard.ts        # Tarjeta de posiciones A4 vertical
     ├── printCF.ts                 # Planillas CF A4 (1 serie, columna bonus)
     ├── printChampionship.ts       # Impresion + CSV del campeonato
+    ├── eventsManager.ts           # Funciones CRUD eventos
+    ├── analyticsManager.ts        # Extraccion de stats sociales y competitivos
+    ├── authManager.ts             # Auth con Supabase + Roles (Admin/User)
+    ├── sync.ts                    # Logica de subida/bajada Supabase <-> Dexie
     ├── excel.ts                   # Export CSV con BOM UTF-8
     ├── seeder.ts                  # Datos de prueba / simulacion
     ├── modals.ts                  # esc(), showToast, showConfirm, showPrompt
     ├── views/
         ├── DashboardView.ts
+        ├── AnalyticsView.ts       # UI de gráficos (Chart.js)
         ├── NewEventView.ts
         ├── LoginView.ts
         ├── ChampionshipView.ts

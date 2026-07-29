@@ -12,6 +12,7 @@ import { renderSeries } from './views/scoring/SeriesScoringView';
 import { migrateParticipantsToPadron, deduplicatePadron } from './masterCompetitors';
 import { pullCloudDatabaseToLocal } from './sync';
 import { renderLogin } from './views/LoginView';
+import { renderAnalytics } from './views/AnalyticsView';
 import { checkAuth, getCurrentRole, logout, updateUIRoles } from './authManager';
 
 export async function router(): Promise<void> {
@@ -23,6 +24,7 @@ export async function router(): Promise<void> {
       case 'new-event': await renderNewEvent(); break;
       case 'event':   await renderEvent(route.params.id); break;
       case 'series':   await renderSeries(route.params.id); break;
+      case 'analytics': await renderAnalytics(); break;
       case 'login':   await renderLogin(); break;
     }
     // Después de cada render, volver a aplicar los permisos
