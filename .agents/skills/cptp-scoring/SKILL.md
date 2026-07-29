@@ -359,6 +359,11 @@ MutationObserver en #app-root re-aplica updateUIRoles() cuando cambia el DOM.
 
 8. **CICLO COMPLETO OBLIGATORIO:** Por cada cambio de codigo: (1) codigo → (2) `npm run build` → (3) actualizar esta skill + docs/ → (4) `git add`, `git commit`, `git push`. Sin excepcion.
 
+9. **NO MONOLITOS — partir en archivos chicos:** Si un archivo supera las ~400 lineas, partirlo en modulos mas pequeños por responsabilidad. No importa si es vanilla TS sin framework, siempre se pueden crear archivos separados. Ejemplos:
+   - `EventDetailView.ts` (~1527 lineas) deberia ser varios archivos (uno por tab)
+   - Cualquier vista o modulo nuevo que empiece a crecer, partirlo antes de que duela
+   - Preferir 5 archivos de 100 lineas a 1 archivo de 500 lineas
+
 ---
 
 ## Deteccion de Modalidad - Patron Correcto
