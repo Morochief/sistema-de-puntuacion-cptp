@@ -1,7 +1,8 @@
 # CPTP Scoring — Technical Documentation
 
-**Last Updated:** 2025-06-01
+**Last Updated:** 2026-07-28
 **Entry Points:** `src/lib/app.ts`, `src/pages/index.astro`, `src/layouts/BaseLayout.astro`
+**Related:** [ARCHITECTURE.md](./ARCHITECTURE.md) · [MASTER-REFERENCE.md](./MASTER-REFERENCE.md)
 
 ## Project Overview
 
@@ -15,7 +16,7 @@ Built with **Astro 7 + TypeScript + Dexie.js (IndexedDB) + Supabase**, the app r
 |---|---|---|
 | `astro` | ^7.1.1 | Static site generation (SSG) + islands architecture; builds the single-page shell |
 | `typescript` | ^7.0.2 | Type-safe application logic across 21+ modules |
-| `dexie` | ^4.4.4 | IndexedDB wrapper for local, offline-first persistence |
+| `dexie` | ^4.4.4 | IndexedDB wrapper for local, offline-first persistence (4 tables, 8 migration versions) |
 | `@supabase/supabase-js` | ^2.110.7 | PostgreSQL-backed cloud sync, authentication (email/password), and RBAC |
 | `tailwindcss` / `@tailwindcss/vite` | ^4.3.3 | Utility-first CSS |
 | `daisyui` | ^5.6.18 | Tailwind component classes (tabs, buttons, etc.) |
@@ -30,44 +31,45 @@ Built with **Astro 7 + TypeScript + Dexie.js (IndexedDB) + Supabase**, the app r
 CPTP Scoring is a **single-page application (SPA)** using **hash-based routing** (e.g. `#/event/123`, `#/series/456`) so that navigation works even when served from the filesystem or a static host with no server-side routing support — critical for offline/PWA use.
 
 - All views are rendered via **vanilla DOM manipulation** (`document.createElement`, `innerHTML` templates) — there is no React/Vue/Svelte component tree.
-- The application logic lives in **21 TypeScript modules** under `src/lib/`.
+- The application logic lives in **21+ TypeScript modules** under `src/lib/`.
 - View-rendering functions live in `src/lib/views/` (and subfolders `views/event/`, `views/scoring/`).
 - The single Astro page (`src/pages/index.astro`) contains all view containers (`<div id="view-dashboard">`, `<div id="view-login">`, etc.) which are shown/hidden by the router.
-- **Entry point:** `src/lib/app.ts` — wires up hash-change routing, auth bootstrapping, auto cloud-pull on empty local DB, periodic spectator auto-pull (every 30s), and a `MutationObserver` that re-applies RBAC visibility rules whenever the DOM changes.
+- **Entry point:** `src/lib/app.ts` — wires up hash-change routing, auth bootstrapping, silent padron migration, automatic cloud pull on empty local DB, periodic spectator auto-pull (every 30s), and a `MutationObserver` that re-applies RBAC visibility rules whenever the DOM changes.
 
 ### Views (in `src/lib/views/`)
 
 | View | File | Responsibility |
 |---|---|---|
-| DashboardView | `views/DashboardView.ts` | Lists events (filter/sort/paginate), Campeonato General tab, cloud sync UI |
-| NewEventView | `views/NewEventView.ts` | Form to create a new shooting event |
+| DashboardView | `views/DashboardView.ts` | Lists events (filter/sort/paginate by year, modality, text), Campeonato General tab, cloud sync UI, Padron Maestro access. Pagination: `dashPage` state, `dash-prev-page`/`dash-next-page` buttons, 6 items/page |
+| NewEventView | `views/NewEventView.ts` | Form to create a new shooting event (name, date, location, modality, championship date) |
 | LoginView | `views/LoginView.ts` | Supabase email/password login form |
-| ChampionshipView | `views/ChampionshipView.ts` | Renders the annual championship ranking panel |
-| EventDetailView | `views/event/EventDetailView.ts` | Event roster, heat/seeding management, print/export triggers, html2canvas usage |
-| SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series |
+| ChampionshipView | `views/ChampionshipView.ts` | Renders the annual championship ranking panel with year/modality selector |
+| EventDetailView | `views/event/EventDetailView.ts` | Event roster with 3 tabs (Tiradores/Series/Posiciones), heat/seeding management, print/export triggers, html2canvas usage |
+| SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series (modality-aware) |
 
 ## Module Map (`src/lib/`)
 
 | Module | Purpose |
 |---|---|
-| `types.ts` | Central type definitions: `Shot`, `Participant`, `Series`, `ShootingEvent`, `MasterCompetitor`, `Modality` |
-| `db.ts` | Dexie (`cptpScoring` database) schema definition across **8 migration versions** |
+| `types.ts` | Central type definitions: `Shot`, `Participant`, `Series`, `ShootingEvent`, `MasterCompetitor`, `Modality`, target types |
+| `db.ts` | Dexie (`cptpScoring` database) schema definition across **8 migration versions** (v2–v8) |
 | `supabase.ts` | Initializes the Supabase client from `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` |
 | `router.ts` | Minimal hash-based SPA router: `navigate()`, `getRoute()`, `showView()` |
 | `app.ts` | Application entry point — route dispatch, auth bootstrap, auto-sync timers, padron migration, MutationObserver for RBAC |
 | `modals.ts` | Shared UI primitives: `esc()` (XSS-safe HTML escaping), `showToast`, `showConfirm`, `showPrompt`, `showEditParticipantModal` |
-| `scoring.ts` | .22 LR scoring engine — 10 shots, progressive 15"/10"/5" targets, max 67 pts |
-| `scoringCentralFire.ts` | .308/.223 scoring engine — 12 shots, Grande/Mediano/Pequeño targets, bonus mechanic, max 96 pts |
-| `modalityConfig.ts` | Centralized per-modality configuration (targets, shot counts, bonus rules, heat sizing) |
+| `scoring.ts` | .22 LR scoring engine — 10 shots, progressive 15"/10"/5" targets, drag mechanic, max 67 pts |
+| `scoringCentralFire.ts` | .308/.223 scoring engine — 12 shots, Grande/Mediano/Pequeño targets, bonus mechanic, max 96/87 pts |
+| `modalityConfig.ts` | Centralized per-modality configuration (targets, shot counts, bonus rules, heat sizing, family/shared-rifle toggles) |
 | `authManager.ts` | Supabase Auth session check + role-based UI toggling (`admin`/`staff`/`spectator`) |
-| `eventsManager.ts` | Event CRUD helpers — filtering, sorting, pagination, edit modal |
-| `heatsManager.ts` | Heat/tanda (turn) assignment logic, including the Dominguez family seeding rule and shared-rifle rotation |
-| `championship.ts` | Pure math module for the annual "Campeonato General" — Base Firme (Top 2) / Total Actual (Top 3) |
-| `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants |
-| `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties |
+| `eventsManager.ts` | Event CRUD helpers — filtering by year/modality/text, sorting, pagination (6/page), edit modal |
+| `heatsManager.ts` | Heat/tanda assignment logic: automatic draw, Dominguez family seeding rule (Ángel & Facundo), shared-rifle rotation, manual reorder modal (different UI for .22 LR vs CF), reset seeding |
+| `championship.ts` | Pure math module for the annual "Campeonato General" — Base Firme (Top 2) / Total Actual (Top 3), tiebreakers |
+| `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants and deduplication |
+| `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties within an event |
 | `backup.ts` | JSON export/import of a full event (event + participants + series) for machine-to-machine transfer |
-| `sync.ts` | Push (Dexie to Supabase) and Pull (Supabase to Dexie) sync, with deterministic UUID mapping |
-| `print.ts` | Generates A4 landscape score sheets and portrait ranking cards, opened in a print iframe modal |
+| `sync.ts` | Push (Dexie to Supabase via deterministic UUID upsert) and Pull (Supabase to Dexie via put/upsert) |
+| `print.ts` | Generates .22 LR A4 landscape score sheets (2 series side by side) and portrait ranking cards |
+| `printCF.ts` | Generates Central Fire A4 landscape score sheets (1 series, bonus column) |
 | `printChampionship.ts` | Championship-specific print preview + CSV export |
 | `seeder.ts` | Bulk participant loading and score simulation utility (testing/demo tool) |
 | `excel.ts` | CSV export (with UTF-8 BOM) of event rankings |
@@ -87,13 +89,14 @@ db.version(8).stores({
 
 ### `events` — `ShootingEvent`
 - 3 supported modalities: `.22 LR` | `.308` | `.223` (default `.22 LR` if unset, migrated in v8 upgrade)
+- `isPilot` flag: if true, the event does not count toward the annual championship
 - Soft-delete via `is_deleted` flag (no hard deletes to keep sync consistent)
-- Fields: `id`, `name`, `date` (ISO), `location`, `modality`, `championshipDate` (e.g. "1a Fecha", "Final"), `createdAt`
+- Fields: `id`, `name`, `date` (ISO), `location`, `modality`, `championshipDate` (e.g. "1a Fecha", "Final"), `isPilot`, `createdAt`, `is_deleted`
 
 ### `participants` — `Participant`
 - Up to ~32 per event (bounded by heat/spot slots, 4 spots per tanda for .22 LR)
 - 2-series heat/spot assignment: `tanda`/`spot`/`sector` for Series 1, `tandaS2`/`spotS2` for Series 2
-- `category`, `sharedRifleId` (for shared-rifle rotation logic)
+- `sharedRifleId` groups shooters sharing one physical rifle (Rifle A–E) — used by heat seeding logic
 - `status`: `active` | `dq` (disqualified) | `dns` (did not show)
 - `paymentStatus`: `paid` | `pending` | `exempt`
 - `presentForRaffle`, `tieRank` (manual tiebreak), `is_deleted`
@@ -106,11 +109,12 @@ db.version(8).stores({
 
 ### `masterCompetitors` — `MasterCompetitor`
 - The permanent shooter registry ("Padron Maestro")
-- Case-insensitive, accent-insensitive deduplication (application-level, not a DB constraint — the v6 migration removed the `&name` unique index precisely to allow safe app-level dedup)
+- Case-insensitive, accent-insensitive deduplication (application-level, not a DB constraint — v6 migration removed the `&name` unique index to allow safe app-level dedup)
 - `championshipTieRank` — manual override used as a tertiary tiebreaker in the annual championship
 - `is_deleted`
 
 ### Migration history (`db.ts`)
+
 | Version | Change |
 |---|---|
 | v2 | Base `events`/`series` schema |
@@ -121,10 +125,21 @@ db.version(8).stores({
 | v7 | Adds `championshipTieRank` to `masterCompetitors` |
 | v8 | Adds `modality` index to `events`; migrates existing events to `.22 LR` |
 
+### Embedded type: `Shot`
+
+```typescript
+interface Shot {
+  shotNumber: number;   // 1-10 (.22 LR) o 1-12 (.308/.223)
+  targetType: '15"' | '10"' | '5"' | 'grande' | 'mediano' | 'pequeño' | 'additional';
+  hit: boolean;         // true = O (hit), false = X (miss)
+  value: number;        // Points awarded (auto-calculated)
+}
+```
+
 ## Scoring Rules
 
 ### .22 LR (`scoring.ts`)
-- **10 shots** per series, progressing through 3 targets in strict order: **15" to 10" to 5" to additional**
+- **10 shots** per series, progressing through 3 targets in strict order: **15" → 10" → 5" → additional**
 - A shot's value depends on the shot **number** (column), not a chosen ring value — missing a target delays subsequent targets ("drag"), reducing their maximum value.
 - Score tables (index = shot number, offset per target):
 
@@ -135,10 +150,10 @@ db.version(8).stores({
   | 5"  | `[30,26,23,20,16,13,11,7]` | shot 3 |
   | additional | 1 pt each | after 5" is hit |
 
-- **Max series score: 67** (10 + 20 + 30 + 7 additional shots x 1 pt)
+- **Max series score: 67** (10 + 20 + 30 + 7 additional shots × 1 pt)
 
 ### Central Fire — .308 / .223 (`scoringCentralFire.ts`, `modalityConfig.ts`)
-- **12 shots** per series, progressing **Grande to Mediano to Pequeño to additional**
+- **12 shots** per series, progressing **Grande → Mediano → Pequeño → additional**
 - **Bonus mechanic:** if the *first* shot hits the bonus zone on the Grande target, all subsequent additional shots are worth **2 pts instead of 1**
 - Score tables:
 
@@ -150,14 +165,27 @@ db.version(8).stores({
   | additional (no bonus) | 1 pt each | — |
   | additional (bonus active) | 2 pts each | — |
 
-- **Max series score with bonus: 96** (12 + 24 + 42 + 9 additional x 2 pts)
-- **Max series score without bonus: 87** (12 + 24 + 42 + 9 additional x 1 pt)
+- **Max series score with bonus: 96** (12 + 24 + 42 + 9 additional × 2 pts)
+- **Max series score without bonus: 87** (12 + 24 + 42 + 9 additional × 1 pt)
 
 ### "Drag" mechanic (both modalities)
 Missing a target does not cost points directly — instead it delays when subsequent targets become reachable, which reduces their maximum achievable value because the scoring tables decrease with shot number. `getMaxPossibleRemaining()` / `getCostOfMiss()` (and their CF equivalents) compute the exact point cost of a miss for live UI feedback.
 
 ### `modalityConfig.ts` — single source of truth per modality
-Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing: `shotsPerSeries`, `seriesPerEvent` (2 for .22 LR, 1 for Central Fire), `spotsPerHeat` (4 for .22 LR, 1 for Central Fire — individual turns), `maxHeats`, `hasBonus`, `bonusMultiplier`, `targets[]` (with `scoreTable` and `shotOffset`), `maxSeriesScore`, `useFamilyRules`, and `useSharedRifle` (both `true` only for `.22 LR`).
+Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
+
+| Property | .22 LR | .308 | .223 |
+|---|---|---|---|
+| shotsPerSeries | 10 | 12 | 12 |
+| seriesPerEvent | 2 | 1 | 1 |
+| spotsPerHeat | 4 | 1 | 1 |
+| maxHeats | 8 | 50 | 50 |
+| hasBonus | false | true | true |
+| additionalValue | 1 | 1 | 1 |
+| bonusMultiplier | 1 | 2 | 2 |
+| maxSeriesScore | 67 | 96 | 96 |
+| useFamilyRules | true | false | false |
+| useSharedRifle | true | false | false |
 
 ## Authentication & RBAC
 
@@ -172,6 +200,29 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing: 
   - `updateUIRoles()` is re-invoked after every route render and via a `MutationObserver` watching `#app-root`, so dynamically-injected DOM (e.g., modals) is also re-secured
 - Login/logout controlled from the navbar (`#nav-btn-login`, `#nav-btn-logout`, `#nav-user-badge`)
 
+## Heat Seeding System (`heatsManager.ts` — 758 lines)
+
+### Automatic Draw (`automaticDrawHeats`)
+- Participants are sorted into sectors (A/B) and assigned to 4-person groups
+- Groups are distributed across tandas 1–8 with spots 1–4
+- After initial assignment, the following rules are enforced:
+
+### Dominguez Family Rules
+1. **Ángel Domínguez** and **Facundo Domínguez** must never be in the same tanda
+2. **Facundo** must always shoot in an earlier tanda (lower number) than **Ángel**
+3. Both are restricted to tandas 2, 3, 4 only
+4. If they land in the same tanda, one is auto-swapped with another competitor in an allowed tanda
+
+### Shared Rifle Rules
+- Competitors with the same `sharedRifleId` (Rifle A, B, C, D, E) cannot be in the same tanda
+- If two share-rifle members land in the same tanda, one swaps with a competitor from a different rifle group
+- The swap candidate must not be a Dominguez family member
+
+### Manual Reorder Modal
+- **.22 LR**: tanda/mesa grid with select dropdowns per participant + up/down arrows for spot reordering within a tanda
+- **CF**: flat sequential list with up/down arrows for individual turn ordering (since CF uses 1 shooter per tanda)
+- On save: re-applies family rules + shared rifle rules for .22 LR, copies tandas to tandaS2/spots to spotS2 for Series 2
+
 ## Cloud Sync (`sync.ts`)
 
 - **Push (`pushLocalDatabaseToCloud`)**: Uploads all non-deleted local records (events, participants, series, masterCompetitors) to Supabase via `upsert(..., { onConflict: 'id' })`. Local Dexie auto-increment numeric IDs are mapped to **deterministic UUIDs** using `toDeterministicUuid(id, namespace)`:
@@ -179,31 +230,33 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing: 
   00000000-0000-4000-{namespace:0000}-{id:000000000000}
   ```
   Namespaces: `0` = events, `1` = participants, `2` = series, `3` = masterCompetitors. This guarantees the same local ID always maps to the same UUID, enabling stable upserts without a server-side ID-mapping table.
-- **Pull (`pullCloudDatabaseToLocal`)**: Downloads *all* rows from Supabase, **clears** all local Dexie tables, then re-inserts everything, converting UUIDs back to numeric IDs via `fromDeterministicUuid()` (parses the trailing UUID segment as an integer).
+- **Pull (`pullCloudDatabaseToLocal`)**: Downloads *all* rows from Supabase, then inserts/updates each row into Dexie using `put()` (upsert). **No local data is cleared** — this prevents data loss from offline-created records. UUIDs are converted back to numeric IDs via `fromDeterministicUuid()` (parses the trailing UUID segment as an integer). If a cloud record carries `is_deleted: true`, it is upserted into Dexie with the same flag, so sync is eventually consistent.
 - **Soft delete everywhere**: no destructive deletes are synced; every table carries `is_deleted`, and both push/pull propagate this flag rather than physically removing rows.
 - **Silent auto-pull on startup**: in `app.ts`, if the local `events` table is empty and the browser is online, the app silently pulls the cloud database ~1.2s after load.
 - **Periodic auto-pull for spectators**: every 30 seconds, if `navigator.onLine` and the current role is `spectator`, the app re-pulls and re-renders the current view (dashboard/event/series) to keep read-only viewers live-updated.
 
 ## Championship System (`championship.ts`)
 
-- Aggregates a shooter's results across **all events of a given year and modality**, grouping participants by **normalized name** (accent-stripped, lowercased) across events, cross-referenced with the Padron Maestro for canonical display name/category.
+- Aggregates a shooter's results across **all events of a given year and modality**, grouping participants by **normalized name** (NFD accent-stripped, lowercased) across events, cross-referenced with the Padron Maestro for canonical display name/category.
+- Events with `isPilot: true` are excluded from championship calculations.
 - Scores are sorted descending; then:
   - **Base Firme** = sum of the **Top 2** scores
   - **Total Actual** = sum of the **Top 3** scores
-  - The 3rd-best score is flagged `isAtRisk` if the shooter has fewer than 4 event participations that year (it may still be discarded once a 4th event is scored)
-  - Scores beyond the top 3 are `isDiscarded`
+  - The 3rd-best score is flagged `isAtRisk` if the shooter has **4 or more** event participations that year (it may be discarded once a 4th event is scored, raising the 4th score into the top 3)
+  - Scores beyond the top 3 are `isDiscarded` (displayed with strikethrough in the UI)
 - **Sorting (`sortChampionshipRanking`)** applies, in order:
-  1. Primary metric (`baseFirme` or `totalActual`, selectable)
+  1. Primary metric (`baseFirme` or `totalActual`, user-selectable)
   2. Secondary metric (the other of the two totals)
   3. Manual `championshipTieRank` from Padron Maestro (lower = better; unset treated as 999)
   4. Alphabetical by competitor name
 
-## Print System (`print.ts`, `printChampionship.ts`)
+## Print System (`print.ts`, `printCF.ts`, `printChampionship.ts`)
 
-- **A4 landscape score sheets**: one page per competitor, showing two series side by side (`printEventCards`)
-- **A4 portrait ranking cards**: with medal styling for podium places (`printRankingCard`)
-- **Championship tables**: dedicated print preview plus CSV export (`printChampionshipPreview`, `exportChampionshipToExcel`)
-- **Blank sheets**: for manual/offline scoring (`printBlankSheet`)
+- **.22 LR A4 landscape score sheets** (`printEventCards`): one page per competitor, showing two series side by side (Serie 1 + Serie 2), progressive target rows (15"/10"/5"/additional), cell-by-cell hit/miss display with point values
+- **Central Fire A4 landscape score sheets** (`printCFSeriesCard`): single series, 12-shot layout with Grande/Mediano/Pequeño/additional rows, bonus column
+- **A4 portrait ranking cards** (`printRankingCard`): with medal styling for podium places (Top 3)
+- **Championship tables** (`printChampionshipPreview`): dedicated print preview plus CSV export (`exportChampionshipToExcel`)
+- **Blank sheets** (`printBlankSheet`): for manual/offline scoring with reference values printed
 - All print flows funnel through `openPrintModal(htmlContent, title)`, which injects the generated HTML into an **iframe-based modal** and triggers `window.print()` from a button inside the printable document — this keeps the printable layout isolated from the app's own styles.
 - `html2canvas` is used in `EventDetailView.ts` (imported directly) for rendering the DOM to a canvas/image where needed (e.g., visual captures outside the iframe print flow).
 
@@ -214,6 +267,12 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing: 
 - **Post-build cache injection**: `scripts/inject-sw-cache.js` runs after `astro build`, rewriting the `cptp-scoring-cache-v<timestamp>` string inside `dist/sw.js` so every production build gets a fresh, unique cache name (busts old caches automatically)
 - **iOS PWA support**: `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title`, and `mobile-web-app-capable` meta tags in `BaseLayout.astro`
 - **Offline indicator**: a `#offline-indicator` element toggled by `navigator.onLine` / `online`/`offline` window events (inline script in `BaseLayout.astro`)
+
+## Backup & Restore (`backup.ts`)
+
+- **Export**: Serializes an event + its participants + their series into a JSON file with versioned format (`version: 1`). File name: `cptp_backup_{eventName}_{date}.json`.
+- **Import**: Reads a JSON backup, re-creates the event with fresh Dexie IDs (auto-increment), reorders participants by `competitorNumber`, preserves referential integrity by re-mapping participant IDs in series data.
+- Useful for transferring events between devices without cloud sync (e.g., staff brings home a backup on USB and the admin imports it on their machine).
 
 ## Build & Deploy
 
@@ -228,3 +287,29 @@ npm run preview   # astro preview — preview the production build
   - `PUBLIC_SUPABASE_URL`
   - `PUBLIC_SUPABASE_ANON_KEY`
 - If these are missing, `supabase.ts` logs an error and falls back to dummy values so the app doesn't crash — cloud features simply fail gracefully while local/offline scoring continues to work.
+
+## Development Scripts (refactoring history)
+
+The Python scripts at the project root document the modular extraction from the original monolithic `app.ts`:
+
+| Script | Action |
+|---|---|
+| `refactor.py` | Extracted `modals.ts` (toast, confirm, prompt) |
+| `refactor2.py` | Extracted `router.ts` (hash navigation) |
+| `refactor_all.py` | Extracted `excel.ts` + `seeder.ts` simultaneously |
+| `refactor_brace.py` | Used brace-counting parser instead of regex for nested functions |
+| `refactor_final.py` | Extracted seed handlers from `EventDetailView.ts` to `seeder.ts` |
+| `refactor_seeder.py` / `refactor_seeder2.py` | Refined seed handler extraction |
+| `fix.py` | Changed button text: "Sorteo (X/32)" → "Sorteo y Puestos (X/32)" |
+
+The Multi-Modality (CF) feature was implemented through sequential patches in `scratch/`:
+
+| Patch | Target | Change |
+|---|---|---|
+| `patch.js` (226 lines) | `print.ts` | Added CF conditional tables, dynamic totals (/67 vs /96) |
+| `patch2.cjs` / `patch5.cjs` | `print.ts` | CF column layout adjustments |
+| `fix_heats.cjs` (236 lines) | `heatsManager.ts` | CF flat sequential reorder modal |
+| `patch_print.py` (256 lines) | `print.ts` | Python version of CF print patch |
+| `patch_active_tab.py` | `EventDetailView.ts` | Tab system (tiradores/series/posiciones) |
+| `patch_event_buttons.py` | `EventDetailView.ts` | RBAC `.staff-only` on action buttons |
+| `patch_series_buttons.py` | `SeriesScoringView.ts` | RBAC on new/save series buttons |

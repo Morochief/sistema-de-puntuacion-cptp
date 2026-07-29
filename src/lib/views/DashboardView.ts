@@ -235,7 +235,7 @@ export async function renderDashboard(): Promise<void> {
   if (dashPage > 1) { dashPage--; renderDashboard(); }
  });
  container.querySelector('#dash-next-page')?.addEventListener('click', () => {
-  if (dashPage >= totalPages) { dashPage++; renderDashboard(); }
+  if (dashPage < totalPages) { dashPage++; renderDashboard(); }
  });
 
  // Bind Padrón Maestro button

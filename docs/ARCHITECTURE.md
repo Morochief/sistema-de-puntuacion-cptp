@@ -1,7 +1,7 @@
 # CPTP Scoring — Architecture Documentation
 
-**Last Updated:** 2025-06-01
-**Related:** [TECHNICAL.md](./TECHNICAL.md)
+**Last Updated:** 2026-07-28
+**Related:** [TECHNICAL.md](./TECHNICAL.md) · [MASTER-REFERENCE.md](./MASTER-REFERENCE.md)
 
 ## System Architecture
 
@@ -15,6 +15,7 @@
 ┌───────────────────────────────▼───────────────────────────────────────┐
 │                    Router & Entry Point (app.ts)                     │
 │   hash routing · auth bootstrap · auto-sync timers · MutationObserver│
+│   silent padron migration · spectator auto-pull (30s interval)      │
 └───────────────────────────────┬───────────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼───────────────────────────────────────┐
@@ -27,9 +28,11 @@
 │ Business      │ │ Ops modules  │ │ Print /     │ │ Auth & RBAC        │
 │ Logic:        │ │ eventsManager│ │ Export:     │ │ authManager.ts     │
 │ scoring.ts    │ │ heatsManager │ │ print.ts    │ │ (Supabase Auth)    │
-│ scoringCF.ts  │ │ championship │ │ printChamp. │ │                    │
-│ modalityConf. │ │ tiebreaker   │ │ excel.ts    │ │                    │
-│               │ │ masterComp.  │ │             │ │                    │
+│ scoringCF.ts  │ │ championship │ │ printCF.ts  │ │ 3 roles:           │
+│ modalityConf. │ │ tiebreaker   │ │ printChamp. │ │ admin/staff/       │
+│               │ │ masterComp.  │ │ excel.ts    │ │ spectator          │
+│               │ │ backup.ts    │ │             │ │                    │
+│               │ │ seeder.ts    │ │             │ │                    │
 └───────┬───────┘ └──────┬───────┘ └─────┬──────┘ └───────┬────────────┘
         │                │                │                 │
 ┌───────▼────────────────▼────────────────▼─────────────────▼──────────┐
@@ -37,7 +40,8 @@
 │  ┌────────────────────────┐        ┌────────────────────────────────┐ │
 │  │   Dexie (IndexedDB)     │◄──────►│         Supabase                │ │
 │  │   db.ts — local, always│  sync  │   (PostgreSQL + Auth)            │ │
-│  │   available offline    │  .ts   │   cloud source of truth          │ │
+│  │   available offline    │  .ts   │   cloud mirror (eventually      │ │
+│  │   4 tables, 8 versions │        │   consistent via upsert)        │ │
 │  └────────────────────────┘        └────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -58,69 +62,118 @@ User (admin) → NewEventView.renderNewEvent()
 ```
 User (staff/admin) → SeriesScoringView.renderSeries(seriesId)
                     → loads Series.shots[] from Dexie
-                    → deriveCurrentPhase(shots) / deriveCurrentPhaseCF(shots)
+                    → detects modality (isCentralFire() → .22 LR or .308/.223)
+                    → deriveCurrentPhase() / deriveCurrentPhaseCF()
                         determines active target (15"/10"/5"/additional
                         or grande/mediano/pequeño/additional)
                     → user taps HIT/MISS
                     → calculateShotValue() / calculateShotValueCF()
-                        computes point value from shot number + phase (+bonus for CF)
+                        computes point value from shot number + phase
+                        (+bonusActive for CF)
                     → shots.push({shotNumber, targetType, hit, value})
-                    → calculateSeriesTotal(shots) → db.series.put(...)
-                    → UI re-renders running total + "cost of miss" preview
-                      via getMaxPossibleRemaining()/getCostOfMiss()
+                    → calculateSeriesTotal() → db.series.put(...)
+                    → UI re-renders: running total, progress bar pips,
+                      "cost of miss" preview via getMaxPossibleRemaining()
 ```
 
-### 3. Cloud Sync Flow
+### 3. Heat Seeding Flow
+```
+User (staff/admin) clicks "Sortear" or "Reordenar"
+
+automaticDrawHeats():
+  → participants sorted by sector
+  → for each 4-person group, assign to tandas 1-8, spots 1-4
+  → applySpecialFamilySeedingRules():
+      1. Facundo Domínguez and Ángel Domínguez never in same tanda
+      2. Facundo always in earlier tanda (lower number) than Ángel
+      3. Both restricted to tandas 2, 3, 4
+      4. If in same tanda → auto-swap with another competitor
+  → applySharedRifleRules():
+      groups with same sharedRifleId (e.g. "Rifle A") relocated
+      → if 2+ members land in same tanda, one swaps with different-rifle competitor
+  → repack: enforce max 4 per tanda, reassign spots 1-4
+  → persist to Dexie
+
+showManualHeatsReorderModal():
+  → .22 LR: tanda/mesa grid with selects + up/down arrows
+  → CF: flat sequential list with up/down arrows (individual turns)
+  → re-apply family + rifle rules on save
+  → copy tanda→tandaS2 and spot→spotS2 for Series 2
+```
+
+### 4. Cloud Sync Flow
 
 **Push (local → cloud)**
 ```
 pushLocalDatabaseToCloud()
   → read non-deleted rows: db.events / db.participants / db.series / db.masterCompetitors
-  → map each numeric id → deterministic UUID (00000000-0000-4000-{ns}-{id})
+  → map each numeric id → deterministic UUID (00000000-0000-4000-{ns}-{id padded to 12})
   → supabase.from(table).upsert(rows, { onConflict: 'id' })
   → returns SyncResult { success, eventsSynced, participantsSynced, seriesSynced, error? }
+  → no destructive deletes are synced (is_deleted propagated instead)
 ```
 
 **Pull (cloud → local)**
 ```
 pullCloudDatabaseToLocal()
   → supabase.from(table).select('*')  for events/participants/series/masterCompetitors
-  → db.events.clear() / db.participants.clear() / db.series.clear() / db.masterCompetitors.clear()
   → fromDeterministicUuid(uuid) → numeric id (parses trailing UUID segment)
-  → db.<table>.put(convertedRow)  for every cloud row
-  → triggered: (a) silently on app load if local events table is empty and online
-               (b) every 30s for role === 'spectator'
+  → db.<table>.put(convertedRow)  for every cloud row (upsert — does NOT clear local data)
+  → triggered: (a) silently ~1.2s after app load if events table is empty and online
+               (b) every 30s for role === 'spectator' (auto-render current view)
 ```
 
-### 4. Championship Calculation Flow
+### 5. Championship Calculation Flow
 ```
 getChampionshipData(year, modality)
-  → db.events (filter by modality + year, not deleted)
+  → db.events (filter by modality + year, not deleted, not isPilot)
   → db.participants + db.series for those event IDs
-  → group participants by normalized name (accents/case stripped)
-  → cross-reference db.masterCompetitors for canonical name/category/tieRank
+  → group participants by normalized name (NFD accent-stripped, lowercased)
+  → cross-reference db.masterCompetitors for canonical display name/category/tieRank
   → for each shooter: build scoresList[{eventId, score, status}] per event
-      (dq/dns → 0, else sum of series.totalScore)
+      (dq/dns → 0 displayed as DQ/—, else sum of series.totalScore)
   → sort scores desc → assign isBaseFirme (top 2), isTaken (top 3),
-      isAtRisk (3rd, if <4 events played), isDiscarded (rest)
+      isAtRisk (3rd, if ≥4 events played → replaceable), isDiscarded (rest)
   → baseFirme = sum(top 2), totalActual = sum(top 3)
   → sortChampionshipRanking(rankings, 'totalActual' | 'baseFirme')
-      → primary metric → secondary metric → manual tieRank → alphabetical
+      → primary metric → secondary metric → manual championshipTieRank → alphabetical
 ```
 
-### 5. Print Flow
+### 6. Print Flow
 ```
 EventDetailView / ChampionshipView
   → user clicks "Imprimir"
-  → print.ts builds a self-contained HTML string (embedded <style>, tables, page-break rules)
+  → print.ts / printCF.ts builds self-contained HTML string
       printEventCards() / printRankingCard() / printBlankSheet()
       or printChampionship.ts → printChampionshipPreview()
   → openPrintModal(html, title)
       → injects HTML into an <iframe> inside a modal overlay
       → the iframe's own "Imprimir" button calls window.print() scoped to iframe content
-  → (separately) html2canvas used in EventDetailView.ts for canvas-based captures
-  → CSV export path: excel.ts / printChampionship.ts build UTF-8 BOM-prefixed CSV,
+  → CSV export: excel.ts / printChampionship.ts build UTF-8 BOM-prefixed CSV,
       download via Blob + <a download>
+  → html2canvas used in EventDetailView.ts for canvas-based captures outside iframe
+```
+
+### 7. Auth / RBAC Flow
+```
+app.ts on load → checkAuth()
+  → supabase.auth.getSession()
+  → if session exists: query user_roles table → set currentRole (admin|staff|spectator)
+  → if no session or no role found: currentRole = 'spectator' (default)
+  → updateUIRoles():
+      .admin-only elements: display:none unless admin
+      .staff-only elements: display:none unless admin or staff
+      navbar: show login button (spectator) or role badge + logout (admin/staff)
+
+MutationObserver on #app-root:
+  → watches for DOM changes (dynamic renders, modals)
+  → re-applies updateUIRoles() on every mutation
+  → ensures RBAC enforcement on dynamically-injected content
+
+Spectator auto-pull:
+  → setInterval every 30s
+  → if navigator.onLine && currentRole === 'spectator'
+  → pullCloudDatabaseToLocal() → re-render current view
 ```
 
 ## Module Dependency Graph
@@ -133,15 +186,16 @@ app.ts
  ├── masterCompetitors.ts ──► db.ts, modals.ts
  └── views/
      ├── DashboardView.ts ──► db.ts, eventsManager.ts, championship.ts,
-     │                        sync.ts, modals.ts, authManager.ts
+     │                        sync.ts, modals.ts, authManager.ts, backup.ts
      ├── NewEventView.ts ──► db.ts, modalityConfig.ts, modals.ts, router.ts
      ├── LoginView.ts ─────► supabase.ts, authManager.ts, router.ts
-     ├── ChampionshipView.ts ► championship.ts, printChampionship.ts, excel.ts
+     ├── ChampionshipView.ts ► championship.ts, printChampionship.ts, excel.ts,
+     │                        db.ts, modals.ts
      ├── event/EventDetailView.ts ──► db.ts, modalityConfig.ts, print.ts,
-     │      heatsManager.ts, masterCompetitors.ts, tiebreaker.ts, backup.ts,
-     │      html2canvas, authManager.ts
+     │      printCF.ts, heatsManager.ts, masterCompetitors.ts, tiebreaker.ts,
+     │      backup.ts, seeder.ts, html2canvas, authManager.ts
      └── scoring/SeriesScoringView.ts ──► db.ts, scoring.ts, scoringCentralFire.ts,
-            modalityConfig.ts, modals.ts
+            modalityConfig.ts, print.ts, printCF.ts, modals.ts
 
 scoring.ts ─────────────► types.ts
 scoringCentralFire.ts ──► types.ts, modalityConfig.ts
@@ -151,10 +205,12 @@ heatsManager.ts ────────► db.ts, types.ts, modals.ts
 eventsManager.ts ───────► db.ts, types.ts, modals.ts
 tiebreaker.ts ──────────► db.ts, types.ts, modals.ts
 backup.ts ──────────────► db.ts, types.ts, modals.ts
-print.ts ───────────────► types.ts
-printChampionship.ts ───► types.ts, championship.ts
+print.ts ───────────────► types.ts, scoring.ts, db.ts, tiebreaker.ts, modals.ts
+printCF.ts ─────────────► types.ts, scoring.ts, db.ts, tiebreaker.ts, modals.ts
+printChampionship.ts ───► types.ts, championship.ts, db.ts
 excel.ts ───────────────► types.ts, tiebreaker.ts
 sync.ts ────────────────► db.ts, supabase.ts, modals.ts
+seeder.ts ──────────────► db.ts, types.ts
 db.ts ──────────────────► types.ts (Dexie schema only; no upward deps)
 ```
 
@@ -170,7 +226,8 @@ db.ts ──────────────────► types.ts (Dexie 
 │ modality ('.22 LR'|'.308'│
 │           |'.223')       │
 │ championshipDate         │
-│ createdAt, is_deleted    │
+│ isPilot, createdAt,      │
+│ is_deleted               │
 └────────────┬─────────────┘
              │ 1
              │
@@ -219,9 +276,21 @@ db.ts ──────────────────► types.ts (Dexie 
 **Relationships:**
 - `events (1) ──► participants (N)` via `participants.eventId`
 - `participants (1) ──► series (N)` via `series.participantId` (redundantly also carries `series.eventId` for query convenience)
-- `masterCompetitors ⇢ participants` is a **soft/logical** relationship matched at query time by normalized shooter name (accent + case-insensitive) — there is no enforced FK, by design, since the same person's name may be entered slightly differently across events.
+- `masterCompetitors ⇢ participants` is a **soft/logical** relationship matched at query time by normalized shooter name (NFD accent-stripped + lowercased) — there is no enforced FK, by design, since the same person's name may be entered slightly differently across events.
 
 **Cloud (Supabase) mirror:** each Dexie table has a matching Postgres table (`events`, `participants`, `series`, `master_competitors`) using UUID primary keys (deterministically derived from local integer IDs — see Key Design Decisions) and snake_case columns; every table also carries `is_deleted boolean`.
+
+## Multi-Modality Architecture
+
+The app supports 3 modalities configured via `modalityConfig.ts` as the single source of truth:
+
+| Modalidad | shotsPerSeries | seriesPerEvent | spotsPerHeat | maxHeats | hasBonus | useFamilyRules | maxScore |
+|---|---|---|---|---|---|---|---|
+| .22 LR | 10 | 2 | 4 | 8 | false | true | 67 |
+| .308 | 12 | 1 | 1 | 50 | true | false | 96 |
+| .223 | 12 | 1 | 1 | 50 | true | false | 96 |
+
+Each modality has its own scoring engine (`scoring.ts` for .22 LR, `scoringCentralFire.ts` for .308/.223) and its own print module (`print.ts` for .22 LR, `printCF.ts` for CF). View code detects modality at runtime via `isCentralFire(modality)` and branches accordingly (scoring UI, heat reorder modal, print sheets).
 
 ## Key Design Decisions
 
@@ -240,20 +309,39 @@ db.ts ──────────────────► types.ts (Dexie 
 5. **Why hash-based routing (`#/event/123`)**
    The app is served as static files (Astro SSG output) and installed as a PWA; a service worker intercepts navigation requests. Hash fragments never leave the browser and never trigger a server request, so routing works identically whether the app is online, offline, opened from a home-screen icon, or loaded straight from `file://`/cached assets — no server-side rewrite rules are required.
 
+6. **Why 3 separate roles (admin/staff/spectator)**
+   During a live competition, different people need different access. The range officer (staff) needs to score shots and manage rosters but should not delete events. The club administrator (admin) handles event lifecycle and master data. Spectators (unauthenticated) get read-only access with automatic background sync. This separation prevents accidental data loss during events while keeping the app usable for the audience.
+
+7. **Why pull uses upsert instead of clear+reinsert**
+   Earlier versions of the sync cleared all local Dexie tables before re-inserting. This was replaced with `put()` (Dexie upsert) so that data created offline is never lost during a pull. The cloud is a mirror, not the authoritative source — local data always survives.
+
+## PWA & Offline Architecture
+
+| Funcionalidad | Estrategia |
+|---|---|
+| **Carga inicial** | App Shell: HTML+CSS+JS cacheados al primer acceso (Cache-first) |
+| **Datos de competencia** | IndexedDB local vía Dexie — toda la persistencia es local |
+| **Service Worker** | Cache-first para assets; versión de caché inyectada post-build |
+| **Instalable** | Manifest + iconos 192/512/maskable-512 + SVG, prompt de instalación |
+| **Offline indicator** | Elemento parpadeante en navbar, toggled por eventos online/offline |
+| **Sincronización** | Push/Pull manual + auto-pull cada 30s para espectadores |
+
 ## Security Considerations
 
 - **Supabase Row Level Security (RLS)** policies must be configured on the Supabase side for `events`, `participants`, `series`, and `master_competitors` tables to enforce that only authenticated `admin`/`staff` roles can write, while reads may be broader (spectators need read access for auto-pull). RBAC in the client (`authManager.ts`) is a **UI convenience layer only** — it hides buttons and elements, but it is **not** a substitute for server-side RLS enforcement, since a determined client could still call the Supabase API directly.
 - **Auth token handling**: Supabase's JS client manages session/token storage and refresh internally (`supabase.auth.getSession()`); the app does not manually persist or transmit tokens elsewhere.
 - **XSS prevention**: all dynamically-injected user-supplied strings (shooter names, categories, event names, etc.) rendered into `innerHTML` templates must be passed through the shared `esc()` function in `modals.ts` before interpolation, to prevent stored/DOM-based XSS from competitor names or other free-text fields.
 - **No hardcoded secrets**: Supabase URL and anon key are read exclusively from `import.meta.env.PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` (Astro's public env convention) — never committed as literals. If unset, `supabase.ts` falls back to non-functional dummy values and logs an error rather than throwing, so a misconfigured deployment still boots into offline-only mode instead of crashing.
+- **Role enforcement at UI level**: `.admin-only` and `.staff-only` CSS classes are managed by `updateUIRoles()`, re-applied via `MutationObserver` on `#app-root` whenever the DOM changes dynamically, ensuring that even modal content respects role permissions.
 
 ## File Structure
 
 ```
 cptp-scoring/
 ├── docs/
-│   ├── TECHNICAL.md              # This technical reference
-│   └── ARCHITECTURE.md           # This architecture reference
+│   ├── ARCHITECTURE.md           # This architecture reference
+│   ├── TECHNICAL.md              # Technical reference
+│   └── MASTER-REFERENCE.md       # Integrated master reference
 ├── public/                        # Static assets served as-is
 │   ├── manifest.json              # PWA manifest
 │   ├── sw.js                      # Service worker (cache name patched at build time)
@@ -262,31 +350,40 @@ cptp-scoring/
 │   └── pwa-192x192.png, pwa-512x512.png, pwa-maskable-512x512.png
 ├── scripts/
 │   ├── inject-sw-cache.js         # Post-build: patches unique cache version into dist/sw.js
-│   ├── generate-icons.mjs         # Icon generation helper
-│   └── migration_multimodality.sql # Supabase-side SQL migration for multi-modality support
+│   ├── generate-icons.mjs         # Icon generation helper (pure Node, no deps)
+│   └── migration_multimodality.sql # Supabase-side SQL migration for multi-modality
+├── scratch/                       # Development patches (historical)
+│   ├── patch.js                   # CF print support (226 lines)
+│   ├── patch2.cjs / patch5.cjs    # CF layout adjustments
+│   ├── fix_heats.cjs              # CF heat reorder modal (236 lines)
+│   ├── patch_active_tab.py        # Tab system in EventDetailView
+│   ├── patch_event_buttons.py     # RBAC buttons in EventDetailView
+│   ├── patch_series_buttons.py    # RBAC buttons in SeriesScoringView
+│   └── patch_print.py             # CF print Python version (256 lines)
 ├── src/
 │   ├── layouts/
-│   │   └── BaseLayout.astro       # <head> (PWA meta, fonts, manifest), navbar, toast container
+│   │   └── BaseLayout.astro       # <head> (PWA meta, fonts, manifest), navbar, toast container, offline indicator
 │   ├── pages/
 │   │   └── index.astro            # The single page: all view containers (#view-*)
 │   └── lib/
-│       ├── app.ts                 # Entry point: router wiring, auth bootstrap, sync timers
+│       ├── app.ts                 # Entry point: router wiring, auth bootstrap, sync timers, padron migration
 │       ├── router.ts              # Hash routing primitives
 │       ├── db.ts                  # Dexie schema (8 versions)
 │       ├── types.ts               # Shared TypeScript interfaces/types
 │       ├── supabase.ts            # Supabase client init
-│       ├── authManager.ts         # Auth/session + RBAC UI toggling
+│       ├── authManager.ts         # Auth/session + RBAC UI toggling (admin/staff/spectator)
 │       ├── sync.ts                # Push/pull cloud sync + deterministic UUIDs
-│       ├── scoring.ts             # .22 LR scoring engine
-│       ├── scoringCentralFire.ts  # .308/.223 scoring engine
+│       ├── scoring.ts             # .22 LR scoring engine (10 shots, 67 max)
+│       ├── scoringCentralFire.ts  # .308/.223 scoring engine (12 shots, bonus, 96 max)
 │       ├── modalityConfig.ts      # Per-modality configuration (single source of truth)
 │       ├── eventsManager.ts       # Event list filter/sort/paginate + edit modal
-│       ├── heatsManager.ts        # Heat/tanda seeding rules (family rule, shared rifle)
-│       ├── championship.ts        # Annual championship scoring math
+│       ├── heatsManager.ts        # Heat/tanda seeding (family rules, shared rifle, manual reorder)
+│       ├── championship.ts        # Annual championship scoring math (Base Firme + Total Actual)
 │       ├── masterCompetitors.ts   # Padron Maestro CRUD + management modal
 │       ├── tiebreaker.ts          # Manual tie resolution logic + modal
 │       ├── backup.ts              # JSON export/import of a full event
-│       ├── print.ts               # Score sheet / ranking card print HTML + iframe modal
+│       ├── print.ts               # .22 LR score sheet / ranking card print HTML + iframe modal
+│       ├── printCF.ts             # Central fire score sheet print HTML
 │       ├── printChampionship.ts   # Championship print preview + CSV export
 │       ├── excel.ts               # CSV export (UTF-8 BOM) of event rankings
 │       ├── seeder.ts              # Bulk participant/score simulation utility
@@ -300,10 +397,14 @@ cptp-scoring/
 │           │   └── EventDetailView.ts
 │           └── scoring/
 │               └── SeriesScoringView.ts
-├── package.json                   # scripts: dev, build, preview; deps as listed in TECHNICAL.md
+├── package.json                   # scripts: dev, build, preview
 ├── tsconfig.json                  # extends astro/tsconfigs/strict
+├── .env                           # PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY
+├── *.py                           # Refactoring scripts (refactor.py, fix.py, etc.)
+├── cptp_backup_*.json             # Event backup exports
 └── dist/                          # Build output (astro build + inject-sw-cache.js)
 ```
 
 ## Related Areas
 - See [TECHNICAL.md](./TECHNICAL.md) for the full module map, scoring rule tables, and data model field-by-field reference.
+- See [MASTER-REFERENCE.md](./MASTER-REFERENCE.md) for the integrated master reference covering business rules, development history, and the full project ecosystem.
