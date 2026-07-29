@@ -17,6 +17,7 @@ export async function renderAnalytics(): Promise<void> {
   let currentModality = 'Todas';
   let currentYear = 'Todos';
   let currentShooter = 'Todos';
+  let currentDistEvent = -1; // -1 significa "Ultima Fecha" o sin seleccionar
   
   const layout = `
   <div class="max-w-[1200px] mx-auto p-4 animate-fade-in" style="font-family: 'Rajdhani', sans-serif; background-color:#020617; min-height:100vh; padding:24px; border-radius:12px; border: 1px solid #1e293b;">
@@ -97,8 +98,15 @@ export async function renderAnalytics(): Promise<void> {
       <!-- Chart: Score Distribution (Campana Gauss) -->
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#f59e0b;"></div>
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Distribución de Puntajes</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Frecuencia de puntajes de serie (Campana de rendimiento).</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Distribución de Puntajes</h2>
+            <p style="font-size:1rem; color:#64748b; margin:0; font-weight:600;">Frecuencia de puntajes de serie (Campana de rendimiento).</p>
+          </div>
+          <select id="analytics-dist-event" style="padding:8px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#1e293b; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:200px;">
+            <!-- Se poblará dinámicamente -->
+          </select>
+        </div>
         <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-distribution"></canvas>
         </div>
@@ -178,8 +186,37 @@ export async function renderAnalytics(): Promise<void> {
     const compData = await getCompetitiveGrowthData(currentModality, currentYear);
     const topData = await getTopShootersData(currentModality, currentYear);
     const retentionData = await getRetentionData(currentModality, currentYear);
-    const distributionData = await getScoreDistributionData(currentModality, currentYear);
     const effectivenessData = await getTargetEffectivenessData(currentModality, currentYear);
+    
+    // Configurar select de eventos para Distribución de Puntajes
+    const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
+    const eventsList = await db.shootingEvents.toArray();
+    let filteredEvents = eventsList.filter(e => !e.is_deleted);
+    if (currentModality !== 'Todas') filteredEvents = filteredEvents.filter(e => (e.modality || '.22 LR') === currentModality);
+    if (currentYear !== 'Todos') filteredEvents = filteredEvents.filter(e => e.date.startsWith(currentYear));
+    filteredEvents.sort((a, b) => b.date.localeCompare(a.date)); // descending
+    
+    if (distEventSelect.options.length === 0 || (currentDistEvent === -1 && filteredEvents.length > 0)) {
+      distEventSelect.innerHTML = '';
+      if (filteredEvents.length === 0) {
+        distEventSelect.innerHTML = '<option value="-1">Sin eventos</option>';
+        currentDistEvent = -1;
+      } else {
+        for (const e of filteredEvents) {
+          const opt = document.createElement('option');
+          opt.value = e.id!.toString();
+          opt.textContent = `${e.championshipDate || e.name} (${e.date.split('T')[0]})`;
+          distEventSelect.appendChild(opt);
+        }
+        currentDistEvent = filteredEvents[0].id!;
+        distEventSelect.value = currentDistEvent.toString();
+      }
+    }
+    
+    let distributionData = { labels: [], data1: [] };
+    if (currentDistEvent !== -1) {
+      distributionData = await getScoreDistributionData(currentDistEvent, currentModality);
+    }
     
     // Si no hay tirador seleccionado, limpiar chart 4
     let historyData = { labels: [], data1: [] };
@@ -407,9 +444,23 @@ export async function renderAnalytics(): Promise<void> {
   selMod.addEventListener('change', () => { currentModality = selMod.value; drawCharts(); });
   
   const selYear = document.getElementById('analytics-year') as HTMLSelectElement;
-  selYear.addEventListener('change', () => { currentYear = selYear.value; drawCharts(); });
+  selYear.addEventListener('change', () => { 
+    currentYear = selYear.value; 
+    currentDistEvent = -1; // Reset event selection on year change
+    const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
+    if (distEventSelect) distEventSelect.innerHTML = '';
+    drawCharts(); 
+  });
   
   shooterSelect.addEventListener('change', () => { currentShooter = shooterSelect.value; drawCharts(); });
+  
+  const distEventSelectGlobal = document.getElementById('analytics-dist-event') as HTMLSelectElement;
+  if (distEventSelectGlobal) {
+    distEventSelectGlobal.addEventListener('change', () => {
+      currentDistEvent = parseInt(distEventSelectGlobal.value);
+      drawCharts();
+    });
+  }
   
   document.getElementById('btn-back-analytics')?.addEventListener('click', () => {
     window.location.hash = '/';

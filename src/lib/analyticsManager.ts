@@ -209,10 +209,7 @@ export async function getTargetEffectivenessData(modality: string, year: string)
   return { labels, data1 };
 }
 
-export async function getScoreDistributionData(modality: string, year: string): Promise<ChartDataset> {
-  const events = await getAnalyticsEvents(modality, year);
-  const eventIds = events.map(e => e.id!);
-  
+export async function getScoreDistributionData(eventId: number, modality: string): Promise<ChartDataset> {
   const isCF = modality === '.308' || modality === '.223';
   
   // Buckets setup
@@ -235,15 +232,13 @@ export async function getScoreDistributionData(modality: string, year: string): 
     ];
   }
 
-  for (const eid of eventIds) {
-    const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
-    for (const s of series) {
-      const score = s.totalScore || 0;
-      for (const b of buckets) {
-        if (score >= b.min && score <= b.max) {
-          b.count++;
-          break;
-        }
+  const series = await db.series.where('eventId').equals(eventId).filter((s: any) => !s.is_deleted).toArray();
+  for (const s of series) {
+    const score = s.totalScore || 0;
+    for (const b of buckets) {
+      if (score >= b.min && score <= b.max) {
+        b.count++;
+        break;
       }
     }
   }
