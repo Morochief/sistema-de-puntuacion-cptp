@@ -1,7 +1,7 @@
 import type { ShootingEvent } from './types';
 import type { ChampionshipRankingRow } from './championship';
 import { esc, showToast } from './modals';
-import { openPrintModal } from './print';
+import { openPrintModal } from './printModal';
 
 export function exportChampionshipToExcel(
   year: number,

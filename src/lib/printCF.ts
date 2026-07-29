@@ -9,7 +9,7 @@ import type { Series, ShootingEvent, Shot, Participant } from './types';
 import { SCORING_TABLES } from './scoring';
 import { db } from './db';
 import { esc } from './modals';
-import { openPrintModal } from './print';
+import { openPrintModal } from './printModal';
 
 function formatDate(isoDate: string): string {
   try {
