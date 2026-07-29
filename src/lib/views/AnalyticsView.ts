@@ -190,7 +190,7 @@ export async function renderAnalytics(): Promise<void> {
     
     // Configurar select de eventos para Distribución de Puntajes
     const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
-    const eventsList = await db.shootingEvents.toArray();
+    const eventsList = await db.events.toArray();
     let filteredEvents = eventsList.filter(e => !e.is_deleted);
     if (currentModality !== 'Todas') filteredEvents = filteredEvents.filter(e => (e.modality || '.22 LR') === currentModality);
     if (currentYear !== 'Todos') filteredEvents = filteredEvents.filter(e => e.date.startsWith(currentYear));
