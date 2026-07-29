@@ -122,7 +122,15 @@ export async function getPrecisionFactorData(modality: string, year: string): Pr
     let sumX = 0;
     
     for (const s of series) {
-      sumX += (s.xCount || 0);
+      let seriesXCount = 0;
+      if (s.shots && Array.isArray(s.shots)) {
+        for (const shot of s.shots) {
+          if (shot.hit && (shot.targetType === '5"' || shot.targetType === 'pequeño')) {
+            seriesXCount++;
+          }
+        }
+      }
+      sumX += seriesXCount;
     }
     
     const avgX = Number((sumX / series.length).toFixed(2));
