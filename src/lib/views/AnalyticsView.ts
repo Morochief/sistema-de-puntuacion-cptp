@@ -48,24 +48,24 @@ export async function renderAnalytics(): Promise<void> {
     </div>
     
     <!-- GRID DE GRÁFICOS (MODO TÁCTICO) -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px; margin-bottom:24px;">
+    <div style="display:grid; grid-template-columns: 1fr; gap:32px; margin-bottom:32px;">
       
       <!-- Chart 1: Social Growth -->
-      <div style="background:#0f172a; border-radius:8px; padding:20px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#0038a8;"></div> <!-- Banda Azul -->
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.1rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Asistencia Global</h2>
-        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Evolución de inscriptos activos.</p>
-        <div style="position:relative; height:250px; width:100%;">
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Asistencia Global</h2>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Evolución de inscriptos activos por evento.</p>
+        <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-social"></canvas>
         </div>
       </div>
       
       <!-- Chart 2: Competitive Growth -->
-      <div style="background:#0f172a; border-radius:8px; padding:20px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#d52b1e;"></div> <!-- Banda Roja -->
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.1rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Rendimiento del Campo</h2>
-        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Puntaje promedio vs Score Top.</p>
-        <div style="position:relative; height:250px; width:100%;">
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Rendimiento del Campo</h2>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Puntaje promedio vs Score Top a través del tiempo.</p>
+        <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-competitive"></canvas>
         </div>
       </div>
@@ -73,29 +73,29 @@ export async function renderAnalytics(): Promise<void> {
     </div>
 
     <!-- SECCIÓN INDIVIDUAL Y RANKINGS -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
+    <div style="display:grid; grid-template-columns: 1fr; gap:32px;">
       
       <!-- Chart 3: Top Shooters -->
-      <div style="background:#0f172a; border-radius:8px; padding:20px; border:1px solid #1e293b;">
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.1rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Top 5 Promedios</h2>
-        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Mejores promedios históricos (Min. 2 series).</p>
-        <div style="position:relative; height:250px; width:100%;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Top 5 Promedios</h2>
+        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Mejores promedios históricos de la liga (Mínimo 2 series).</p>
+        <div style="position:relative; height:400px; width:100%;">
           <canvas id="chart-top-shooters"></canvas>
         </div>
       </div>
 
       <!-- Chart 4: Shooter Individual -->
-      <div style="background:#0f172a; border-radius:8px; padding:20px; border:1px solid #1e293b;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
           <div>
-            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.1rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Historial Individual</h2>
-            <p style="font-size:0.95rem; color:#64748b; margin:0; font-weight:600;">Tendencia de puntos por tirador.</p>
+            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Historial Individual</h2>
+            <p style="font-size:1rem; color:#64748b; margin:0; font-weight:600;">Tendencia de puntos por tirador.</p>
           </div>
-          <select id="analytics-shooter" style="padding:6px 12px; border:1px solid #334155; border-radius:4px; font-size:0.9rem; font-weight:600; color:#f8fafc; background:#1e293b; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; max-width:180px;">
-            <option value="Todos">-- SELECCIONAR --</option>
+          <select id="analytics-shooter" style="padding:8px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#1e293b; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:250px;">
+            <option value="Todos">-- SELECCIONAR TIRADOR --</option>
           </select>
         </div>
-        <div style="position:relative; height:230px; width:100%;">
+        <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-shooter-history"></canvas>
         </div>
       </div>
