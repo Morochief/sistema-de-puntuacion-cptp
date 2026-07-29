@@ -28,8 +28,8 @@ function renderScoreCell(colShotNum: number, cellValue: number, hitShotNum: numb
 
 function getCFPrintStyles(): string {
   return `
-     @page { size: A4 landscape; margin: 8mm 10mm; }
-   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+     @page { size: A4 landscape; margin-top: 18mm; margin-bottom: 5mm; margin-left: 5mm; margin-right: 5mm; }
+   *, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; }
 
    body {
     font-family: Arial, Helvetica, sans-serif;
@@ -50,19 +50,21 @@ function getCFPrintStyles(): string {
     gap: 0;
    }
 
-   @media print {
-    body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @media print {
+    body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
     .a4-landscape-page {
-      margin: 0;
-      padding: 6px 10px;
-      box-shadow: none;
-      width: 277mm;
-      height: 175mm;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      overflow: hidden;
-      page-break-inside: avoid;
-      break-inside: avoid;
+      display: flex !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      overflow: hidden !important;
+      page-break-after: always !important;
+      break-after: page !important;
     }
     .no-print { display: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -78,16 +80,18 @@ function getCFPrintStyles(): string {
 
    /* Una sola columna a ancho completo */
    .series-column {
-    width: 100%;
-    flex: none;
-    border: 1.5px solid #000;
-    border-radius: 6px;
-    padding: 4px 10px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    background: #fff;
-    overflow: hidden;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    border: 1.5px solid #000 !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
    }
 
    .header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
