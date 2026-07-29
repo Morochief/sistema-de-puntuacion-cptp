@@ -75,15 +75,17 @@ function getLRPrintStyles(): string {
     background: #fff;
     padding: 8px 14px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    align-items: flex-start;
+    align-items: start;
    }
 
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin: 0;
       padding: 4mm;
@@ -96,8 +98,7 @@ function getLRPrintStyles(): string {
       page-break-after: always;
     }
     .series-column {
-      flex: 1;
-      width: 48%;
+      width: 100%;
       border: 1.5px solid #000;
       border-radius: 6px;
       padding: 2px 5px;
@@ -117,7 +118,7 @@ function getLRPrintStyles(): string {
 
    /* Columnas lado a lado para .22 LR */
    .series-column {
-    width: 50%;
+    width: 100%;
     border: 1.5px solid #000;
     border-radius: 6px;
     padding: 3px 6px;
