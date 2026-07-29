@@ -99,7 +99,10 @@ src/
     ├── masterCompetitors.ts       # Padron Maestro CRUD + migracion + dedup
     ├── tiebreaker.ts              # Desempates manuales
     ├── backup.ts                  # Export/Import JSON
-    ├── print.ts                   # Planillas .22 LR A4 (2 series lado a lado)
+    ├── print.ts                   # Barrel de re-export (compatibilidad)
+    ├── printModal.ts              # Modal iframe para impresion
+    ├── printScoreSheet.ts         # Planillas .22 LR A4 landscape (2 series)
+    ├── printRankingCard.ts        # Tarjeta de posiciones A4 vertical
     ├── printCF.ts                 # Planillas CF A4 (1 serie, columna bonus)
     ├── printChampionship.ts       # Impresion + CSV del campeonato
     ├── excel.ts                   # Export CSV con BOM UTF-8
