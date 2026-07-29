@@ -95,7 +95,9 @@ src/
     ├── modalityConfig.ts          # Config central por modalidad
     ├── championship.ts            # Campeonato General Anual (Base Firme + Total Actual)
     ├── eventsManager.ts           # CRUD eventos + filtros + paginacion
-    ├── heatsManager.ts            # Sorteo tandas + reglas Dominguez + rifle compartido
+    ├── heatsManager.ts            # Barrel de re-export (compatibilidad)
+    ├── heatsRules.ts              # Reglas Dominguez + rifle compartido
+    ├── heatsReorder.ts            # Modal reorden manual + reset sorteo
     ├── masterCompetitors.ts       # Padron Maestro CRUD + migracion + dedup
     ├── tiebreaker.ts              # Desempates manuales
     ├── backup.ts                  # Export/Import JSON
