@@ -26,9 +26,21 @@ description: >
 
 ---
 
-## REGLA OBLIGATORIA: Documentacion
+## REGLA OBLIGATORIA: Documentacion + Commit + Push
 Cada vez que modifiques codigo (feature, bugfix, refactor, schema, dependencias, comportamiento),
-DEBES actualizar **TAMBIEN ESTA SKILL** y los documentos en `docs/`:
+DEBES seguir este ciclo COMPLETO sin saltarte ningun paso:
+
+### Paso 1: Codigo
+- Hacer el cambio necesario
+
+### Paso 2: Build
+```bash
+cd "G:\.22 LR\cptp-scoring"
+npm run build
+```
+
+### Paso 3: Documentacion
+Actualizar **TODOS** los archivos que apliquen:
 
 | Archivo | Cuando actualizar |
 |---|---|
@@ -37,7 +49,15 @@ DEBES actualizar **TAMBIEN ESTA SKILL** y los documentos en `docs/`:
 | `docs/TECHNICAL.md` | Comportamiento de modulos, reglas de scoring, schema DB, deps, build |
 | `docs/MASTER-REFERENCE.md` | Reglas de negocio, modalidades nuevas, features significativas |
 
-Sin excepcion. Siempre buildear despues: `npm run build`
+### Paso 4: Commit y Push (OBLIGATORIO)
+```bash
+cd "G:\.22 LR\cptp-scoring"
+git add <archivos modificados>
+git commit -m "tipo(scope): descripcion"
+git push
+```
+
+Sin excepcion. No dejar cambios sin commitear ni pushear.
 
 ---
 
@@ -337,7 +357,7 @@ MutationObserver en #app-root re-aplica updateUIRoles() cuando cambia el DOM.
    const isCF = modality === '.308' || modality === '.223';
    ```
 
-8. **DOCS + SKILL OBLIGATORIOS:** Cada cambio de codigo requiere actualizar esta skill (`.agents/skills/cptp-scoring/SKILL.md`) MAS `docs/ARCHITECTURE.md`, `docs/TECHNICAL.md` y `docs/MASTER-REFERENCE.md`.
+8. **CICLO COMPLETO OBLIGATORIO:** Por cada cambio de codigo: (1) codigo → (2) `npm run build` → (3) actualizar esta skill + docs/ → (4) `git add`, `git commit`, `git push`. Sin excepcion.
 
 ---
 

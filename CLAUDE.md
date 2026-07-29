@@ -10,7 +10,11 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 
 ## Documentation
 
-**CRITICAL RULE:** Every time you modify code (add a feature, fix a bug, refactor, add a module, change a data model, update dependencies, or modify any behavior), you MUST update the project skill AND the relevant documentation files. This is not optional.
+**CRITICAL RULE — Full cycle (never skip a step):**
+1. Write code
+2. `npm run build` (project root, always)
+3. Update `.agents/skills/cptp-scoring/SKILL.md` **ALWAYS** + the relevant `docs/` files
+4. `git add`, `git commit`, `git push` — never leave changes uncommitted or unpushed
 
 ### Files to keep in sync
 
