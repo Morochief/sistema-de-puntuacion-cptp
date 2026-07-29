@@ -49,6 +49,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | EventSeriesView | `views/event/EventSeriesView.ts` | Tab "Series": per-shooter series list, new series creation, clear series |
 | EventStandingsView | `views/event/EventStandingsView.ts` | Tab "Posiciones": event rankings, per-series tables, perfect score awards |
 | SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series (modality-aware) |
+| AnalyticsView     | `views/AnalyticsView.ts`             | Business Intelligence dashboard using Chart.js for social & competitive growth |
 
 ## Module Map (`src/lib/`)
 
@@ -65,6 +66,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `modalityConfig.ts` | Centralized per-modality configuration (targets, shot counts, bonus rules, heat sizing, family/shared-rifle toggles) |
 | `authManager.ts` | Supabase Auth session check + role-based UI toggling (`admin`/`staff`/`spectator`) |
 | `eventsManager.ts` | Event CRUD helpers — filtering by year/modality/text, sorting, pagination (6/page), edit modal |
+| `analyticsManager.ts`| Data layer for analytics. Fetches and transforms participant and score data for charting |
 | `heatsManager.ts` | Barrel (re-export) — modules below |
 | `heatsRules.ts` | Dominguez family seeding rules (S1 & S2), shared-rifle rotation logic |
 | `heatsReorder.ts` | Manual heat reorder modal (different UI for .22 LR vs CF), reset seeding |

@@ -702,6 +702,7 @@ cptp-scoring/
 │       ├── modalityConfig.ts (151)
 │       ├── championship.ts (175)
 │       ├── eventsManager.ts (166)
+│       ├── analyticsManager.ts (Business Intelligence & Stats)
 │       ├── heatsManager.ts (barrel)
 │       ├── heatsRules.ts
 │       ├── heatsReorder.ts
@@ -719,6 +720,7 @@ cptp-scoring/
 │       ├── modals.ts
 │       └── views/
 │           ├── DashboardView.ts
+│           ├── AnalyticsView.ts
 │           ├── NewEventView.ts
 │           ├── LoginView.ts
 │           ├── ChampionshipView.ts

@@ -22,15 +22,15 @@
 │                  Views (vanilla DOM, src/lib/views/)                  │
 │  DashboardView · NewEventView · LoginView · ChampionshipView          │
 │  EventDetailView · EventRosterView                                  │
-│  EventSeriesView · EventStandingsView                                │
+│  EventSeriesView · EventStandingsView · AnalyticsView               │
 └───────┬───────────────┬───────────────┬───────────────┬──────────────┘
         │               │               │               │
 ┌───────▼──────┐ ┌──────▼───────┐ ┌─────▼──────┐ ┌───────▼───────────┐
-│ Business      │ │ Ops modules  │ │ Print /     │ │ Auth & RBAC        │
-│ Logic:        │ │ eventsManager│ │ Export:     │ │ authManager.ts     │
-│ scoring.ts    │ │ heatsManager │ │ print.ts    │ │ (Supabase Auth)    │
-│ scoringCF.ts  │ │ championship │ │ printCF.ts  │ │ 3 roles:           │
-│ modalityConf. │ │ tiebreaker   │ │ printChamp. │ │ admin/staff/       │
+│ Logic:        │ │ Ops modules  │ │ Print /     │ │ Auth & RBAC        │
+│ scoring.ts    │ │ eventsManager│ │ Export:     │ │ authManager.ts     │
+│ scoringCF.ts  │ │ heatsManager │ │ print.ts    │ │ (Supabase Auth)    │
+│ modalityConf. │ │ championship │ │ printCF.ts  │ │ 3 roles:           │
+│ analytics.ts* │ │ tiebreaker   │ │ printChamp. │ │ admin/staff/       │
 │               │ │ masterComp.  │ │ excel.ts    │ │ spectator          │
 │               │ │ backup.ts    │ │             │ │                    │
 │               │ │ seeder.ts    │ │             │ │                    │
