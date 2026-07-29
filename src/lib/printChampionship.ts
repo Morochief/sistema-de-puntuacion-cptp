@@ -16,7 +16,8 @@ export function exportChampionshipToExcel(
     events.forEach((e, idx) => {
       headers.push(`Evento ${idx + 1} (${e.championshipDate || e.name})`);
     });
-    for (let i = events.length; i < 4; i++) {
+    const targetColumns = Math.max(4, events.length);
+    for (let i = events.length; i < targetColumns; i++) {
       headers.push(`Evento ${i + 1} (Pendiente)`);
     }
     headers.push('Base Firme (Mejores 2)');
@@ -51,7 +52,8 @@ export function exportChampionshipToExcel(
         }
       });
 
-      for (let i = events.length; i < 4; i++) {
+      const targetColumns = Math.max(4, events.length);
+      for (let i = events.length; i < targetColumns; i++) {
         line.push('-');
       }
 
@@ -86,7 +88,8 @@ export function printChampionshipPreview(
     </th>
   `).join('');
 
-  const emptyHeadersHtml = Array.from({ length: Math.max(0, 4 - events.length) }, (_, i) => `
+  const targetColumns = Math.max(4, events.length);
+  const emptyHeadersHtml = Array.from({ length: targetColumns - events.length }, (_, i) => `
     <th style="border:1px solid #000000;padding:6px;text-align:center;font-size:10px;color:#666;width:11%;">
       E${events.length + i + 1}<br>
       <span style="font-size:8px;font-weight:normal;">(Pendiente)</span>
@@ -122,7 +125,7 @@ export function printChampionshipPreview(
       return `<td style="border:1px solid #000000;padding:6px;text-align:center;font-size:11px;${style}">${displayVal}</td>`;
     }).join('');
 
-    const emptyCellsHtml = Array.from({ length: Math.max(0, 4 - events.length) }, () => `
+    const emptyCellsHtml = Array.from({ length: targetColumns - events.length }, () => `
       <td style="border:1px solid #000000;padding:6px;text-align:center;background:#f2f2f2;color:#999;">-</td>
     `).join('');
 
@@ -190,7 +193,7 @@ export function printChampionshipPreview(
       </header>
       
       <div style="font-size:9px;color:#444;margin-bottom:10px;">
-        <strong>Regla:</strong> Se toman los mejores 3 puntajes de 4 fechas. 
+        <strong>Regla:</strong> Se toman los mejores 3 puntajes (del total de fechas). 
         <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Base Firme: Mejores 2</span> 
         <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje (Se descarta si en la última fecha saca algo mejor)</span>
       </div>

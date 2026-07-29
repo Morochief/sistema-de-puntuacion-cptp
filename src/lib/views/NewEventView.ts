@@ -74,6 +74,12 @@ export async function renderNewEvent(): Promise<void> {
       }).join('')}
      </div>
     </div>
+    <div class="field-group" style="display:flex;align-items:center;gap:10px;">
+     <input type="checkbox" id="field-is-pilot" name="isPilot" style="width:18px;height:18px;cursor:pointer;" />
+     <label class="field-label" for="field-is-pilot" style="margin:0;cursor:pointer;">
+      Competencia Piloto <span style="font-weight:400;color:#475569;">(No suma para el Campeonato)</span>
+     </label>
+    </div>
     <div style="display:flex;gap:12px;padding-top:8px;">
      <button type="button" class="btn-ghost-custom" style="flex:1;" id="btn-cancel-new">Cancelar</button>
      <button type="submit" class="btn-primary-custom" style="flex:2;" id="btn-submit-new">
@@ -114,10 +120,12 @@ export async function renderNewEvent(): Promise<void> {
   const location = (document.getElementById('field-location') as HTMLInputElement).value.trim();
   const modalityRadio = document.querySelector('input[name="modality"]:checked') as HTMLInputElement | null;
   const modality = (modalityRadio?.value || '.22 LR') as Modality;
+  const isPilot = (document.getElementById('field-is-pilot') as HTMLInputElement).checked;
+  
   if (!name || !date) { showToast('Completá nombre y fecha.', 'error'); return; }
   if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Guardando…'; }
   try {
-   const eid = await db.events.add({ name, date, location, modality, championshipDate, createdAt: Date.now() });
+   const eid = await db.events.add({ name, date, location, modality, championshipDate, isPilot, createdAt: Date.now() });
    navigate(`/event/${eid}`);
   } catch (err) {
    console.error('[DB] Error creando evento:', err);
