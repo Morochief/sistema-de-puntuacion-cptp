@@ -124,7 +124,7 @@ export async function renderAnalytics(): Promise<void> {
     </div>
 
     <!-- SECCIÓN INDIVIDUAL Y RANKINGS -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 gap-8">
       
       <!-- Chart 3: Top Shooters -->
       <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b;">
