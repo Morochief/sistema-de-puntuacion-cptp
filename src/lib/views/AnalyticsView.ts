@@ -6,7 +6,8 @@ import {
   getTargetEffectivenessData,
   getScoreDistributionData,
   getRetentionData,
-  getPrecisionFactorData
+  getPrecisionFactorData,
+  getAnnualChampionshipData
 } from '../analyticsManager';
 import { db } from '../db';
 import Chart from 'chart.js/auto';
