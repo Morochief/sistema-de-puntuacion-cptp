@@ -62,11 +62,11 @@ export async function renderAnalytics(): Promise<void> {
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       
       <!-- Chart 1: Social Growth -->
-      <div class="lg:row-span-2 flex flex-col" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#0038a8;"></div>
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Asistencia Global</h2>
         <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Evolución de inscriptos activos por evento.</p>
-        <div style="position:relative; flex-grow:1; min-height:350px; width:100%;">
+        <div style="position:relative; height:350px; width:100%;">
           <canvas id="chart-social"></canvas>
         </div>
       </div>
@@ -82,7 +82,7 @@ export async function renderAnalytics(): Promise<void> {
       </div>
 
       <!-- Chart: Target Effectiveness (Embudo) -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
+      <div class="lg:col-start-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#06b6d4;"></div> <!-- Cyan -->
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Efectividad por Blanco</h2>
         <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Porcentaje de acierto por tamaño de blanco (% hits).</p>
