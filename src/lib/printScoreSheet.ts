@@ -453,7 +453,6 @@ function getSeriesColumnHtml(
      </ul>
      <div class="imp-banner">Proteccion visual y auditiva obligatoria</div>
     </div>
-    </div>
 
   </div>
   `;
