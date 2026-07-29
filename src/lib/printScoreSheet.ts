@@ -75,18 +75,18 @@ function getLRPrintStyles(): string {
     background: #fff;
     padding: 8px 14px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    align-items: start;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: flex-start;
    }
 
    @media print {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .a4-landscape-page { 
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      justify-content: space-between !important;
       margin: 0;
       padding: 4mm;
       box-shadow: none;
@@ -98,7 +98,8 @@ function getLRPrintStyles(): string {
       page-break-after: always;
     }
     .series-column {
-      width: 100%;
+      width: 49% !important;
+      flex: 0 0 49% !important;
       border: 1.5px solid #000;
       border-radius: 6px;
       padding: 2px 5px;
@@ -118,7 +119,8 @@ function getLRPrintStyles(): string {
 
    /* Columnas lado a lado para .22 LR */
    .series-column {
-    width: 100%;
+    width: 49%;
+    flex: 0 0 49%;
     border: 1.5px solid #000;
     border-radius: 6px;
     padding: 3px 6px;
