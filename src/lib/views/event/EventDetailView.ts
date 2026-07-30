@@ -175,6 +175,7 @@ export async function renderEvent(eventId: string): Promise<void> {
        <span style="font-weight:800;font-size:0.72rem;text-transform:uppercase;color:#0056b3;"> Impresion:</span>
        ${participants.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-ranking" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Resultados</button>' : ''}
        ${allSeries.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-event" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Imprimir Todo</button>' : ''}
+       ${participants.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-prefilled" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Pre-completadas</button>' : ''}
        <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Planilla Vacia</button>
      </div>
      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -409,6 +410,12 @@ export async function renderEvent(eventId: string): Promise<void> {
  const printBlank = () => { if (isCF) printCFBlankSheet(event!); else printBlankSheet(event!); };
  document.getElementById('btn-print-blank-tab')?.addEventListener('click', printBlank);
  document.getElementById('btn-print-blank-series')?.addEventListener('click', printBlank);
+ document.getElementById('btn-print-prefilled')?.addEventListener('click', () => {
+  if (participants.length > 0) {
+   if (isCF) printCFEventCards(event!, participants, []);
+   else printEventCards(event!, participants, []);
+  }
+ });
  document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => { printRankingCard(event!, participants, allSeries); });
 
  // ── Back ──
