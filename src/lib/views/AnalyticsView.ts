@@ -34,10 +34,10 @@ export async function renderAnalytics(): Promise<void> {
     <!-- HEADER TÁCTICO CPTP (Limpio / Rojo-Blanco-Azul) -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:16px; background:#ffffff; padding:20px 24px; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
       <div>
-        <h1 style="font-family:'Orbitron', sans-serif; font-size:2rem; font-weight:900; color:#0f1f3d; margin:0; line-height:1.1; letter-spacing:0.5px; text-transform:uppercase;">
-          INTEL <span style="color:#b7201c;">&</span> STATS
+        <h1 style="font-family:'Orbitron', sans-serif; font-size:2.2rem; font-weight:900; color:#0056b3; margin:0; line-height:1.1; letter-spacing:0.5px; text-transform:uppercase;">
+          ESTADÍSTICAS
         </h1>
-        <p style="color:#475569; font-size:1rem; margin:4px 0 0; font-weight:700;">Monitor de Rendimiento & Analíticas CPTP</p>
+        <p style="color:#b7201c; font-size:1.1rem; margin:4px 0 0; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Monitor de Rendimiento & Analíticas CPTP</p>
       </div>
       
       <!-- FILTROS GLOBALES -->
