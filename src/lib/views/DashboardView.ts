@@ -397,7 +397,7 @@ export const setupCloudSync = () => {
           return;
         }
 
-        const localEventsCount = await db.events.filter((e: any) => !e.is_deleted).count();
+        const localEventsCount = await db.events.filter((e: ShootingEvent) => !e.is_deleted).count();
         if (localEventsCount === 0) {
           const proceedEmpty = await showConfirm(
             '¡ATENCIÓN! Base de Datos Vacía',

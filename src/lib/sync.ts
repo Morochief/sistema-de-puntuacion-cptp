@@ -1,6 +1,7 @@
 import { db } from './db';
 import { supabase } from './supabase';
 import { showToast } from './modals';
+import type { ShootingEvent, Participant, Series, MasterCompetitor } from './types';
 
 export interface SyncResult {
   success: boolean;
@@ -30,10 +31,10 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     console.log('[Sync] Iniciando subida local -> Supabase...');
 
     // Obtener datos locales
-    const localEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
-    const localParticipants = await db.participants.filter((item: any) => !item.is_deleted).toArray();
-    const localSeries = await db.series.filter((item: any) => !item.is_deleted).toArray();
-    const localMasterCompetitors = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
+    const localEvents = await db.events.filter((item: ShootingEvent) => !item.is_deleted).toArray();
+    const localParticipants = await db.participants.filter((item: Participant) => !item.is_deleted).toArray();
+    const localSeries = await db.series.filter((item: Series) => !item.is_deleted).toArray();
+    const localMasterCompetitors = await db.masterCompetitors.filter((item: MasterCompetitor) => !item.is_deleted).toArray();
 
     let eventsSynced = 0;
     let participantsSynced = 0;

@@ -21,7 +21,7 @@ export async function getFilteredEvents(options: EventFilterOptions): Promise<{
   totalItems: number;
   totalPages: number;
 }> {
-  let allEvents = await db.events.filter((item: any) => !item.is_deleted).toArray();
+  let allEvents = await db.events.filter((item: ShootingEvent) => !item.is_deleted).toArray();
   allEvents = allEvents.filter(e => !e.is_deleted);
 
   // Normalizar modalidad si el nombre/fecha del campeonato contiene .308 o .223
