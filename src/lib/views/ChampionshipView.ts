@@ -26,7 +26,14 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     const isCFModality = selectedModality === 'Gran Calibre' || selectedModality === '.308 / .223 Gran Calibre';
     const defaultMaxScore = getMaxEventScore(selectedModality, true);
 
-    // Inicializar con el primer tirador si el mapa está vacío
+    // Sanitizar mapa de simulación para que ningún puntaje supere el máximo de la modalidad actual
+    simulatedCompetitorsMap.forEach((scoreVal, compName) => {
+      if (scoreVal > defaultMaxScore) {
+        simulatedCompetitorsMap.set(compName, defaultMaxScore);
+      }
+    });
+
+    // Inicializar con el primer tirador de la lista si el mapa está vacío
     if (simulatedCompetitorsMap.size === 0 && rankings.length > 0) {
       simulatedCompetitorsMap.set(rankings[0].competitorName, defaultMaxScore);
     }
@@ -371,12 +378,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
   const bindYearSelect = () => {
     document.getElementById('champ-year-select')?.addEventListener('change', (e) => {
       selectedYear = Number((e.target as HTMLSelectElement).value);
+      simulatedCompetitorsMap.clear();
       loadAndDraw();
     });
     document.getElementById('champ-modality-select')?.addEventListener('change', (e) => {
       selectedModality = (e.target as HTMLSelectElement).value as Modality;
-      const defaultMax = getMaxEventScore(selectedModality, true);
-      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, defaultMax));
+      simulatedCompetitorsMap.clear();
       loadAndDraw();
     });
   };
