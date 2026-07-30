@@ -18,6 +18,14 @@ export let dashYearFilter: number | '' = '';
 export let dashPage = 1;
 export const DASH_ITEMS_PER_PAGE = 6;
 
+export function resetDashboardFilters(): void {
+  dashSearchQuery = '';
+  dashSortBy = 'date_desc';
+  dashModalityFilter = '';
+  dashYearFilter = '';
+  dashPage = 1;
+}
+
 function formatDate(isoDate: string): string {
  try {
   return new Date(isoDate + 'T12:00:00').toLocaleDateString('es-AR', {

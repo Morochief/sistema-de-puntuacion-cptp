@@ -184,11 +184,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     //    Los datos locales que no existen en la nube se conservan.
     if (cloudEvents) {
       for (const e of cloudEvents) {
+        if (e.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(e.id);
-        const existing = await db.events.get(localId);
-        // Si la nube dice is_deleted pero localmente existe y no estaba borrado, conservar el estado local
-        const isDeleted = e.is_deleted ? (existing ? !!existing.is_deleted : true) : false;
-        
         await db.events.put({
           id: localId,
           name: e.name,
@@ -196,7 +193,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           location: e.location || '',
           modality: e.modality || '.22 LR',
           createdAt: new Date(e.created_at).getTime(),
-          is_deleted: isDeleted,
+          is_deleted: false,
           isPilot: !!e.is_pilot
         });
       }
@@ -204,10 +201,8 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
 
     if (cloudParticipants) {
       for (const p of cloudParticipants) {
+        if (p.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(p.id);
-        const existingP = await db.participants.get(localId);
-        const isDeletedP = p.is_deleted ? (existingP ? !!existingP.is_deleted : true) : false;
-
         const localEventId = fromDeterministicUuid(p.event_id);
         const catParts = (p.category || '').split('::');
         const rawCategory = catParts[0] || '';
@@ -233,17 +228,15 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           spotS2: p.spot_s2 || undefined,
           sector: p.sector || undefined,
           sectorS2: p.sector_s2 || undefined,
-          is_deleted: isDeletedP
+          is_deleted: false
         });
       }
     }
 
     if (cloudSeries) {
       for (const s of cloudSeries) {
+        if (s.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(s.id);
-        const existingS = await db.series.get(localId);
-        const isDeletedS = s.is_deleted ? (existingS ? !!existingS.is_deleted : true) : false;
-
         const localEventId = fromDeterministicUuid(s.event_id);
         const localParticipantId = fromDeterministicUuid(s.participant_id);
         await db.series.put({
@@ -255,7 +248,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           totalScore: s.total_score,
           bonusActive: !!s.bonus_active,
           createdAt: new Date(s.created_at).getTime(),
-          is_deleted: isDeletedS
+          is_deleted: false
         });
       }
     }

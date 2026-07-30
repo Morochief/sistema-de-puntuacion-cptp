@@ -5,7 +5,7 @@
 import { showToast } from './modals';
 import { navigate, getRoute, showView } from './router';
 import { db } from './db';
-import { renderDashboard, setupCloudSync, setupDashboardTabs } from './views/DashboardView';
+import { renderDashboard, setupCloudSync, setupDashboardTabs, resetDashboardFilters } from './views/DashboardView';
 import { renderNewEvent } from './views/NewEventView';
 import { renderEvent } from './views/event/EventDetailView';
 import { renderSeries } from './views/scoring/SeriesScoringView';
@@ -20,7 +20,10 @@ export async function router(): Promise<void> {
   showView(route.view);
   try {
     switch (route.view) {
-      case 'dashboard': await renderDashboard(); break;
+      case 'dashboard': 
+        resetDashboardFilters(); 
+        await renderDashboard(); 
+        break;
       case 'new-event': await renderNewEvent(); break;
       case 'event':   await renderEvent(route.params.id); break;
       case 'series':   await renderSeries(route.params.id); break;
@@ -88,17 +91,11 @@ window.addEventListener('load', async () => {
   }
 
 
-  // Auto-pull periódico para Espectadores (cada 30s) - usa upsert, no borra datos locales
+  // Auto-pull periódico silencioso para Espectadores (cada 30s)
   setInterval(async () => {
     if (navigator.onLine && getCurrentRole() === 'spectator') {
       try {
-        const result = await pullCloudDatabaseToLocal();
-        if (result.success) {
-          const r = getRoute();
-          if (r.view === 'dashboard' || r.view === 'event' || r.view === 'series') {
-            await router();
-          }
-        }
+        await pullCloudDatabaseToLocal();
       } catch (err) {}
     }
   }, 30000);
