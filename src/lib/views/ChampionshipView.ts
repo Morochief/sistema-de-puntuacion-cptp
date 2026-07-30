@@ -23,11 +23,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     
     const { rankings, allEvents } = await getChampionshipData(selectedYear, selectedModality);
     const mConfig = MODALITY_CONFIGS[selectedModality];
-    const maxScore = getMaxEventScore(selectedModality);
+    const isCFModality = selectedModality === 'Gran Calibre' || selectedModality === '.308 / .223 Gran Calibre';
+    const defaultMaxScore = getMaxEventScore(selectedModality, true);
 
     // Inicializar con el primer tirador si el mapa está vacío
     if (simulatedCompetitorsMap.size === 0 && rankings.length > 0) {
-      simulatedCompetitorsMap.set(rankings[0].competitorName, maxScore);
+      simulatedCompetitorsMap.set(rankings[0].competitorName, defaultMaxScore);
     }
 
     // Preparar simulación multi-tirador
@@ -103,8 +104,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       // Renderizar tarjetas individuales de cada tirador simulado
       const simulatedCardsHtml = Array.from(simulatedCompetitorsMap.entries()).map(([compName, simScore]) => {
         const simRow = processedRankings.find(r => r.competitorName === compName);
-        const origRow = rankings.find(r => r.competitorName === compName);
-        const origScore = origRow ? origRow.totalActual : 0;
         
         const projPos = simRow ? simRow.projectedRank : '-';
         const delta = simRow ? simRow.rankDelta : 0;
@@ -132,14 +131,18 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
             <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:6px 8px;border-radius:6px;">
               <span style="font-size:0.72rem;color:#475569;font-weight:700;">Prox. Fecha:</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#0056b3;">${simScore} pts</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button data-sim-step="${esc(compName)}" data-step="-5" style="padding:1px 6px;font-size:0.75rem;font-weight:800;border:1px solid #cbd5e1;background:#ffffff;border-radius:4px;cursor:pointer;" title="Restar 5 puntos">-5</button>
+                <span id="sim-score-text-${esc(compName)}" style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#0056b3;">${simScore} pts</span>
+                <button data-sim-step="${esc(compName)}" data-step="5" style="padding:1px 6px;font-size:0.75rem;font-weight:800;border:1px solid #cbd5e1;background:#ffffff;border-radius:4px;cursor:pointer;" title="Sumar 5 puntos">+5</button>
+              </div>
             </div>
 
-            <input type="range" data-sim-range="${esc(compName)}" min="0" max="${maxScore}" value="${simScore}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
+            <input type="range" data-sim-range="${esc(compName)}" min="0" max="${defaultMaxScore}" value="${simScore}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
 
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;border-top:1px dashed #e2e8f0;padding-top:6px;margin-top:2px;">
-              <span style="font-weight:700;color:#334155;">Proyección: <strong>${posTag}</strong></span>
-              <span>${deltaText}</span>
+              <span style="font-weight:700;color:#334155;">Proyección: <strong id="sim-proj-tag-${esc(compName)}">${posTag}</strong></span>
+              <span id="sim-delta-tag-${esc(compName)}">${deltaText}</span>
             </div>
           </div>
         `;
@@ -165,9 +168,18 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                 </select>
               ` : ''}
 
-              <button id="btn-sim-max-all" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto para todos los seleccionados">
-                ⚡ Todos Máximo (${maxScore} pts)
-              </button>
+              ${isCFModality ? `
+                <button id="btn-sim-cf-87" class="btn-ghost-custom" style="padding:4px 8px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular 87 pts sin bonus">
+                  ⚡ Max 87 (Sin Bonus)
+                </button>
+                <button id="btn-sim-cf-96" class="btn-ghost-custom" style="padding:4px 8px;font-size:0.72rem;font-weight:700;border-color:rgba(34,197,94,0.3);color:#16a34a;cursor:pointer;" title="Simular 96 pts con bonus">
+                  ⚡ Max 96 (Con Bonus)
+                </button>
+              ` : `
+                <button id="btn-sim-max-all" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto (134 pts)">
+                  ⚡ Todos Máximo (134 pts)
+                </button>
+              `}
 
               <button id="btn-sim-reset" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;" title="Reiniciar simulación">
                 🔄 Limpiar Todo
@@ -352,7 +364,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     container.innerHTML = html;
     bindYearSelect();
     bindSorting();
-    bindSimulatorControls(maxScore);
+    bindSimulatorControls(defaultMaxScore);
     bindActions(allEvents, processedRankings, currentSortBy);
   };
 
@@ -363,8 +375,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     });
     document.getElementById('champ-modality-select')?.addEventListener('change', (e) => {
       selectedModality = (e.target as HTMLSelectElement).value as Modality;
-      const maxScore = getMaxEventScore(selectedModality);
-      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, maxScore));
+      const defaultMax = getMaxEventScore(selectedModality, true);
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, defaultMax));
       loadAndDraw();
     });
   };
@@ -384,7 +396,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     });
   };
 
-  const bindSimulatorControls = (maxScore: number) => {
+  const bindSimulatorControls = (defaultMaxScore: number) => {
     // Botón para alternar simulador
     document.getElementById('btn-toggle-simulator')?.addEventListener('click', () => {
       isSimulatorActive = !isSimulatorActive;
@@ -397,18 +409,40 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     document.getElementById('sim-add-competitor-select')?.addEventListener('change', (e) => {
       const name = (e.target as HTMLSelectElement).value;
       if (name) {
-        simulatedCompetitorsMap.set(name, maxScore);
+        simulatedCompetitorsMap.set(name, defaultMaxScore);
         loadAndDraw();
       }
     });
 
-    // Event listeners para los sliders individuales
+    // EVENTO INPUT (mientras se arrastra): actualiza SOLO el texto del puntaje sin destruir el DOM
     container.querySelectorAll('[data-sim-range]').forEach(input => {
       input.addEventListener('input', (e) => {
         const target = e.target as HTMLInputElement;
         const name = target.getAttribute('data-sim-range');
+        const val = Number(target.value);
         if (name) {
-          simulatedCompetitorsMap.set(name, Number(target.value));
+          simulatedCompetitorsMap.set(name, val);
+          const txtEl = document.getElementById(`sim-score-text-${esc(name)}`);
+          if (txtEl) txtEl.textContent = `${val} pts`;
+        }
+      });
+
+      // EVENTO CHANGE (cuando el usuario suelta la barra): recalcula la tabla reordenada
+      input.addEventListener('change', () => {
+        loadAndDraw();
+      });
+    });
+
+    // Botones de paso (+5 / -5)
+    container.querySelectorAll('[data-sim-step]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const name = target.getAttribute('data-sim-step');
+        const step = Number(target.getAttribute('data-step') || '0');
+        if (name) {
+          const currentVal = simulatedCompetitorsMap.get(name) || 0;
+          const newVal = Math.max(0, Math.min(defaultMaxScore, currentVal + step));
+          simulatedCompetitorsMap.set(name, newVal);
           loadAndDraw();
         }
       });
@@ -425,9 +459,20 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       });
     });
 
-    // Botón simular máximo a todos
+    // Botones de Máximo para Gran Calibre
+    document.getElementById('btn-sim-cf-87')?.addEventListener('click', () => {
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, 87));
+      loadAndDraw();
+    });
+
+    document.getElementById('btn-sim-cf-96')?.addEventListener('click', () => {
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, 96));
+      loadAndDraw();
+    });
+
+    // Botón simular máximo a todos (para .22 LR)
     document.getElementById('btn-sim-max-all')?.addEventListener('click', () => {
-      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, maxScore));
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, defaultMaxScore));
       loadAndDraw();
     });
 

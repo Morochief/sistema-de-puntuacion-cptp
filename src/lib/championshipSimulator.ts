@@ -27,10 +27,12 @@ export interface PodiumRequirement {
 
 /**
  * Calcula la puntuación máxima por evento según la modalidad.
+ * - .22 LR: Max 134 pts (2 series x 67 pts)
+ * - Gran Calibre (.308 / .223): Max 87 pts (sin bonus) o 96 pts (con bonus)
  */
-export function getMaxEventScore(modality: Modality): number {
+export function getMaxEventScore(modality: Modality, withBonus: boolean = true): number {
   if (modality === 'Gran Calibre' || modality === '.308 / .223 Gran Calibre') {
-    return 150; // O 180 según la variante, pero 150/180
+    return withBonus ? 96 : 87;
   }
   return 134; // .22 LR (2 series de 67 pts)
 }
@@ -127,7 +129,7 @@ export function calculatePodiumRequirements(
   const compRow = sorted.find(r => r.competitorName === competitorName);
   if (!compRow) return [];
 
-  const maxPossibleSingleEvent = getMaxEventScore(modality);
+  const maxPossibleSingleEvent = getMaxEventScore(modality, true);
 
   // Obtener los puntajes actuales del competidor ordenados de mayor a menor
   const compScores: number[] = [];
@@ -149,7 +151,6 @@ export function calculatePodiumRequirements(
   };
 
   return targets.map(targetRank => {
-    // Si el competidor ya está en ese puesto o mejor, el líder es la posición inmediatamente superior o el propio objetivo
     const leaderIndex = targetRank - 1;
     const leaderRow = sorted[leaderIndex];
 
