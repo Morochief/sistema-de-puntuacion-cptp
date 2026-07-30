@@ -170,21 +170,34 @@ export async function renderEvent(eventId: string): Promise<void> {
   <!-- PANEL 2: SERIES -->
   <div id="tab-panel-series" class="tab-panel ${activeMainTab === 'series' ? '' : 'hidden'}">
    <div class="card-tactical staff-only" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.15);background:#ffffff;">
-    <div style="display:flex;flex-direction:column;gap:12px;">
-     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
-       <span style="font-weight:800;font-size:0.72rem;text-transform:uppercase;color:#0056b3;"> Impresion:</span>
-       ${participants.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-ranking" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Resultados</button>' : ''}
-       ${allSeries.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-event" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Imprimir Todo</button>' : ''}
-       ${participants.length > 0 ? '<button class="btn-ghost-custom" id="btn-print-prefilled" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Pre-completadas</button>' : ''}
-       <button class="btn-ghost-custom" id="btn-print-blank-series" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Planilla Vacia</button>
-     </div>
-     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-       <span style="font-weight:800;font-size:0.72rem;text-transform:uppercase;color:#0056b3;"> Torneo:</span>
-       ${participants.length > 1 ? '<button class="btn-ghost-custom" id="btn-resolve-ties" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Resolver Desempates</button>' : ''}
-       ${participants.length > 0 ? '<button class="btn-ghost-custom" id="btn-export-excel" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Exportar CSV</button>' : ''}
-       <button class="btn-ghost-custom" id="btn-export-backup" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Copia (.json)</button>
-       ${allSeries.length > 0 ? '<button class="btn-ghost-custom" id="btn-clear-all-series" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(183,32,28,0.3);color:#b7201c;border-radius:8px;margin-left:auto;">Reiniciar Todo</button>' : ''}
-     </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <!-- Menú de Impresión -->
+      <details class="dropdown">
+        <summary class="btn-ghost-custom" style="padding:8px 16px;font-size:0.8rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Opciones de Impresión
+        </summary>
+        <ul class="menu dropdown-content bg-base-100 rounded-box z-[10] w-52 p-2 shadow-lg" style="border:1px solid #e2e8f0; margin-top:6px; background:#fff;">
+          ${participants.length > 0 ? '<li><a id="btn-print-ranking" style="font-weight:600;color:#0f1f3d;">Imprimir Resultados</a></li>' : ''}
+          ${allSeries.length > 0 ? '<li><a id="btn-print-event" style="font-weight:600;color:#0f1f3d;">Imprimir Todo</a></li>' : ''}
+          ${participants.length > 0 ? '<li><a id="btn-print-prefilled" style="font-weight:600;color:#0f1f3d;">Planillas Pre-completadas</a></li>' : ''}
+          <li><a id="btn-print-blank-series" style="font-weight:600;color:#0f1f3d;">Imprimir Planilla Vacía</a></li>
+        </ul>
+      </details>
+
+      <!-- Menú de Gestión del Torneo -->
+      <details class="dropdown dropdown-end">
+        <summary class="btn-ghost-custom" style="padding:8px 16px;font-size:0.8rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Gestión del Torneo
+        </summary>
+        <ul class="menu dropdown-content bg-base-100 rounded-box z-[10] w-52 p-2 shadow-lg" style="border:1px solid #e2e8f0; margin-top:6px; background:#fff;">
+          ${participants.length > 1 ? '<li><a id="btn-resolve-ties" style="font-weight:600;color:#0f1f3d;">Resolver Desempates</a></li>' : ''}
+          ${participants.length > 0 ? '<li><a id="btn-export-excel" style="font-weight:600;color:#0f1f3d;">Exportar a CSV</a></li>' : ''}
+          <li><a id="btn-export-backup" style="font-weight:600;color:#0f1f3d;">Copia Local (.json)</a></li>
+          ${allSeries.length > 0 ? '<li><a id="btn-clear-all-series" style="font-weight:800;color:#b7201c;margin-top:8px;">⚠️ Reiniciar Todo</a></li>' : ''}
+        </ul>
+      </details>
     </div>
    </div>
    <div id="lista-series-por-tirador" style="display:flex;flex-direction:column;gap:16px;"></div>
