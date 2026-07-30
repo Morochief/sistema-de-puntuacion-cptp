@@ -247,7 +247,7 @@ export async function renderEvent(eventId: string): Promise<void> {
       const btn = document.getElementById('tab-btn-tiradores');
       if (btn) btn.textContent = 'Sorteo (' + count + '/32)';
     }
-  });
+  }, isCF);
  }
 
  function renderSeriesSubView(): void {

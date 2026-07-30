@@ -22,7 +22,8 @@ export function renderListaInscritos(
     onRefresh: () => Promise<void>;
     onRefreshData: () => Promise<{ participants: Participant[]; allSeries: Series[] }>;
     updateTabCounter: (count: number) => void;
-  }
+  },
+  isCF: boolean = false
 ): void {
   const listEl = document.getElementById(containerId);
   if (!listEl) return;
