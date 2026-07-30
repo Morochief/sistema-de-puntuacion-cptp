@@ -44,6 +44,9 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           isSimulated: false
         }));
 
+    // Obtener la fila proyectada del tirador seleccionado actualmente
+    const activeSimRow = processedRankings.find(r => r.competitorName === selectedCompetitorName);
+
     // Requerimientos de Podio para el tirador seleccionado
     const podiumRequirements = selectedCompetitorName
       ? calculatePodiumRequirements(selectedCompetitorName, rankings, selectedModality, currentSortBy)
@@ -98,6 +101,9 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         const neededScore = currentSortBy === 'baseFirme' ? req.neededPointsBase : req.neededPointsTotal;
         const isPossible = currentSortBy === 'baseFirme' ? req.isAchievableBase : req.isAchievableTotal;
 
+        // Comprobar si la simulación actual ya alcanza o supera la meta
+        const isReachedBySim = neededScore !== null && simulatedScoreValue >= neededScore;
+
         let badgeBg = '#f1f5f9';
         let badgeColor = '#475569';
         let mainText = `${neededScore} pts`;
@@ -110,17 +116,21 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           badgeBg = '#fee2e2';
           badgeColor = '#b91c1c';
           mainText = 'Inalcanzable';
+        } else if (isReachedBySim) {
+          badgeBg = '#dcfce7';
+          badgeColor = '#15803d';
+          mainText = `✓ (${neededScore} pts)`;
         } else {
           badgeBg = '#eff6ff';
           badgeColor = '#1d4ed8';
         }
 
         return `
-          <div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div style="background:#ffffff;border:1px solid ${isReachedBySim ? '#86efac' : '#cbd5e1'};border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
             <div style="font-size:0.75rem;font-weight:800;color:#0f172a;text-transform:uppercase;">${req.targetLabel}</div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <span style="font-size:0.7rem;color:#64748b;font-weight:600;">Necesario prox. fecha:</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:900;background:${badgeBg};color:${badgeColor};padding:3px 8px;border-radius:6px;">
+              <span style="font-size:0.7rem;color:#64748b;font-weight:600;">Meta fija próxima fecha:</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:900;background:${badgeBg};color:${badgeColor};padding:3px 8px;border-radius:6px;">
                 ${mainText}
               </span>
             </div>
@@ -130,6 +140,26 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           </div>
         `;
       }).join('');
+
+      // Mensaje de feedback en tiempo real según el valor del slider
+      let liveFeedbackText = '';
+      if (activeSimRow) {
+        const projPos = activeSimRow.projectedRank;
+        const origPos = activeSimRow.originalRank;
+        const delta = activeSimRow.rankDelta;
+        
+        let posTag = `${projPos}° Lugar`;
+        if (projPos === 1) posTag = `1° Lugar 🏆 (¡CAMPEÓN!)`;
+        else if (projPos === 2) posTag = `2° Lugar 🥈 (SUBCAMPEÓN)`;
+        else if (projPos === 3) posTag = `3° Lugar 🥉 (PODIO)`;
+
+        let deltaText = '';
+        if (delta > 0) deltaText = ` <span style="color:#15803d;font-weight:800;">(▲ Subió +${delta} puestos)</span>`;
+        else if (delta < 0) deltaText = ` <span style="color:#b91c1c;font-weight:800;">(▼ Bajó ${Math.abs(delta)} puestos)</span>`;
+        else deltaText = ` <span style="color:#64748b;">(Mantiene puesto)</span>`;
+
+        liveFeedbackText = `Con <strong>${simulatedScoreValue} pts</strong> ➔ Proyección: <strong>${posTag}</strong>${deltaText}`;
+      }
 
       html += `
         <div style="background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);border:2px dashed #0056b3;border-radius:14px;padding:18px;margin-bottom:20px;animation: fadeIn 0.3s ease;">
@@ -166,6 +196,11 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                   <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:#0056b3;">${simulatedScoreValue} pts</span>
                 </div>
                 <input type="range" id="sim-score-range" min="0" max="${maxScore}" value="${simulatedScoreValue}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
+                
+                <!-- Cartel de Resultado Dinámico -->
+                <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px 10px;font-size:0.78rem;color:#0369a1;margin-top:6px;text-align:center;">
+                  ${liveFeedbackText}
+                </div>
               </div>
             </div>
 
@@ -211,7 +246,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     const tableRowsHtml = processedRankings.map((row) => {
       const pos = row.projectedRank;
-      const origPos = row.originalRank;
       const isTop6 = pos <= 6;
       
       let posHtml = '';
