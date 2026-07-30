@@ -729,15 +729,15 @@ body {
     font-size: 0.58rem !important;
   }
   .logo-right {
-    height: 46px !important;
+    height: 52px !important;
     width: auto !important;
   }
   .logo-left {
-    height: 46px !important;
+    height: 52px !important;
     width: auto !important;
   }
   .app-navbar-container {
-    height: 64px !important;
+    height: 68px !important;
     gap: 4px !important;
     padding: 0 8px !important;
   }
