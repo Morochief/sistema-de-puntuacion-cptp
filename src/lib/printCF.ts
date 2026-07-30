@@ -54,17 +54,15 @@ function getCFPrintStyles(): string {
     body { background: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
     .a4-landscape-page {
       display: flex !important;
-      align-items: flex-start !important;
+      justify-content: center !important;
+      align-items: center !important;
       margin: 0 auto !important;
       padding: 0 !important;
       box-shadow: none !important;
       width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
+      height: 98vh !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-      overflow: hidden !important;
-      page-break-after: always !important;
       break-after: page !important;
     }
     .no-print { display: none !important; }

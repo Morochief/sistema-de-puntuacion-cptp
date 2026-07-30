@@ -87,18 +87,13 @@ function getLRPrintStyles(): string {
       display: flex !important;
       flex-direction: row !important;
       flex-wrap: nowrap !important;
-      justify-content: space-between !important;
-      align-items: flex-start !important;
+      justify-content: center !important;
+      align-items: center !important;
       margin: 0 auto !important;
       padding: 0 !important;
-      box-shadow: none !important;
+      height: 98vh !important;
+      box-shadow: none;
       width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
-      overflow: hidden !important;
-      -webkit-print-color-adjust: exact !important; 
-      print-color-adjust: exact !important; 
-      page-break-after: always !important;
       break-after: page !important;
     }
     .series-column {
