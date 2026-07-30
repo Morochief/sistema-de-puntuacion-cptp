@@ -22,35 +22,35 @@ export async function renderAnalytics(): Promise<void> {
   let currentDistEvent = -1; // -1 significa "Ultima Fecha" o sin seleccionar
   
   const layout = `
-  <div class="w-full max-w-[1600px] mx-auto p-4 animate-fade-in" style="font-family: 'Rajdhani', sans-serif; background-color:#020617; min-height:100vh; padding:24px; border-radius:12px; border: 1px solid #1e293b;">
+  <div class="w-full max-w-[1200px] mx-auto p-4 animate-fade-in" style="font-family: 'Rajdhani', sans-serif; background-color:#f8fafc; min-height:100vh; padding:24px 16px;">
     
     <div style="margin-bottom:20px;">
-      <button class="btn-ghost-custom" id="btn-back-analytics" aria-label="Volver al inicio" style="color:#94a3b8; display:flex; align-items:center; gap:6px; font-weight:600; text-transform:uppercase; letter-spacing:1px; background:transparent; border:1px solid #334155; padding:6px 12px; border-radius:4px; transition:all 0.2s;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <button class="btn-ghost-custom" id="btn-back-analytics" aria-label="Volver al inicio" style="color:#0f1f3d; display:inline-flex; align-items:center; gap:6px; font-weight:700; text-transform:uppercase; letter-spacing:1px; background:#ffffff; border:1px solid #cbd5e1; padding:8px 16px; border-radius:6px; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.05); cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         INICIO
       </button>
     </div>
 
-    <!-- HEADER TÁCTICO -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px; border-bottom:1px solid #334155; padding-bottom:16px;">
+    <!-- HEADER TÁCTICO CPTP (Limpio / Rojo-Blanco-Azul) -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;flex-wrap:wrap;gap:16px; background:#ffffff; padding:20px 24px; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
       <div>
-        <h1 style="font-family:'Orbitron', sans-serif; font-size:2.2rem; font-weight:800; color:#f8fafc; margin:0; line-height:1.1; letter-spacing:1px; text-transform:uppercase;">
-          INTEL <span style="color:#d52b1e;">&</span> STATS
+        <h1 style="font-family:'Orbitron', sans-serif; font-size:2rem; font-weight:900; color:#0f1f3d; margin:0; line-height:1.1; letter-spacing:0.5px; text-transform:uppercase;">
+          INTEL <span style="color:#b7201c;">&</span> STATS
         </h1>
-        <p style="color:#64748b; font-size:1.1rem; margin:4px 0 0; font-weight:600;">Monitor de rendimiento CPTP</p>
+        <p style="color:#475569; font-size:1rem; margin:4px 0 0; font-weight:700;">Monitor de Rendimiento & Analíticas CPTP</p>
       </div>
       
       <!-- FILTROS GLOBALES -->
       <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <select id="analytics-year" style="padding:10px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#0f172a; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; text-transform:uppercase;">
+        <select id="analytics-year" style="padding:10px 16px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.95rem; font-weight:700; color:#0f1f3d; background:#ffffff; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; text-transform:uppercase; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
           <option value="Todos">AÑO: TODOS</option>
           <option value="2026">2026</option>
           <option value="2025">2025</option>
           <option value="2024">2024</option>
         </select>
         
-        <select id="analytics-modality" style="padding:10px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#0f172a; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; text-transform:uppercase;">
-          <option value="Todas">MOD: TODAS</option>
+        <select id="analytics-modality" style="padding:10px 16px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.95rem; font-weight:700; color:#0f1f3d; background:#ffffff; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; text-transform:uppercase; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+          <option value="Todas">MODALIDAD: TODAS</option>
           <option value=".22 LR">.22 LR</option>
           <option value=".308">F.CENTRAL .308</option>
           <option value=".223">F.CENTRAL .223</option>
@@ -58,119 +58,109 @@ export async function renderAnalytics(): Promise<void> {
       </div>
     </div>
     
-    <!-- GRID DE GRÁFICOS (MODO TÁCTICO) -->
-    
-    <!-- SECCIÓN: CRECIMIENTO GLOBAL Y RETENCIÓN -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- COLUMNA ÚNICA DE GRÁFICOS (UN GRÁFICO DEBAJO DE OTRO) -->
+    <div style="display:flex; flex-direction:column; gap:32px;">
       
-      <!-- Chart 1: Social Growth -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#0038a8;"></div>
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Asistencia Global</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Evolución de inscriptos activos por evento.</p>
-        <div style="position:relative; height:350px; width:100%;">
+      <!-- Chart 1: Asistencia Global -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0056b3;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Asistencia Global por Evento</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Evolución de inscriptos activos por fecha.</p>
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-social"></canvas>
         </div>
       </div>
 
-      <!-- Chart: Retention -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#64748b;"></div>
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Lealtad del Tirador</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Distribución de participación anual (Eventos asistidos).</p>
-        <div style="position:relative; height:350px; width:100%;">
+      <!-- Chart 2: Lealtad del Tirador -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#b7201c;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Lealtad del Tirador</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Distribución de participación en competencias durante el año.</p>
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-retention"></canvas>
         </div>
       </div>
 
-      <!-- Chart: Factor X -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#10b981;"></div> <!-- Emerald -->
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Precisión (Factor X)</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de blancos acertados a 5" (.22 LR) y blancos pequeños en Gran Calibre.</p>
-        <div style="position:relative; height:350px; width:100%;">
+      <!-- Chart 3: Precisión (Factor X) -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0056b3;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Precisión Absoluta (Factor X)</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Suma total de blancos acertados a 5" (.22 LR) y blancos pequeños en Gran Calibre.</p>
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-factor-x"></canvas>
         </div>
       </div>
 
-      <!-- Chart: Target Effectiveness (Embudo) -->
-      <div class="lg:col-start-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#06b6d4;"></div> <!-- Cyan -->
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Efectividad por Blanco</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Porcentaje de acierto por tamaño de blanco (% hits).</p>
-        <div style="position:relative; height:350px; width:100%;">
+      <!-- Chart 4: Efectividad por Blanco -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0f1f3d;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Efectividad por Blanco</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Porcentaje global de aciertos según el tamaño de cada blanco.</p>
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-effectiveness"></canvas>
         </div>
       </div>
-    </div>
 
-    <!-- SECCIÓN: RENDIMIENTO DEL CAMPO Y EFECTIVIDAD -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      
-      <!-- Chart 2: Competitive Growth (Ocupa ambas columnas en Desktop) -->
-      <div class="lg:col-span-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#d52b1e;"></div>
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Curva Competitiva</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Puntaje promedio vs Score Top a través del tiempo.</p>
-        <div style="position:relative; height:350px; width:100%;">
+      <!-- Chart 5: Curva Competitiva -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#b7201c;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Curva Competitiva (Score Top vs Promedio)</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Comparativo del puntaje máximo vs puntaje medio en el tiempo.</p>
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-competitive"></canvas>
         </div>
       </div>
 
-      <!-- Chart: Score Distribution (Campana Gauss) -->
-      <div class="lg:col-span-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#f59e0b;"></div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+      <!-- Chart 6: Distribución de Puntajes (Campana Gauss) -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0056b3;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
           <div>
-            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Distribución de Puntajes</h2>
-            <p style="font-size:1rem; color:#64748b; margin:0; font-weight:600;">Frecuencia de puntajes de serie (Campana de rendimiento).</p>
+            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Distribución de Puntajes por Evento</h2>
+            <p style="font-size:0.95rem; color:#64748b; margin:0; font-weight:600;">Frecuencia de puntuaciones conseguidas en cada serie.</p>
           </div>
-          <select id="analytics-dist-event" style="padding:8px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#1e293b; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:200px;">
+          <select id="analytics-dist-event" style="padding:8px 16px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.95rem; font-weight:700; color:#0f1f3d; background:#ffffff; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:220px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
             <!-- Se poblará dinámicamente -->
           </select>
         </div>
-        <div style="position:relative; height:350px; width:100%;">
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-distribution"></canvas>
         </div>
       </div>
-    </div>
 
-    <!-- SECCIÓN INDIVIDUAL Y RANKINGS -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      
-      <!-- Chart: Campeonato Anual -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#eab308;"></div> <!-- Yellow/Gold -->
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Ranking Campeonato Anual</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Suma total de puntos en el año (Top 10).</p>
-        <div style="position:relative; height:400px; width:100%;">
+      <!-- Chart 7: Ranking Campeonato Anual -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#b7201c;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Ranking Campeonato Anual (Top 10)</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Suma de puntos acumulados en la temporada.</p>
+        <div style="position:relative; height:420px; width:100%;">
           <canvas id="chart-championship"></canvas>
         </div>
       </div>
 
-      <!-- Chart 3: Top Shooters -->
-      <div style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#d52b1e;"></div>
-        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Top 5 Promedios</h2>
-        <p style="font-size:1rem; color:#64748b; margin-bottom:24px; font-weight:600;">Mejores promedios históricos de la liga (Mínimo 2 series).</p>
-        <div style="position:relative; height:400px; width:100%;">
+      <!-- Chart 8: Top 5 Promedios -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0056b3;"></div>
+        <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Top 5 Mejores Promedios</h2>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Promedios por serie más altos registrados en el sistema.</p>
+        <div style="position:relative; height:420px; width:100%;">
           <canvas id="chart-top-shooters"></canvas>
         </div>
       </div>
 
-      <!-- Chart 4: Shooter Individual -->
-      <div class="lg:col-span-2" style="background:#0f172a; border-radius:8px; padding:24px; border:1px solid #1e293b; position:relative; overflow:hidden;">
-        <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#38bdf8;"></div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+      <!-- Chart 9: Historial Individual por Tirador -->
+      <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#0f1f3d;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
           <div>
-            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.3rem; font-weight:700; color:#e2e8f0; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Historial Individual</h2>
-            <p style="font-size:1rem; color:#64748b; margin:0; font-weight:600;">Tendencia de puntos por tirador.</p>
+            <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Historial Individual del Tirador</h2>
+            <p style="font-size:0.95rem; color:#64748b; margin:0; font-weight:600;">Evolución de rendimiento fecha por fecha.</p>
           </div>
-          <select id="analytics-shooter" style="padding:8px 16px; border:1px solid #334155; border-radius:4px; font-size:1rem; font-weight:600; color:#f8fafc; background:#1e293b; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:250px;">
+          <select id="analytics-shooter" style="padding:8px 16px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:0.95rem; font-weight:700; color:#0f1f3d; background:#ffffff; cursor:pointer; outline:none; font-family:'Rajdhani', sans-serif; min-width:250px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
             <option value="Todos">-- SELECCIONAR TIRADOR --</option>
           </select>
         </div>
-        <div style="position:relative; height:350px; width:100%;">
+        <div style="position:relative; height:380px; width:100%;">
           <canvas id="chart-shooter-history"></canvas>
         </div>
       </div>
@@ -203,9 +193,9 @@ export async function renderAnalytics(): Promise<void> {
   let xChart: Chart | null = null;
   let champChart: Chart | null = null;
   
-  // Estilo global táctico para tooltips y fuentes
+  // Estilo global claro CPTP para fuentes y textos
   Chart.defaults.font.family = "'Rajdhani', sans-serif";
-  Chart.defaults.color = '#94a3b8';
+  Chart.defaults.color = '#334155';
   
   async function drawCharts() {
     const socialData = await getSocialGrowthData(currentModality, currentYear);
@@ -222,7 +212,7 @@ export async function renderAnalytics(): Promise<void> {
     let filteredEvents = eventsList.filter(e => !e.is_deleted);
     if (currentModality !== 'Todas') filteredEvents = filteredEvents.filter(e => (e.modality || '.22 LR') === currentModality);
     if (currentYear !== 'Todos') filteredEvents = filteredEvents.filter(e => e.date.startsWith(currentYear));
-    filteredEvents.sort((a, b) => b.date.localeCompare(a.date)); // descending
+    filteredEvents.sort((a, b) => b.date.localeCompare(a.date));
     
     if (distEventSelect.options.length === 0 || (currentDistEvent === -1 && filteredEvents.length > 0)) {
       distEventSelect.innerHTML = '';
@@ -247,7 +237,6 @@ export async function renderAnalytics(): Promise<void> {
       distributionData = await getScoreDistributionData(currentDistEvent, currentModality);
     }
     
-    // Si no hay tirador seleccionado, limpiar chart 4
     let historyData = { labels: [], data1: [] };
     if (currentShooter !== 'Todos') {
       historyData = await getShooterHistoryData(currentShooter, currentModality, currentYear);
@@ -273,7 +262,9 @@ export async function renderAnalytics(): Promise<void> {
     if (xChart) xChart.destroy();
     if (champChart) champChart.destroy();
     
-    // CHART 1: Social
+    const lightGridColor = '#f1f5f9';
+    
+    // CHART 1: Social Growth (Azul CPTP)
     socialChart = new Chart(ctxSocial, {
       type: 'bar',
       data: {
@@ -281,26 +272,26 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           label: 'Tiradores',
           data: socialData.data1,
-          backgroundColor: 'rgba(0, 56, 168, 0.7)', // Azul Paraguay
-          borderColor: '#0038a8',
-          borderWidth: 1,
-          borderRadius: 4
+          backgroundColor: 'rgba(0, 86, 179, 0.85)',
+          borderColor: '#0056b3',
+          borderWidth: 1.5,
+          borderRadius: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { size: 14 }, bodyFont: { size: 16, weight: 'bold' } }
+          tooltip: { backgroundColor: '#0f1f3d', titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' } }
         },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#1e293b' } },
+          y: { beginAtZero: true, grid: { color: lightGridColor } },
           x: { grid: { display: false } }
         }
       }
     });
 
-    // CHART: Retention
+    // CHART 2: Retention (Gris, Azul, Rojo CPTP)
     retChart = new Chart(ctxRet, {
       type: 'doughnut',
       data: {
@@ -308,26 +299,85 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           data: retentionData.data1,
           backgroundColor: [
-            'rgba(148, 163, 184, 0.7)', // Gris (Turistas)
-            'rgba(0, 56, 168, 0.7)', // Azul (Regulares)
-            'rgba(213, 43, 30, 0.7)' // Rojo (Fieles)
+            'rgba(148, 163, 184, 0.85)', // Gris (Turistas)
+            'rgba(0, 86, 179, 0.85)',   // Azul (Regulares)
+            'rgba(183, 32, 28, 0.85)'    // Rojo CPTP (Fieles)
           ],
-          borderColor: '#0f172a',
-          borderWidth: 2,
-          hoverOffset: 4
+          borderColor: '#ffffff',
+          borderWidth: 3,
+          hoverOffset: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'right', labels: { color: '#e2e8f0', font: { size: 14 } } },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { size: 14 }, bodyFont: { size: 16, weight: 'bold' } }
+          legend: { position: 'right', labels: { color: '#0f1f3d', font: { size: 14, weight: 'bold' } } },
+          tooltip: { backgroundColor: '#0f1f3d', titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' } }
         },
         cutout: '60%'
       }
     });
     
-    // CHART 2: Competitive
+    // CHART 3: Factor X (Azul CPTP)
+    xChart = new Chart(ctxX, {
+      type: 'bar',
+      data: {
+        labels: xData.labels,
+        datasets: [{
+          label: 'Total Moscas (X)',
+          data: xData.data1,
+          backgroundColor: 'rgba(0, 86, 179, 0.85)',
+          borderColor: '#0056b3',
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#0f1f3d' }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: lightGridColor } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // CHART 4: Target Effectiveness (Navy CPTP)
+    effChart = new Chart(ctxEff, {
+      type: 'bar',
+      data: {
+        labels: effectivenessData.labels,
+        datasets: [{
+          label: '% Aciertos',
+          data: effectivenessData.data1,
+          backgroundColor: 'rgba(15, 31, 61, 0.85)',
+          borderColor: '#0f1f3d',
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { 
+            backgroundColor: '#0f1f3d', 
+            callbacks: {
+              label: function(context) { return context.parsed.y + '%'; }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: lightGridColor } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // CHART 5: Competitive (Rojo & Azul CPTP)
     compChart = new Chart(ctxComp, {
       type: 'line',
       data: {
@@ -336,34 +386,34 @@ export async function renderAnalytics(): Promise<void> {
           {
             label: 'Score Top',
             data: compData.data2!,
-            borderColor: '#10b981', // Emerald
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderWidth: 2, tension: 0.2, fill: true,
-            pointBackgroundColor: '#0f172a', pointBorderColor: '#10b981'
+            borderColor: '#b7201c', // Rojo CPTP
+            backgroundColor: 'rgba(183, 32, 28, 0.08)',
+            borderWidth: 3, tension: 0.2, fill: true,
+            pointBackgroundColor: '#ffffff', pointBorderColor: '#b7201c', pointRadius: 5
           },
           {
-            label: 'Promedio',
+            label: 'Promedio Global',
             data: compData.data1,
-            borderColor: '#f59e0b', // Amber
+            borderColor: '#0056b3', // Azul CPTP
             borderWidth: 2, borderDash: [4, 4], tension: 0.2,
-            pointBackgroundColor: '#0f172a', pointBorderColor: '#f59e0b'
+            pointBackgroundColor: '#ffffff', pointBorderColor: '#0056b3', pointRadius: 4
           }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { labels: { color: '#e2e8f0' } },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { size: 14 }, bodyFont: { size: 14, weight: 'bold' } }
+          legend: { labels: { color: '#0f1f3d', font: { weight: 'bold' } } },
+          tooltip: { backgroundColor: '#0f1f3d', titleFont: { size: 14 }, bodyFont: { size: 14, weight: 'bold' } }
         },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#1e293b' } },
+          y: { beginAtZero: true, grid: { color: lightGridColor } },
           x: { grid: { display: false } }
         }
       }
     });
 
-    // CHART: Score Distribution
+    // CHART 6: Score Distribution (Rojo CPTP)
     distChart = new Chart(ctxDist, {
       type: 'bar',
       data: {
@@ -371,85 +421,26 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           label: 'Series Completadas',
           data: distributionData.data1,
-          backgroundColor: 'rgba(245, 158, 11, 0.6)', // Amber
-          borderColor: '#f59e0b',
-          borderWidth: 1,
-          borderRadius: 4
+          backgroundColor: 'rgba(183, 32, 28, 0.85)',
+          borderColor: '#b7201c',
+          borderWidth: 1.5,
+          borderRadius: 6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: '#1e293b', titleFont: { size: 14 }, bodyFont: { size: 16, weight: 'bold' } }
+          tooltip: { backgroundColor: '#0f1f3d', titleFont: { size: 14 }, bodyFont: { size: 15, weight: 'bold' } }
         },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#1e293b' } },
+          y: { beginAtZero: true, grid: { color: lightGridColor } },
           x: { grid: { display: false } }
         }
       }
     });
 
-    // CHART: Target Effectiveness
-    effChart = new Chart(ctxEff, {
-      type: 'bar',
-      data: {
-        labels: effectivenessData.labels,
-        datasets: [{
-          label: '% Aciertos',
-          data: effectivenessData.data1,
-          backgroundColor: 'rgba(6, 182, 212, 0.6)', // Cyan
-          borderColor: '#06b6d4',
-          borderWidth: 1,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { 
-            backgroundColor: '#1e293b', 
-            callbacks: {
-              label: function(context) { return context.parsed.y + '%'; }
-            }
-          }
-        },
-        scales: {
-          y: { beginAtZero: true, max: 100, grid: { color: '#1e293b' } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-    
-    // CHART X: Factor X
-    xChart = new Chart(ctxX, {
-      type: 'bar',
-      data: {
-        labels: xData.labels,
-        datasets: [{
-          label: 'Total Moscas (X)',
-          data: xData.data1,
-          backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
-          borderColor: '#10b981',
-          borderWidth: 1,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { backgroundColor: '#1e293b' }
-        },
-        scales: {
-          y: { beginAtZero: true, grid: { color: '#1e293b' } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-
-    // CHART CHAMPIONSHIP: Ranking Anual
+    // CHART 7: Championship Ranking (Azul CPTP)
     champChart = new Chart(ctxChamp, {
       type: 'bar',
       data: {
@@ -457,24 +448,24 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           label: 'Total Acumulado',
           data: champData.data1,
-          backgroundColor: 'rgba(234, 179, 8, 0.7)', // Yellow
-          borderColor: '#eab308',
-          borderWidth: 1,
-          borderRadius: 4
+          backgroundColor: 'rgba(0, 86, 179, 0.85)',
+          borderColor: '#0056b3',
+          borderWidth: 1.5,
+          borderRadius: 6
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1f3d' } },
         scales: {
-          x: { beginAtZero: true, grid: { color: '#1e293b' } },
+          x: { beginAtZero: true, grid: { color: lightGridColor } },
           y: { grid: { display: false } }
         }
       }
     });
 
-    // CHART 3: Top Shooters
+    // CHART 8: Top 5 Shooters (Rojo CPTP)
     topChart = new Chart(ctxTop, {
       type: 'bar',
       data: {
@@ -482,24 +473,24 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           label: 'Promedio Histórico',
           data: topData.data1,
-          backgroundColor: 'rgba(213, 43, 30, 0.7)', // Rojo Paraguay
-          borderColor: '#d52b1e',
-          borderWidth: 1,
-          borderRadius: 4
+          backgroundColor: 'rgba(183, 32, 28, 0.85)',
+          borderColor: '#b7201c',
+          borderWidth: 1.5,
+          borderRadius: 6
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1f3d' } },
         scales: {
-          x: { beginAtZero: true, grid: { color: '#1e293b' } },
+          x: { beginAtZero: true, grid: { color: lightGridColor } },
           y: { grid: { display: false } }
         }
       }
     });
 
-    // CHART 4: History
+    // CHART 9: History Individual (Azul CPTP)
     historyChart = new Chart(ctxHistory, {
       type: 'line',
       data: {
@@ -507,17 +498,17 @@ export async function renderAnalytics(): Promise<void> {
         datasets: [{
           label: currentShooter === 'Todos' ? 'Seleccione tirador' : currentShooter,
           data: historyData.data1,
-          borderColor: '#38bdf8', // Sky
-          backgroundColor: 'rgba(56, 189, 248, 0.1)',
-          borderWidth: 2, tension: 0.3, fill: true,
-          pointBackgroundColor: '#0f172a', pointBorderColor: '#38bdf8', pointRadius: 5
+          borderColor: '#0056b3',
+          backgroundColor: 'rgba(0, 86, 179, 0.08)',
+          borderWidth: 3, tension: 0.3, fill: true,
+          pointBackgroundColor: '#ffffff', pointBorderColor: '#0056b3', pointRadius: 5
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1f3d' } },
         scales: {
-          y: { beginAtZero: true, grid: { color: '#1e293b' } },
+          y: { beginAtZero: true, grid: { color: lightGridColor } },
           x: { grid: { display: false } }
         }
       }
@@ -531,7 +522,7 @@ export async function renderAnalytics(): Promise<void> {
   const selYear = document.getElementById('analytics-year') as HTMLSelectElement;
   selYear.addEventListener('change', () => { 
     currentYear = selYear.value; 
-    currentDistEvent = -1; // Reset event selection on year change
+    currentDistEvent = -1;
     const distEventSelect = document.getElementById('analytics-dist-event') as HTMLSelectElement;
     if (distEventSelect) distEventSelect.innerHTML = '';
     drawCharts(); 
