@@ -272,6 +272,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    showToast('Inscrito #' + chosenNumber, 'success');
    await refreshData();
    renderRosterSubViews();
+   renderSeriesSubView();
    const tabBtn = document.getElementById('tab-btn-tiradores');
    if (tabBtn) tabBtn.textContent = 'Sorteo (' + participants.length + '/32)';
    updateTabStyles();

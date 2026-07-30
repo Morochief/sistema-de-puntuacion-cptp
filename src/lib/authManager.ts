@@ -50,17 +50,7 @@ export function updateUIRoles() {
   });
 
   document.querySelectorAll('.staff-only').forEach((el: any) => {
-    if (!canEdit) {
-      el.style.display = 'none';
-    } else {
-      // Si el elemento fue configurado explícitamente con display:none por lógica de UI, mantenerlo oculto
-      const inlineStyle = el.getAttribute('style') || '';
-      if (inlineStyle.includes('display:none') || inlineStyle.includes('display: none')) {
-        el.style.display = 'none';
-      } else {
-        el.style.display = '';
-      }
-    }
+    el.style.display = canEdit ? '' : 'none';
   });
 
   // Login / Logout buttons in navbar
