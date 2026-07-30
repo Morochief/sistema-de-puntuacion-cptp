@@ -46,10 +46,10 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | ChampionshipView | `views/ChampionshipView.ts` | Renders the annual championship ranking panel with year/modality selector |
 | EventDetailView | `views/event/EventDetailView.ts` | Orchestrator — loads data, renders shell with 3 tabs, delegates to sub-views |
 | EventRosterView | `views/event/EventRosterView.ts` | Tab "Tiradores": participant registration, heat seeding, roster grid, filter/sort list |
-| EventSeriesView | `views/event/EventSeriesView.ts` | Tab "Series": per-shooter series list, new series creation, clear series |
+| EventSeriesView | `views/event/EventSeriesView.ts` | Tab "Series": per-shooter series list, new series creation, clear series. Muestra a todos los inscriptos del evento independientemente de si tienen tanda asignada. |
 | EventStandingsView | `views/event/EventStandingsView.ts` | Tab "Posiciones": event rankings, per-series tables, perfect score awards |
 | SeriesScoringView | `views/scoring/SeriesScoringView.ts` | Live shot-by-shot scoring UI for a single competitor's series (modality-aware) |
-| AnalyticsView     | `views/AnalyticsView.ts`             | Business Intelligence dashboard (Chart.js) con UI Táctica Oscura, full-width (1fr) y filtros por año/tirador. Las fechas siempre en formato DD-MM o DD-MM-YYYY. |
+| AnalyticsView     | `views/AnalyticsView.ts`             | Business Intelligence dashboard (Chart.js) con UI Táctica Oscura, gráficos de Asistencia, Lealtad, Precisión (Factor X), Efectividad, Curva Competitiva, Gauss, Ranking Anual del Campeonato y promedios. Las fechas siempre en formato DD-MM-YYYY o DD-MM + modalidad. |
 
 ## Module Map (`src/lib/`)
 
