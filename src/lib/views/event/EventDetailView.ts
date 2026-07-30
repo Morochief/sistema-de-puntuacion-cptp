@@ -208,7 +208,6 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div class="section-title" style="margin:0;">Tabla de Posiciones</div>
     <div>
-     <button class="btn-ghost-custom staff-only" id="btn-print-blank-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;margin-right:8px;">Planilla Vacia</button>
      <button class="btn-ghost-custom staff-only" id="btn-print-ranking-tab" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-color:rgba(0,86,179,0.25);color:#0056b3;border-radius:8px;">Imprimir Reportes</button>
     </div>
    </div>
@@ -421,7 +420,6 @@ export async function renderEvent(eventId: string): Promise<void> {
 
  // ── Handler: print blank ──
  const printBlank = () => { if (isCF) printCFBlankSheet(event!); else printBlankSheet(event!); };
- document.getElementById('btn-print-blank-tab')?.addEventListener('click', printBlank);
  document.getElementById('btn-print-blank-series')?.addEventListener('click', printBlank);
  document.getElementById('btn-print-prefilled')?.addEventListener('click', () => {
   if (participants.length > 0) {
