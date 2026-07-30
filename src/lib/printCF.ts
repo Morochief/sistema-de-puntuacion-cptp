@@ -40,8 +40,8 @@ function getCFPrintStyles(): string {
    }
 
    .a4-landscape-page {
-    width: 277mm;
-    min-height: 175mm;
+    width: 190mm;
+    min-height: 135mm;
     margin: 10mm auto;
     background: #fff;
     padding: 8px 14px;
@@ -59,7 +59,7 @@ function getCFPrintStyles(): string {
       margin: 0 auto !important;
       padding: 0 !important;
       box-shadow: none !important;
-      width: 100% !important;
+      width: 190mm !important;
       height: 98vh !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
