@@ -7,7 +7,7 @@ import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
 import { renderChampionshipPanel } from './ChampionshipView';
 import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from '../sync';
-import { importEventBackup } from '../backup';
+import { importEventBackup, exportFullDatabaseBackup, importFullDatabaseBackup } from '../backup';
 import { supabase } from '../supabase';
 
 
@@ -168,13 +168,21 @@ export async function renderDashboard(): Promise<void> {
  // Agregar el panel inferior para importar, vaciar base de datos + cloud sync
  listHtml += `
   <div style="margin-top:32px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:24px;width:100%;">
+   <button id="btn-export-full-backup" class="btn-ghost-custom admin-only"
+       style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #eab308;
+           border-radius:10px;color:#d97706;font-weight:700;
+           cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
+       title="Descargar copia de seguridad completa (.json) de todos los eventos y series de este dispositivo">
+     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+     Descargar Copia Completa (.json)
+   </button>
    <button id="btn-import-backup" class="btn-ghost-custom admin-only"
        style="font-size:0.85rem;padding:12px 20px;border:1.5px solid #0056b3;
            border-radius:10px;color:#0056b3;font-weight:700;
            cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#ffffff;"
-       title="Importar un evento desde un archivo .json de otra máquina">
+       title="Importar un evento o respaldo completo desde un archivo .json">
      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-     Importar Evento
+     Importar Respaldo / Evento
    </button>
    <button id="btn-reset-db" class="btn-danger-custom admin-only"
        style="font-size:0.85rem;padding:12px 20px;border:2px solid #ef4444;
@@ -310,10 +318,20 @@ export async function renderDashboard(): Promise<void> {
  }
 
 
- // Vincular botón de importar backup
- document.getElementById('btn-import-backup')?.addEventListener('click', () => {
-  importEventBackup(() => renderDashboard());
- });
+  // Vincular botón de descargar copia completa
+  document.getElementById('btn-export-full-backup')?.addEventListener('click', () => {
+    exportFullDatabaseBackup();
+  });
+
+  // Vincular botón de importar backup
+  document.getElementById('btn-import-backup')?.addEventListener('click', async () => {
+    const confirmFull = await showConfirm('Tipo de Importación', '¿Querés importar un respaldo COMPLETO de la base de datos? (Si hacés clic en Cancelar, importarás un solo evento).');
+    if (confirmFull) {
+      importFullDatabaseBackup(() => renderDashboard());
+    } else {
+      importEventBackup(() => renderDashboard());
+    }
+  });
 
  // Vincular evento del botón para vaciar la base de datos
  document.getElementById('btn-reset-db')?.addEventListener('click', async () => {
@@ -371,7 +389,20 @@ export const setupCloudSync = () => {
           return;
         }
 
-        uploadBtn.disabled = true;
+        const localEventsCount = await db.events.filter((e: any) => !e.is_deleted).count();
+        if (localEventsCount === 0) {
+          const proceedEmpty = await showConfirm(
+            '¡ATENCIÓN! Base de Datos Vacía',
+            'No tenés eventos locales guardados en este dispositivo. Si subís ahora a la nube, se marcarán los datos en Supabase como borrados. ¿Estás seguro de que querés continuar?'
+          );
+          if (!proceedEmpty) return;
+        } else {
+          const confirmUpload = await showConfirm(
+            'Subir a la Nube',
+            `Se subirán ${localEventsCount} eventos locales a Supabase para sincronizar. ¿Deseás continuar?`
+          );
+          if (!confirmUpload) return;
+        }
         uploadBtn.style.opacity = '0.5';
         showToast('Subiendo datos locales a la nube...', 'info', 2000);
 
