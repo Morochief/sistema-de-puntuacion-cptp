@@ -1,7 +1,7 @@
 # CPTP Scoring — Referencia Maestra
 
 **Versión:** 0.0.1
-**Última actualización:** 2026-07-28
+**Última actualización:** 2026-07-30
 **Documentos relacionados:** [ARCHITECTURE.md](./ARCHITECTURE.md) · [TECHNICAL.md](./TECHNICAL.md)
 **Proyecto:** [cptp-scoring](../) · [ECC (`G:\.22 LR\ECC`)](../../ECC/)
 

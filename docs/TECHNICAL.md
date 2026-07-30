@@ -1,6 +1,6 @@
 # CPTP Scoring — Technical Documentation
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-07-30
 **Entry Points:** `src/lib/app.ts`, `src/pages/index.astro`, `src/layouts/BaseLayout.astro`
 **Related:** [ARCHITECTURE.md](./ARCHITECTURE.md) · [MASTER-REFERENCE.md](./MASTER-REFERENCE.md)
 
@@ -8,14 +8,15 @@
 
 CPTP Scoring is a Progressive Web App (PWA) built for **Club Paraguayo de Tiro (CPTP)** to score shooting competitions in three modalities: **.22 LR** (Long Range), **.308**, and **.223** (Central Fire). The app is designed **offline-first** because shooting ranges typically have no network connectivity — all scoring, event management, and ranking calculations work fully offline, with data syncing to the cloud only when connectivity is available (e.g., back at the clubhouse).
 
-Built with **Astro 7 + TypeScript + Dexie.js (IndexedDB) + Supabase**, the app runs as a single HTML page with hash-based client-side routing, using vanilla DOM manipulation rather than a UI framework.
+Built with **Astro 7 + TypeScript + Dexie.js (IndexedDB) + Zod + Supabase**, the app runs as a single HTML page (`CPTP SCORING`) with hash-based client-side routing, using vanilla DOM manipulation rather than a UI framework.
 
 ## Technology Stack
 
 | Package | Version | Purpose |
 |---|---|---|
 | `astro` | ^7.1.1 | Static site generation (SSG) + islands architecture; builds the single-page shell |
-| `typescript` | ^7.0.2 | Type-safe application logic across 21+ modules |
+| `typescript` | ^7.0.2 | Type-safe application logic across 22+ modules |
+| `zod` | ^3.24.2 | Strict runtime schema validation for JSON backup imports & data integrity |
 | `dexie` | ^4.4.4 | IndexedDB wrapper for local, offline-first persistence (4 tables, 8 migration versions) |
 | `@supabase/supabase-js` | ^2.110.7 | PostgreSQL-backed cloud sync, authentication (email/password), and RBAC |
 | `tailwindcss` / `@tailwindcss/vite` | ^4.3.3 | Utility-first CSS |
@@ -73,7 +74,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `championship.ts` | Pure math module for the annual "Campeonato General" — Base Firme (Top 2) / Total Actual (Top 3), tiebreakers |
 | `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants and deduplication |
 | `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties within an event |
-| `backup.ts` | JSON export/import of a full event (event + participants + series) for machine-to-machine transfer |
+| `backup.ts` | JSON export/import of full database and single event backups with strict Zod schema validation |
 | `sync.ts` | Push (Dexie to Supabase via deterministic UUID upsert) and Pull (Supabase to Dexie via put/upsert) |
 | `print.ts` | Generates .22 LR A4 landscape score sheets (2 series side by side) and portrait ranking cards |
 | `printCF.ts` | Generates Central Fire A4 landscape score sheets (1 series, bonus column) |

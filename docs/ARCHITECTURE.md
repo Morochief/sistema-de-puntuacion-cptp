@@ -1,6 +1,6 @@
 # CPTP Scoring — Architecture Documentation
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-07-30
 **Related:** [TECHNICAL.md](./TECHNICAL.md) · [MASTER-REFERENCE.md](./MASTER-REFERENCE.md)
 
 ## System Architecture
