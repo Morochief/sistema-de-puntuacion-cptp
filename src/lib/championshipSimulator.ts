@@ -75,17 +75,29 @@ export function simulateChampionshipRankings(
     });
 
     // Recalcular Base Firme (Top 2) y Total Actual (Top 3)
-    const validScores: number[] = [];
+    const validScoresList: { eventId: number; score: number }[] = [];
     Object.values(newEvents).forEach(ev => {
       if (ev && ev.status === 'active') {
-        validScores.push(ev.score);
+        validScoresList.push({ eventId: ev.eventId, score: ev.score });
       }
     });
 
-    validScores.sort((a, b) => b - a);
+    // Ordenar puntajes de mayor a menor para asignar correctamente los Top 2 (Base Firme) y Top 3
+    validScoresList.sort((a, b) => b.score - a.score);
 
-    const baseFirme = (validScores[0] || 0) + (validScores[1] || 0);
-    const totalActual = baseFirme + (validScores[2] || 0);
+    const totalEventsCount = Object.keys(newEvents).length;
+    validScoresList.forEach((item, idx) => {
+      const ev = newEvents[item.eventId];
+      if (ev) {
+        ev.isBaseFirme = idx < 2;
+        ev.isTaken = idx < 3;
+        ev.isAtRisk = idx === 2 && totalEventsCount >= 4;
+        ev.isDiscarded = idx >= 3;
+      }
+    });
+
+    const baseFirme = (validScoresList[0]?.score || 0) + (validScoresList[1]?.score || 0);
+    const totalActual = baseFirme + (validScoresList[2]?.score || 0);
 
     return {
       ...row,
