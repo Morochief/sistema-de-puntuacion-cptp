@@ -111,7 +111,7 @@ export function renderListaInscritos(
             <span style="font-family:'JetBrains Mono',monospace;font-weight:800;color:#0056b3;font-size:0.95rem;">#${p.competitorNumber}</span>
             <span style="font-weight:700;color:#0f172a;font-size:0.95rem;">${esc(p.name)}</span>
             ${cleanCategory ? `<span style="font-size:0.75rem;color:#64748b;font-weight:600;">(${esc(cleanCategory)})</span>` : ''}
-            ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="S1: T${p.tanda} M${p.spot} | S2: T${p.tandaS2 || '—'} M${p.spotS2 || '—'}">S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '—'}M${p.spotS2 || '—'}</span>` : ''}
+            ${p.tanda ? `<span style="font-size:0.72rem;background:rgba(0,86,179,0.08);color:#0056b3;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid rgba(0,86,179,0.18);" title="${isCF ? `Turno ${p.tanda} Mesa ${p.spot}` : `S1: T${p.tanda} M${p.spot} | S2: T${p.tandaS2 || '-'} M${p.spotS2 || '-'}`}">${isCF ? `T${p.tanda}M${p.spot}` : `S1: T${p.tanda}M${p.spot} | S2: T${p.tandaS2 || '-'}M${p.spotS2 || '-'}`}</span>` : ''}
             ${statusBadge}${payBadge}${rifleBadge}
           </div>
           <label class="staff-only" style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;cursor:pointer;color:#334155;font-weight:700;user-select:none;" title="Presente para sorteo">
@@ -188,7 +188,7 @@ export function renderListaInscritos(
         p.tandaS2 = p.tanda;
         p.spotS2 = s2Found as 1|2|3|4;
         await db.participants.put(p);
-        showToast(`Se asigno a ${esc(p.name)} a Tanda ${p.tanda} (Mesa S1: ${p.spot} | Mesa S2: ${p.spotS2}).`, 'success');
+        showToast(`Se asigno a ${esc(p.name)} a Tanda ${p.tanda} ${isCF ? `(Mesa ${p.spot})` : `(Mesa S1: ${p.spot} | Mesa S2: ${p.spotS2})`}.`, 'success');
         await callbacks.onRefresh();
       } else {
         showToast('No hay mesas libres disponibles.', 'error');
