@@ -8,10 +8,11 @@ import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
 let currentSortBy: 'baseFirme' | 'totalActual' = 'totalActual';
 let selectedModality: Modality = '.22 LR';
 
-// Estado global de Simulación (100% en memoria)
+// Estado global de Simulación Multi-Tirador (100% en memoria)
 let isSimulatorActive = false;
-let selectedCompetitorName: string = '';
-let simulatedScoreValue: number = 134;
+
+// Mapa de tiradores simulados: competitorName -> simulatedScoreValue
+let simulatedCompetitorsMap = new Map<string, number>();
 
 export async function renderChampionshipPanel(container: HTMLElement): Promise<void> {
   const currentYear = new Date().getFullYear();
@@ -24,14 +25,17 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     const mConfig = MODALITY_CONFIGS[selectedModality];
     const maxScore = getMaxEventScore(selectedModality);
 
-    if (!selectedCompetitorName && rankings.length > 0) {
-      selectedCompetitorName = rankings[0].competitorName;
+    // Inicializar con el primer tirador si el mapa está vacío
+    if (simulatedCompetitorsMap.size === 0 && rankings.length > 0) {
+      simulatedCompetitorsMap.set(rankings[0].competitorName, maxScore);
     }
 
-    // Preparar simulación si está activa
+    // Preparar simulación multi-tirador
     const simulationMap = new Map<string, { eventId: number; score: number }[]>();
-    if (isSimulatorActive && selectedCompetitorName) {
-      simulationMap.set(selectedCompetitorName, [{ eventId: 9999, score: simulatedScoreValue }]);
+    if (isSimulatorActive) {
+      simulatedCompetitorsMap.forEach((scoreVal, compName) => {
+        simulationMap.set(compName, [{ eventId: 9999, score: scoreVal }]);
+      });
     }
 
     const processedRankings = isSimulatorActive 
@@ -44,12 +48,10 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           isSimulated: false
         }));
 
-    // Obtener la fila proyectada del tirador seleccionado actualmente
-    const activeSimRow = processedRankings.find(r => r.competitorName === selectedCompetitorName);
-
-    // Requerimientos de Podio para el tirador seleccionado
-    const podiumRequirements = selectedCompetitorName
-      ? calculatePodiumRequirements(selectedCompetitorName, rankings, selectedModality, currentSortBy)
+    // Primer tirador del mapa para mostrar las tarjetas de Podio de referencia
+    const primarySelectedName = Array.from(simulatedCompetitorsMap.keys())[0] || (rankings[0]?.competitorName ?? '');
+    const podiumRequirements = primarySelectedName
+      ? calculatePodiumRequirements(primarySelectedName, rankings, selectedModality, currentSortBy)
       : [];
 
     let html = `
@@ -77,10 +79,10 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               `).join('')}
             </select>
             
-            <!-- Botón del Simulador -->
-            <button id="btn-toggle-simulator" class="${isSimulatorActive ? 'btn-primary-custom' : 'btn-ghost-custom'}" style="padding:6px 14px;font-size:0.78rem;font-weight:700;border-color:rgba(0,86,179,0.35);color:${isSimulatorActive ? '#ffffff' : '#0056b3'};background:${isSimulatorActive ? '#0056b3' : 'transparent'};cursor:pointer;" title="Abrir Simulador Táctico de Posiciones">
+            <!-- Botón del Simulador Multi-Tirador -->
+            <button id="btn-toggle-simulator" class="${isSimulatorActive ? 'btn-primary-custom' : 'btn-ghost-custom'}" style="padding:6px 14px;font-size:0.78rem;font-weight:700;border-color:rgba(0,86,179,0.35);color:${isSimulatorActive ? '#ffffff' : '#0056b3'};background:${isSimulatorActive ? '#0056b3' : 'transparent'};cursor:pointer;" title="Abrir Simulador Táctico Multirival">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:-2px;"><path d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
-              ${isSimulatorActive ? 'Ocultar Simulador' : '🧮 Simulador / Podio'}
+              ${isSimulatorActive ? 'Ocultar Simulador' : '🧮 Simulador Multirival'}
             </button>
 
             ${rankings.length > 0 ? `
@@ -95,119 +97,87 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         </div>
     `;
 
-    // Panel del Simulador (si está abierto)
+    // Panel del Simulador Multi-Tirador (si está abierto)
     if (isSimulatorActive && rankings.length > 0) {
-      const podiumCardsHtml = podiumRequirements.map(req => {
-        const neededScore = currentSortBy === 'baseFirme' ? req.neededPointsBase : req.neededPointsTotal;
-        const isPossible = currentSortBy === 'baseFirme' ? req.isAchievableBase : req.isAchievableTotal;
 
-        // Comprobar si la simulación actual ya alcanza o supera la meta
-        const isReachedBySim = neededScore !== null && simulatedScoreValue >= neededScore;
+      // Renderizar tarjetas individuales de cada tirador simulado
+      const simulatedCardsHtml = Array.from(simulatedCompetitorsMap.entries()).map(([compName, simScore]) => {
+        const simRow = processedRankings.find(r => r.competitorName === compName);
+        const origRow = rankings.find(r => r.competitorName === compName);
+        const origScore = origRow ? origRow.totalActual : 0;
+        
+        const projPos = simRow ? simRow.projectedRank : '-';
+        const delta = simRow ? simRow.rankDelta : 0;
 
-        let badgeBg = '#f1f5f9';
-        let badgeColor = '#475569';
-        let mainText = `${neededScore} pts`;
+        let deltaText = '';
+        if (delta > 0) deltaText = `<span style="color:#15803d;font-weight:900;">▲ +${delta}</span>`;
+        else if (delta < 0) deltaText = `<span style="color:#b91c1c;font-weight:900;">▼ ${delta}</span>`;
+        else deltaText = `<span style="color:#64748b;font-weight:600;">= igual</span>`;
 
-        if (neededScore === 0) {
-          badgeBg = '#dcfce7';
-          badgeColor = '#15803d';
-          mainText = '¡Ya asegurado!';
-        } else if (!isPossible) {
-          badgeBg = '#fee2e2';
-          badgeColor = '#b91c1c';
-          mainText = 'Inalcanzable';
-        } else if (isReachedBySim) {
-          badgeBg = '#dcfce7';
-          badgeColor = '#15803d';
-          mainText = `✓ (${neededScore} pts)`;
-        } else {
-          badgeBg = '#eff6ff';
-          badgeColor = '#1d4ed8';
-        }
+        let posTag = `${projPos}° Lugar`;
+        if (projPos === 1) posTag = `1° 🏆 Campeón`;
+        else if (projPos === 2) posTag = `2° 🥈 Subcampeón`;
+        else if (projPos === 3) posTag = `3° 🥉 Podio`;
 
         return `
-          <div style="background:#ffffff;border:1px solid ${isReachedBySim ? '#86efac' : '#cbd5e1'};border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-            <div style="font-size:0.75rem;font-weight:800;color:#0f172a;text-transform:uppercase;">${req.targetLabel}</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <span style="font-size:0.7rem;color:#64748b;font-weight:600;">Meta fija próxima fecha:</span>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:900;background:${badgeBg};color:${badgeColor};padding:3px 8px;border-radius:6px;">
-                ${mainText}
-              </span>
+          <div style="background:#ffffff;border:1.5px solid #0056b3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 6px rgba(0,86,179,0.08);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-weight:800;font-size:0.85rem;color:#0f172a;text-transform:uppercase;">
+                ${esc(compName)}
+              </div>
+              ${simulatedCompetitorsMap.size > 1 ? `
+                <button data-remove-sim="${esc(compName)}" style="background:none;border:none;color:#ef4444;font-weight:bold;cursor:pointer;font-size:0.8rem;" title="Quitar de la simulación">✕</button>
+              ` : ''}
             </div>
-            <div style="font-size:0.65rem;color:#94a3b8;font-weight:500;">
-              Superando puntaje actual del líder (${currentSortBy === 'baseFirme' ? req.leaderScoreBase : req.leaderScoreTotal} pts)
+
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:6px 8px;border-radius:6px;">
+              <span style="font-size:0.72rem;color:#475569;font-weight:700;">Prox. Fecha:</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#0056b3;">${simScore} pts</span>
+            </div>
+
+            <input type="range" data-sim-range="${esc(compName)}" min="0" max="${maxScore}" value="${simScore}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
+
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;border-top:1px dashed #e2e8f0;padding-top:6px;margin-top:2px;">
+              <span style="font-weight:700;color:#334155;">Proyección: <strong>${posTag}</strong></span>
+              <span>${deltaText}</span>
             </div>
           </div>
         `;
       }).join('');
 
-      // Mensaje de feedback en tiempo real según el valor del slider
-      let liveFeedbackText = '';
-      if (activeSimRow) {
-        const projPos = activeSimRow.projectedRank;
-        const origPos = activeSimRow.originalRank;
-        const delta = activeSimRow.rankDelta;
-        
-        let posTag = `${projPos}° Lugar`;
-        if (projPos === 1) posTag = `1° Lugar 🏆 (¡CAMPEÓN!)`;
-        else if (projPos === 2) posTag = `2° Lugar 🥈 (SUBCAMPEÓN)`;
-        else if (projPos === 3) posTag = `3° Lugar 🥉 (PODIO)`;
-
-        let deltaText = '';
-        if (delta > 0) deltaText = ` <span style="color:#15803d;font-weight:800;">(▲ Subió +${delta} puestos)</span>`;
-        else if (delta < 0) deltaText = ` <span style="color:#b91c1c;font-weight:800;">(▼ Bajó ${Math.abs(delta)} puestos)</span>`;
-        else deltaText = ` <span style="color:#64748b;">(Mantiene puesto)</span>`;
-
-        liveFeedbackText = `Con <strong>${simulatedScoreValue} pts</strong> ➔ Proyección: <strong>${posTag}</strong>${deltaText}`;
-      }
+      // Tiradores no simulados todavía para agregar al dropdown
+      const unselectedCompetitors = rankings.filter(r => !simulatedCompetitorsMap.has(r.competitorName));
 
       html += `
         <div style="background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);border:2px dashed #0056b3;border-radius:14px;padding:18px;margin-bottom:20px;animation: fadeIn 0.3s ease;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:1.1rem;">🧮</span>
-              <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:800;color:#0056b3;font-size:1.05rem;text-transform:uppercase;">Simulador Táctico de Proyección</h4>
+              <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:800;color:#0056b3;font-size:1.05rem;text-transform:uppercase;">Simulador Multirival de Posiciones</h4>
               <span style="font-size:0.65rem;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-weight:800;">EN MEMORIA</span>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <button id="btn-sim-max" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto en la fecha futura">
-                ⚡ Simular Máximo (${maxScore} pts)
+            
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              ${unselectedCompetitors.length > 0 ? `
+                <select id="sim-add-competitor-select" style="padding:4px 8px;border:1.5px solid #0056b3;border-radius:6px;font-size:0.75rem;font-weight:700;color:#0056b3;background:#ffffff;outline:none;cursor:pointer;">
+                  <option value="">➕ Comparar otro tirador...</option>
+                  ${unselectedCompetitors.map(r => `<option value="${esc(r.competitorName)}">${esc(r.competitorName)} (${r.totalActual} pts)</option>`).join('')}
+                </select>
+              ` : ''}
+
+              <button id="btn-sim-max-all" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto para todos los seleccionados">
+                ⚡ Todos Máximo (${maxScore} pts)
               </button>
+
               <button id="btn-sim-reset" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(239,68,68,0.3);color:#ef4444;cursor:pointer;" title="Reiniciar simulación">
-                🔄 Limpiar
+                🔄 Limpiar Todo
               </button>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;align-items:start;margin-bottom:14px;">
-            <div style="background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-              <label style="font-size:0.75rem;font-weight:800;color:#334155;text-transform:uppercase;">Seleccionar Tirador a Simular:</label>
-              <select id="sim-competitor-select" style="width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.85rem;font-weight:700;color:#0f172a;background:#ffffff;outline:none;cursor:pointer;">
-                ${rankings.map(r => `
-                  <option value="${esc(r.competitorName)}" ${r.competitorName === selectedCompetitorName ? 'selected' : ''}>
-                    ${esc(r.competitorName)} (${r.totalActual} pts)
-                  </option>
-                `).join('')}
-              </select>
-
-              <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:0.75rem;font-weight:700;color:#475569;">Puntaje Simulado Prox. Fecha:</span>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:#0056b3;">${simulatedScoreValue} pts</span>
-                </div>
-                <input type="range" id="sim-score-range" min="0" max="${maxScore}" value="${simulatedScoreValue}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
-                
-                <!-- Cartel de Resultado Dinámico -->
-                <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px 10px;font-size:0.78rem;color:#0369a1;margin-top:6px;text-align:center;">
-                  ${liveFeedbackText}
-                </div>
-              </div>
-            </div>
-
-            <!-- Contenedor de Tarjetas de Podio -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));gap:10px;grid-column: span 2;">
-              ${podiumCardsHtml}
-            </div>
+          <!-- Parrilla de Tarjetas de Tiradores Simulados -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:12px;">
+            ${simulatedCardsHtml}
           </div>
         </div>
       `;
@@ -301,16 +271,18 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
       }).join('');
 
       // Celda Simulada (E+)
+      const isSimulatedRow = isSimulatorActive && simulatedCompetitorsMap.has(row.competitorName);
+      const simVal = simulatedCompetitorsMap.get(row.competitorName);
+
       const simCellHtml = isSimulatorActive ? `
-        <td style="padding:6px;text-align:center;font-size:0.85rem;border-radius:6px;${row.isSimulated ? 'background:#eff6ff;color:#1d4ed8;font-weight:900;border:1.5px solid #3b82f6;' : 'color:#cbd5e1;'}">
-          <div style="font-family:'JetBrains Mono',monospace;">${row.isSimulated ? simulatedScoreValue : '-'}</div>
-          ${row.isSimulated ? '<div style="font-size:0.55rem;font-weight:800;color:#2563eb;text-transform:uppercase;margin-top:1px;">Simulado</div>' : ''}
+        <td style="padding:6px;text-align:center;font-size:0.85rem;border-radius:6px;${isSimulatedRow ? 'background:#eff6ff;color:#1d4ed8;font-weight:900;border:1.5px solid #3b82f6;' : 'color:#cbd5e1;'}">
+          <div style="font-family:'JetBrains Mono',monospace;">${isSimulatedRow ? simVal : '-'}</div>
+          ${isSimulatedRow ? '<div style="font-size:0.55rem;font-weight:800;color:#2563eb;text-transform:uppercase;margin-top:1px;">Simulado</div>' : ''}
         </td>
       ` : '';
 
       // Resaltado si la fila está siendo simulada
-      const isTargetRow = isSimulatorActive && row.competitorName === selectedCompetitorName;
-      const rowStyle = isTargetRow 
+      const rowStyle = isSimulatedRow 
         ? 'background:rgba(219,234,254,0.7);border-left:4px solid #0056b3;' 
         : isTop6 ? 'background:rgba(248,250,252,0.6);' : '';
 
@@ -391,7 +363,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     });
     document.getElementById('champ-modality-select')?.addEventListener('change', (e) => {
       selectedModality = (e.target as HTMLSelectElement).value as Modality;
-      simulatedScoreValue = getMaxEventScore(selectedModality);
+      const maxScore = getMaxEventScore(selectedModality);
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, maxScore));
       loadAndDraw();
     });
   };
@@ -420,27 +393,48 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     if (!isSimulatorActive) return;
 
-    // Selector de tirador
-    document.getElementById('sim-competitor-select')?.addEventListener('change', (e) => {
-      selectedCompetitorName = (e.target as HTMLSelectElement).value;
+    // Agregar nuevo tirador a la simulación
+    document.getElementById('sim-add-competitor-select')?.addEventListener('change', (e) => {
+      const name = (e.target as HTMLSelectElement).value;
+      if (name) {
+        simulatedCompetitorsMap.set(name, maxScore);
+        loadAndDraw();
+      }
+    });
+
+    // Event listeners para los sliders individuales
+    container.querySelectorAll('[data-sim-range]').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const target = e.target as HTMLInputElement;
+        const name = target.getAttribute('data-sim-range');
+        if (name) {
+          simulatedCompetitorsMap.set(name, Number(target.value));
+          loadAndDraw();
+        }
+      });
+    });
+
+    // Event listeners para quitar tiradores
+    container.querySelectorAll('[data-remove-sim]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const name = (e.currentTarget as HTMLElement).getAttribute('data-remove-sim');
+        if (name) {
+          simulatedCompetitorsMap.delete(name);
+          loadAndDraw();
+        }
+      });
+    });
+
+    // Botón simular máximo a todos
+    document.getElementById('btn-sim-max-all')?.addEventListener('click', () => {
+      simulatedCompetitorsMap.forEach((_, key) => simulatedCompetitorsMap.set(key, maxScore));
       loadAndDraw();
     });
 
-    // Slider de puntaje
-    document.getElementById('sim-score-range')?.addEventListener('input', (e) => {
-      simulatedScoreValue = Number((e.target as HTMLInputElement).value);
-      loadAndDraw();
-    });
-
-    // Botón simular máximo
-    document.getElementById('btn-sim-max')?.addEventListener('click', () => {
-      simulatedScoreValue = maxScore;
-      loadAndDraw();
-    });
-
-    // Botón limpiar
+    // Botón limpiar todo
     document.getElementById('btn-sim-reset')?.addEventListener('click', () => {
       isSimulatorActive = false;
+      simulatedCompetitorsMap.clear();
       loadAndDraw();
     });
   };
