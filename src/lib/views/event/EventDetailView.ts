@@ -242,6 +242,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    allSeries = await db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    renderSeriesSubView();
   });
+  updateUIRoles();
  }
 
  function renderSubStandings(): void {
