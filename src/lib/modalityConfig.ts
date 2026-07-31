@@ -11,7 +11,7 @@ import type { Modality } from './types';
 // ── Configuración de Blancos ────────────────────────────────────────────────
 
 export interface TargetConfig {
-  id: string;           // Identificador interno ('15"', 'grande', etc.)
+  id: string;           // Identificador interno ('15"', 'grande', '12"', etc.)
   label: string;        // Nombre para la UI
   scoreTable: readonly number[]; // Puntos por arrastre (idx 0 = primer tiro posible)
   shotOffset: number;   // Disparo mínimo en el que se puede impactar este blanco
@@ -26,14 +26,14 @@ export interface ModalityConfig {
   color: string;             // Color de acento para badges
   bgColor: string;           // Color de fondo para badges
 
-  shotsPerSeries: number;    // Tiros por serie (10 para .22 LR, 12 para fuego central)
-  seriesPerEvent: number;    // Series por evento (2 para .22 LR, 1 para fuego central)
+  shotsPerSeries: number;    // Tiros por serie (10 para .22 LR, 12 para fuego central/blackjack)
+  seriesPerEvent: number;    // Series por evento (2 para .22 LR, 1 para fuego central y 21 Blackjack)
   spotsPerHeat: number;      // Tiradores por tanda (4 para .22 LR, 1 para fuego central)
   maxHeats: number;          // Máximo de tandas/turnos
 
-  hasBonus: boolean;         // Si existe la mecánica del Bonus (solo fuego central)
-  additionalValue: number;   // Valor base de cada tiro adicional (1 para todos)
-  bonusMultiplier: number;   // Multiplicador de adicionales con bonus activo (2 para fuego central)
+  hasBonus: boolean;         // Si existe la mecánica del Bonus
+  additionalValue: number;   // Valor base de cada tiro adicional
+  bonusMultiplier: number;   // Multiplicador de adicionales con bonus activo
 
   targets: TargetConfig[];   // Configuración de blancos en orden
   maxSeriesScore: number;    // Puntaje máximo teórico por serie
@@ -56,6 +56,17 @@ const TARGETS_CF: TargetConfig[] = [
   { id: 'grande',  label: 'Blanco Grande',  scoreTable: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],  shotOffset: 1 },
   { id: 'mediano', label: 'Blanco Mediano', scoreTable: [24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4], shotOffset: 2 },
   { id: 'pequeño', label: 'Blanco Pequeño', scoreTable: [42, 38, 34, 30, 26, 22, 18, 14, 11, 7],   shotOffset: 3 },
+];
+
+// 21 Blackjack Challenge (.22 LR 200m)
+const TARGETS_BLACKJACK: TargetConfig[] = [
+  { id: '12"', label: 'Blanco 12"', scoreTable: [1], shotOffset: 1 },
+  { id: '10"', label: 'Blanco 10"', scoreTable: [2], shotOffset: 2 },
+  { id: '8"',  label: 'Blanco 8"',  scoreTable: [3], shotOffset: 3 },
+  { id: '6"',  label: 'Blanco 6"',  scoreTable: [4], shotOffset: 4 },
+  { id: '4"',  label: 'Blanco 4"',  scoreTable: [5], shotOffset: 5 },
+  { id: '2"',  label: 'Blanco 2"',  scoreTable: [6], shotOffset: 6 },
+  { id: '2" (bonus)', label: 'Bonus 2"', scoreTable: [21], shotOffset: 7 },
 ];
 
 // ── Configuraciones por Modalidad ───────────────────────────────────────────
@@ -129,12 +140,36 @@ const CONFIG_223: ModalityConfig = {
   useSharedRifle: false,
 };
 
+const CONFIG_BLACKJACK: ModalityConfig = {
+  key: '21 Blackjack',
+  label: '21 Blackjack Challenge (.22 LR 200m)',
+  shortLabel: '21 Blackjack',
+  color: '#7c3aed',
+  bgColor: '#f3e8ff',
+
+  shotsPerSeries: 12,
+  seriesPerEvent: 1, // 1 serie única de 12 disparos
+  spotsPerHeat: 4,
+  maxHeats: 8,
+
+  hasBonus: true,
+  additionalValue: 21,
+  bonusMultiplier: 1,
+
+  targets: TARGETS_BLACKJACK,
+  maxSeriesScore: 147, // 21 (rack) + 6 x 21 (bonus)
+
+  useFamilyRules: false,
+  useSharedRifle: true,
+};
+
 // ── Mapa de Configuraciones ─────────────────────────────────────────────────
 
 export const MODALITY_CONFIGS: Record<Modality, ModalityConfig> = {
   '.22 LR': CONFIG_22LR,
   '.308': CONFIG_308,
   '.223': CONFIG_223,
+  '21 Blackjack': CONFIG_BLACKJACK,
 };
 
 /**
@@ -148,4 +183,4 @@ export function getModalityConfig(modality?: Modality): ModalityConfig {
 /**
  * Lista de todas las modalidades disponibles para selectores de UI.
  */
-export const ALL_MODALITIES: Modality[] = ['.22 LR', '.308', '.223'];
+export const ALL_MODALITIES: Modality[] = ['.22 LR', '.308', '.223', '21 Blackjack'];

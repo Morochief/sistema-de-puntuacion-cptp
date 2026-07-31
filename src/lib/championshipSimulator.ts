@@ -27,10 +27,14 @@ export interface PodiumRequirement {
 
 /**
  * Calcula la puntuación máxima por evento según la modalidad.
+ * - 21 Blackjack Challenge: Max 147 pts
  * - .22 LR: Max 134 pts (2 series x 67 pts)
  * - Fuego Central (.308 / .223): Max 87 pts (sin bonus) o 96 pts (con bonus)
  */
 export function getMaxEventScore(modality: Modality, withBonus: boolean = true): number {
+  if (modality === '21 Blackjack') {
+    return 147;
+  }
   if (modality === '.308' || modality === '.223' || modality === 'Gran Calibre' || modality === '.308 / .223 Gran Calibre') {
     return withBonus ? 96 : 87;
   }
