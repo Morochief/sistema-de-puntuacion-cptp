@@ -229,7 +229,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <button id="btn-hit" style="padding:18px 12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#ffffff;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.3);text-transform:uppercase;" title="Registrar Acierto (+${valueIfHit} pts)">
+          <button id="btn-hit" style="padding:18px 12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#ffffff;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-size:1.15rem;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.25);text-transform:uppercase;" title="Registrar Acierto (+${valueIfHit} pts)">
             🎯 ACIERTO (+${valueIfHit} pts)
           </button>
           
@@ -238,13 +238,9 @@ export async function renderSeries(seriesId: string): Promise<void> {
           </button>
         </div>
 
-        ${currentShots.length > 0 ? `
-          <div style="display:flex;justify-content:flex-end;">
-            <button id="btn-undo-action" class="btn-ghost-custom" style="font-size:0.75rem;padding:6px 12px;color:#64748b;" title="Deshacer el último disparo ingresado">
-              ↩ Deshacer último disparo
-            </button>
-          </div>
-        ` : ''}
+        <button id="btn-undo-action" class="btn-ghost-custom" style="width:100%;padding:11px 14px;background:#ffffff;border:1.5px solid #cbd5e1;color:${currentShots.length > 0 ? '#b7201c' : '#94a3b8'};border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:800;cursor:${currentShots.length > 0 ? 'pointer' : 'not-allowed'};display:flex;align-items:center;justify-content:center;gap:6px;" ${currentShots.length === 0 ? 'disabled' : ''} title="Deshacer el último disparo cargado">
+          ↩ Deshacer Último Disparo
+        </button>
       </div>
     `;
 
