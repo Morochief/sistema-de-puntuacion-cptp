@@ -16,10 +16,14 @@ export function renderListaSeries(
   eventId: number,
   maxSeriesPerEvent: number,
   isCF: boolean,
-  onRefresh: () => Promise<void>
+  onRefresh: () => Promise<void>,
+  modality: Modality = '.22 LR'
 ): void {
   const containerEl = document.getElementById(containerId);
   if (!containerEl) return;
+
+  const mConfig = getModalityConfig(modality);
+  const isSingleSeries = maxSeriesPerEvent === 1;
 
   const hasSorteoOrSeries = participants.some(p => p.tanda !== undefined) || allSeries.length > 0;
   if (!hasSorteoOrSeries && participants.length > 0) {
@@ -41,8 +45,8 @@ export function renderListaSeries(
 
     const seriesCards = pSeries.length > 0
       ? pSeries.map(s => {
-          const maxShots = isCF ? 12 : 10;
-          const maxScore = isCF ? (s.bonusActive ? 96 : 87) : 67;
+          const maxShots = mConfig.shotsPerSeries;
+          const maxScore = mConfig.maxSeriesScore;
           const shotDots = Array.from({ length: maxShots }, (_, i) => {
             const sh = s.shots[i];
             if (!sh) return `<span class="shot-dot" style="background:#e2e8f0;color:#94a3b8;">·</span>`;
@@ -55,7 +59,7 @@ export function renderListaSeries(
              <div style="display:flex;gap:3px;flex-wrap:wrap;">${shotDots}</div>
             </div>
             <div style="text-align:right;flex-shrink:0;">
-             <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:#d97706;">${s.totalScore}</div>
+             <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:${mConfig.color};">${s.totalScore}</div>
              <div style="font-size:0.6rem;color:#475569;">/ ${maxScore} pts</div>
             </div>
            </div>
@@ -63,12 +67,18 @@ export function renderListaSeries(
         }).join('')
       : `<div style="font-size:0.75rem;color:#475569;margin-top:4px;">Sin series registradas</div>`;
 
+    const locationText = isCF
+      ? (p.tanda ? 'Turno ' + p.tanda : 'Turno no sorteado')
+      : isSingleSeries
+      ? (p.tanda ? 'Tanda ' + p.tanda + ' Mesa ' + p.spot : 'Posición no sorteada')
+      : (p.tanda ? 'S1: Tanda ' + p.tanda + ' Mesa ' + p.spot + ' | S2: Tanda ' + (p.tandaS2 || '—') + ' Mesa ' + (p.spotS2 || '—') : 'Posición no sorteada');
+
     return `<div id="tirador-block-${p.id}" class="card-tactical" style="padding:14px;border-color:#e2e8f0;">
      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;margin-bottom:8px;">
       <div>
        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:#0056b3;">${esc(p.name)}</h4>
        <div style="font-size:0.7rem;color:#64748b;margin-top:2px;">
-        ${isCF ? (p.tanda ? 'Turno ' + p.tanda : 'Turno no sorteado') : (p.tanda ? 'S1: Tanda ' + p.tanda + ' Mesa ' + p.spot + ' | S2: Tanda ' + (p.tandaS2 || '—') + ' Mesa ' + (p.spotS2 || '—') : 'Posicion no sorteada')}
+        ${locationText}
         ${pSeries.length > 0 ? ' Acumulado: <strong style="color:#22c55e;">' + totalScore + ' pts</strong>' : ''}
        </div>
       </div>
@@ -89,7 +99,7 @@ export function renderListaSeries(
       if (!p) return;
       const existingSeries = allSeries.filter(s => s.participantId === pid);
       if (existingSeries.length >= maxSeriesPerEvent) {
-        showToast('Limite alcanzado: Maximo ' + maxSeriesPerEvent + ' serie(s) por participante.', 'error');
+        showToast('Límite alcanzado: Máximo ' + maxSeriesPerEvent + ' serie(s) por participante.', 'error');
         return;
       }
       const nextNum = existingSeries.length > 0 ? Math.max(...existingSeries.map(s => s.seriesNumber)) + 1 : 1;
@@ -100,28 +110,35 @@ export function renderListaSeries(
         navigate('/series/' + seriesId);
       } catch (err) {
         console.error('[DB] Error creando serie:', err);
-        showToast('Error al crear la serie.', 'error');
+        showToast('Error al crear serie.', 'error');
       }
     });
   });
 
-  // Bind limpiar series por tirador
+  // Bind click en tarjeta de serie
+  containerEl.querySelectorAll('[data-series-id]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+      const sid = (card as HTMLElement).dataset.seriesId;
+      if (sid) navigate('/series/' + sid);
+    });
+  });
+
+  // Bind vaciar series
   containerEl.querySelectorAll('[data-clear-series-for]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const pid = Number((e.currentTarget as HTMLElement).dataset.clearSeriesFor);
       const p = participants.find(x => x.id === pid);
       if (!p) return;
-      if (!await showConfirm('Vaciar Series', 'Eliminar TODAS las series de ' + esc(p.name) + '?')) return;
-      await db.series.where('participantId').equals(pid).delete();
-      await onRefresh();
-      showToast('Series de ' + esc(p.name) + ' eliminadas.', 'info');
-    });
-  });
-
-  // Bind click en series para ir al score
-  containerEl.querySelectorAll('[data-series-id]').forEach(card => {
-    card.addEventListener('click', () => {
-      navigate('/series/' + (card as HTMLElement).dataset.seriesId);
+      if (!await showConfirm('Vaciar Series', `¿Confirma eliminar todas las series de ${esc(p.name)}?`)) return;
+      try {
+        await db.series.where('participantId').equals(pid).delete();
+        showToast(`Series de ${esc(p.name)} eliminadas.`, 'info');
+        await onRefresh();
+      } catch (err) {
+        console.error('[DB] Error eliminando series:', err);
+        showToast('Error al eliminar series.', 'error');
+      }
     });
   });
 }

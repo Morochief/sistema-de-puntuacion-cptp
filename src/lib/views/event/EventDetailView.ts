@@ -79,6 +79,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  const mConfig = getModalityConfig(modality);
  const isCF = modality === '.308' || modality === '.223';
  const maxSeriesPerEvent = mConfig.seriesPerEvent;
+ const isSingleSeries = maxSeriesPerEvent === 1;
 
  async function refreshData() {
   participants = await db.participants.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
@@ -151,13 +152,13 @@ export async function renderEvent(eventId: string): Promise<void> {
    <div class="card-tactical staff-only" style="padding:16px;margin-bottom:20px;border-color:rgba(0,86,179,0.25);">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
      <div>
-      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin:0;">${isCF ? 'Orden de Tiro' : 'Sorteo de Mesas'}</h3>
-      <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">${isCF ? 'Asigna el turno de tiro a cada competidor.' : 'Sortea aleatoriamente en 8 Tandas.'}</p>
+      <h3 style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:#0056b3;margin:0;">${isSingleSeries ? 'Orden de Tiro' : 'Sorteo de Mesas'}</h3>
+      <p style="margin:4px 0 0;font-size:0.78rem;color:#64748b;">${isSingleSeries ? 'Asigna el turno de tiro a cada competidor.' : 'Sortea aleatoriamente en 8 Tandas.'}</p>
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button id="btn-shuffle-sorteo" class="btn-primary-custom staff-only" style="background:#0056b3;color:#ffffff;border-color:#0056b3;padding:12px 20px;" ${participants.length === 0 ? 'disabled' : ''}>Sortear Posiciones</button>
-      <button id="btn-reorder-heats" class="btn-ghost-custom staff-only" style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;" ${participants.length === 0 ? 'disabled' : ''}>${isCF ? 'Reordenar' : 'Reordenar S1'}</button>
-      ${!isCF ? '<button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only" style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;" ' + (participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : '') + '>Reordenar S2</button>' : ''}
+      <button id="btn-reorder-heats" class="btn-ghost-custom staff-only" style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;" ${participants.length === 0 ? 'disabled' : ''}>${isSingleSeries ? 'Reordenar' : 'Reordenar S1'}</button>
+      ${!isSingleSeries ? '<button id="btn-reorder-heats-s2" class="btn-ghost-custom staff-only" style="padding:12px 16px;font-size:0.8rem;border-color:rgba(0,86,179,0.35);color:#0056b3;" ' + (participants.length === 0 || !participants.some(p => p.tanda !== undefined) ? 'disabled' : '') + '>Reordenar S2</button>' : ''}
       <button id="btn-undo-sorteo" class="btn-ghost-custom staff-only" style="padding:12px 16px;font-size:0.8rem;border-color:rgba(183,32,28,0.35);color:#b7201c;" ${participants.some(p => p.tanda !== undefined) ? '' : 'disabled'}>Deshacer Sorteo</button>
      </div>
     </div>
@@ -254,7 +255,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   renderListaSeriesView('lista-series-por-tirador', participants, allSeries, id, maxSeriesPerEvent, isCF, async () => {
    allSeries = await db.series.where('eventId').equals(id).filter((item: any) => !item.is_deleted).toArray();
    renderSeriesSubView();
-  });
+  }, modality);
   updateUIRoles();
  }
 
