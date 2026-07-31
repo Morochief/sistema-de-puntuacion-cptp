@@ -16,7 +16,7 @@ import { getModalityConfig } from '../../modalityConfig';
 import { printEventCards, printBlankSheet } from '../../printScoreSheet';
 import { printRankingCard } from '../../printRankingCard';
 import { printCFSeriesCard, printCFEventCards, printCFBlankSheet } from '../../printCF';
-import { printBlackjackScoreSheet } from '../../printBlackjack';
+import { printBlackjackScoreSheet, printBlackjackEventCards } from '../../printBlackjack';
 import html2canvas from 'html2canvas';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../../masterCompetitors';
 import { applySpecialFamilySeedingRules, applySharedRifleRules } from '../../heatsRules';
@@ -406,7 +406,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  // ── Handler: print event ──
  document.getElementById('btn-print-event')?.addEventListener('click', () => {
   if (allSeries.length > 0) {
-   if (modality === '21 Blackjack') printBlackjackScoreSheet(event!, participants, allSeries);
+   if (modality === '21 Blackjack') printBlackjackEventCards(event!, participants, allSeries);
    else if (maxSeriesPerEvent === 1 || isCF) printCFEventCards(event!, participants, allSeries);
    else printEventCards(event!, participants, allSeries);
   }
@@ -423,14 +423,14 @@ export async function renderEvent(eventId: string): Promise<void> {
 
  // ── Handler: print blank ──
  const printBlank = () => {
-    if (modality === '21 Blackjack') printBlackjackScoreSheet(event!, [], []);
+    if (modality === '21 Blackjack') printBlackjackEventCards(event!, [], []);
     else if (maxSeriesPerEvent === 1 || isCF) printCFBlankSheet(event!);
     else printBlankSheet(event!);
  };
  document.getElementById('btn-print-blank-series')?.addEventListener('click', printBlank);
  document.getElementById('btn-print-prefilled')?.addEventListener('click', () => {
   if (participants.length > 0) {
-   if (modality === '21 Blackjack') printBlackjackScoreSheet(event!, participants, []);
+   if (modality === '21 Blackjack') printBlackjackEventCards(event!, participants, []);
    else if (maxSeriesPerEvent === 1 || isCF) printCFEventCards(event!, participants, []);
    else printEventCards(event!, participants, []);
   }

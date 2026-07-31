@@ -4,6 +4,7 @@ import { db } from '../../db';
 import type { ShootingEvent, Participant, Series, Shot, Modality } from '../../types';
 import { printSeriesCard } from '../../print';
 import { printCFSeriesCard } from '../../printCF';
+import { printBlackjackSeriesCard } from '../../printBlackjack';
 import {
   calculateSeriesTotal,
   calculateShotValue,
@@ -364,7 +365,9 @@ export async function renderSeries(seriesId: string): Promise<void> {
   // Bind top bar events
   document.getElementById('btn-nav-back')?.addEventListener('click', () => navigate(`/event/${series!.eventId}`));
   document.getElementById('btn-print-series')?.addEventListener('click', () => {
-    if (isCF || isBJ || mConfig.seriesPerEvent === 1) {
+    if (isBJ) {
+      printBlackjackSeriesCard(event!, participant!, series!);
+    } else if (isCF || mConfig.seriesPerEvent === 1) {
       printCFSeriesCard(event!, participant!, series!, currentShots);
     } else {
       printSeriesCard(event!, participant!, series!, currentShots);
