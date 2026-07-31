@@ -28,10 +28,10 @@ export interface PodiumRequirement {
 /**
  * Calcula la puntuación máxima por evento según la modalidad.
  * - .22 LR: Max 134 pts (2 series x 67 pts)
- * - Gran Calibre (.308 / .223): Max 87 pts (sin bonus) o 96 pts (con bonus)
+ * - Fuego Central (.308 / .223): Max 87 pts (sin bonus) o 96 pts (con bonus)
  */
 export function getMaxEventScore(modality: Modality, withBonus: boolean = true): number {
-  if (modality === 'Gran Calibre' || modality === '.308 / .223 Gran Calibre') {
+  if (modality === '.308' || modality === '.223' || modality === 'Gran Calibre' || modality === '.308 / .223 Gran Calibre') {
     return withBonus ? 96 : 87;
   }
   return 134; // .22 LR (2 series de 67 pts)
