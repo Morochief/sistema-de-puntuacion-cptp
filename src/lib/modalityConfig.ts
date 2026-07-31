@@ -28,7 +28,7 @@ export interface ModalityConfig {
 
   shotsPerSeries: number;    // Tiros por serie (10 para .22 LR, 12 para fuego central/blackjack)
   seriesPerEvent: number;    // Series por evento (2 para .22 LR, 1 para fuego central y 21 Blackjack)
-  spotsPerHeat: number;      // Tiradores por tanda (4 para .22 LR, 1 para fuego central)
+  spotsPerHeat: number;      // Tiradores por tanda (4 para .22 LR, 1 para fuego central y 21 Blackjack)
   maxHeats: number;          // Máximo de tandas/turnos
 
   hasBonus: boolean;         // Si existe la mecánica del Bonus
@@ -149,8 +149,8 @@ const CONFIG_BLACKJACK: ModalityConfig = {
 
   shotsPerSeries: 12,
   seriesPerEvent: 1, // 1 serie única de 12 disparos
-  spotsPerHeat: 4,
-  maxHeats: 8,
+  spotsPerHeat: 1,  // 1 tirador por turno (igual a .308 y .223)
+  maxHeats: 50,     // Hasta 50 turnos individuales
 
   hasBonus: true,
   additionalValue: 21,
@@ -160,7 +160,7 @@ const CONFIG_BLACKJACK: ModalityConfig = {
   maxSeriesScore: 147, // 21 (rack) + 6 x 21 (bonus)
 
   useFamilyRules: false,
-  useSharedRifle: true,
+  useSharedRifle: false,
 };
 
 // ── Mapa de Configuraciones ─────────────────────────────────────────────────
