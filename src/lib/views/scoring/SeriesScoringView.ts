@@ -305,18 +305,20 @@ export async function renderSeries(seriesId: string): Promise<void> {
   container.innerHTML = `
     <div style="max-width:600px;margin:0 auto;padding:16px;">
       <!-- Top Bar Navigation -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <button id="btn-nav-back" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.85rem;" title="Volver al evento">
-          ← Evento
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;flex-wrap:wrap;">
+        <button id="btn-nav-back" class="btn-ghost-custom" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#ffffff;border:1px solid #cbd5e1;color:#0056b3;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05);cursor:pointer;" title="Volver a la vista del evento">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver al Evento
         </button>
-        <div style="font-family:'Rajdhani',sans-serif;font-size:0.9rem;font-weight:700;color:${mConfig.color};text-transform:uppercase;">
+
+        <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:800;color:${mConfig.color};text-transform:uppercase;letter-spacing:0.04em;background:${mConfig.bgColor};padding:4px 10px;border-radius:6px;border:1px solid ${mConfig.color}33;">
           ${mConfig.shortLabel} · Serie #${series.seriesNumber}
         </div>
-        <div style="display:flex;gap:6px;">
-          <button id="btn-print-series" class="btn-ghost-custom" style="padding:6px 10px;font-size:0.75rem;" title="Imprimir ticket">
-            🖨️
-          </button>
-        </div>
+
+        <button id="btn-print-series" class="btn-ghost-custom" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#ffffff;border:1px solid #cbd5e1;color:#0f172a;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05);cursor:pointer;" title="Imprimir ticket o planilla de serie">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Imprimir Ticket
+        </button>
       </div>
 
       <!-- Competitor Info Card -->
