@@ -311,8 +311,8 @@ export async function renderSeries(seriesId: string): Promise<void> {
           Volver al Evento
         </button>
 
-        <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:800;color:${mConfig.color};text-transform:uppercase;letter-spacing:0.04em;background:${mConfig.bgColor};padding:4px 10px;border-radius:6px;border:1px solid ${mConfig.color}33;">
-          ${mConfig.shortLabel} · Serie #${series.seriesNumber}
+        <div style="font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:800;color:${mConfig.color};text-transform:uppercase;letter-spacing:0.04em;background:${mConfig.bgColor};padding:4px 12px;border-radius:6px;border:1px solid ${mConfig.color}33;">
+          ${mConfig.seriesPerEvent === 1 ? mConfig.shortLabel : `${mConfig.shortLabel} · Serie #${series.seriesNumber}`}
         </div>
 
         <button id="btn-print-series" class="btn-ghost-custom" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#ffffff;border:1px solid #cbd5e1;color:#0f172a;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.85rem;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05);cursor:pointer;" title="Imprimir ticket o planilla de serie">

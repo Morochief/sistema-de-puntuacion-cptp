@@ -354,6 +354,30 @@ MutationObserver en #app-root re-aplica updateUIRoles() cuando cambia el DOM.
 
 ---
 
+## Seguridad (Auditada)
+
+### RLS Policies en Supabase (Ya implementadas)
+Las Row Level Security policies estan configuradas y funcionando:
+
+| Tabla | Lectura | Escritura |
+|---|---|---|
+| `events` | Publica (SELECT) | Solo admin (ALL) |
+| `series` | Publica (SELECT) | Staff y admin (ALL) |
+| `participants` | Publica (SELECT) | Staff y admin (ALL) |
+| `master_competitors` | Publica (SELECT) | Solo admin (ALL) |
+| `user_roles` | Solo propio `auth.uid()` | — |
+
+### Buenas practicas ya implementadas
+- **XSS prevenido**: `esc()` sanitiza `& < > " '` y se usa en TODO `innerHTML`
+- **Sin hardcoded secrets**: Supabase keys via `import.meta.env.PUBLIC_*`, `.env` en `.gitignore`
+- **Sin eval ni code injection**: No hay `eval`, `new Function`, `setTimeout` con strings
+- **Sin command injection**: No se ejecutan comandos shell desde el frontend
+
+### Pendiente opcional
+- `console.error()` en produccion: los errores van a la consola del navegador. Si se quiere ocultar, agregar un wrapper que solo loguee en modo desarrollo.
+
+---
+
 ## Reglas Criticas — NO Romper
 
 1. **IMPRESION:** `print.ts` y `printCF.ts` son COMPLETAMENTE separados. NUNCA mezclar CSS ni logica.
