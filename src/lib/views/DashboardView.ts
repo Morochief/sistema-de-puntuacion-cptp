@@ -90,7 +90,7 @@ export async function renderDashboard(): Promise<void> {
    <!-- Filtros de Modalidad y Año -->
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span style="font-size:0.78rem;font-weight:700;color:#64748b;white-space:nowrap;">Modalidad:</span>
-    ${['', '.22 LR', '.308', '.223'].map(m => {
+    ${['', '.22 LR', '.308', '.223', '21 Blackjack'].map(m => {
      const label = m === '' ? 'Todas' : m;
      const isActive = dashModalityFilter === m;
      return `<button class="dash-modality-pill" data-modality="${m}"
@@ -120,9 +120,10 @@ export async function renderDashboard(): Promise<void> {
  } else {
   listHtml += `<div style="display:flex;flex-direction:column;gap:12px;">${events.map((e) => {
    const modalityColors: Record<string, string> = {
-    '.22 LR':  '#0056b3',
-    '.308':    '#b34500',
-    '.223':    '#006b3c',
+    '.22 LR':       '#0056b3',
+    '.308':         '#b34500',
+    '.223':         '#006b3c',
+    '21 Blackjack': '#7c3aed',
    };
    const mColor = modalityColors[e.modality || ''] ?? '#64748b';
    return `

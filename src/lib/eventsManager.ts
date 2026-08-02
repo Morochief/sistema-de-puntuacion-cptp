@@ -29,6 +29,7 @@ export async function getFilteredEvents(options: EventFilterOptions): Promise<{
     if (!e.modality || e.modality === '.22 LR') {
       if (e.name?.includes('.308') || e.championshipDate?.includes('.308')) e.modality = '.308';
       else if (e.name?.includes('.223') || e.championshipDate?.includes('.223')) e.modality = '.223';
+      else if (e.name?.includes('Blackjack') || e.name?.includes('21 BJ') || e.championshipDate?.includes('Blackjack')) e.modality = '21 Blackjack';
     }
   });
 
