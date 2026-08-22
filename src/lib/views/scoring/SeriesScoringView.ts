@@ -242,12 +242,27 @@ export async function renderSeries(seriesId: string): Promise<void> {
         <button id="btn-undo-action" class="btn-ghost-custom" style="width:100%;padding:11px 14px;background:#ffffff;border:1.5px solid #cbd5e1;color:${currentShots.length > 0 ? '#b7201c' : '#94a3b8'};border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:800;cursor:${currentShots.length > 0 ? 'pointer' : 'not-allowed'};display:flex;align-items:center;justify-content:center;gap:6px;" ${currentShots.length === 0 ? 'disabled' : ''} title="Deshacer el último disparo cargado">
           ↩ Deshacer Último Disparo
         </button>
+
+        ${mConfig.hasBonus ? `
+        <div style="margin-top:4px;display:flex;align-items:center;gap:10px;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #cbd5e1;">
+          <input type="checkbox" id="chk-bonus-active" ${bonusActive ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer;">
+          <label for="chk-bonus-active" style="font-size:0.95rem;font-weight:700;color:#0f172a;cursor:pointer;">Tiro "Bonus" acertado (Puntos Dobles)</label>
+        </div>` : ''}
       </div>
     `;
 
     document.getElementById('btn-hit')?.addEventListener('click', () => registerShot(true));
     document.getElementById('btn-miss')?.addEventListener('click', () => registerShot(false));
     document.getElementById('btn-undo-action')?.addEventListener('click', undoLastShot);
+
+    if (mConfig.hasBonus) {
+      document.getElementById('chk-bonus-active')?.addEventListener('change', async (e) => {
+        bonusActive = (e.target as HTMLInputElement).checked;
+        await persistShots();
+        renderNextShotPanel();
+        renderShotsHistory();
+      });
+    }
   }
 
   // ─ Registrar Disparo ──────────────────────────────────────
