@@ -84,23 +84,34 @@ export function renderPosicionesTab(
       </div>`;
   };
 
+  // Prize thresholds depend on modality
+  const prizePerSeries = isCF ? [87, 96] : [67];
+  const prizePerEvent  = isCF ? [174, 192] : [134];
+  const prizeLabel     = isCF ? '87 / 96 / 174 / 192' : '67 / 134';
+
   const perfectScores = participants.map(p => {
     const pSeries = allSeries.filter(s => s.participantId === p.id);
     const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
     const s1 = pSeries.find(s => s.seriesNumber === 1)?.totalScore || 0;
     const s2 = pSeries.find(s => s.seriesNumber === 2)?.totalScore || 0;
     return { p, s1, s2, totalScore };
-  }).filter(x => x.s1 === 67 || x.s2 === 67 || x.totalScore === 134);
+  }).filter(x => {
+    if (x.p.status === 'dq' || x.p.status === 'dns') return false;
+    return prizePerSeries.some(v => x.s1 === v || x.s2 === v) || prizePerEvent.some(v => x.totalScore === v);
+  });
 
   perfectScores.sort((a, b) => b.totalScore - a.totalScore);
 
   let perfectRowsHtml = perfectScores.map(r => {
-    let reason = [];
-    if (r.s1 === 67) reason.push("S1: 67 pts");
-    if (r.s2 === 67) reason.push("S2: 67 pts");
-    if (r.totalScore === 134) reason = ["Evento Perfecto (134)"];
+    let reason: string[] = [];
+    for (const v of prizePerSeries) {
+      if (r.s1 === v) reason.push(`S1: ${v} pts`);
+      if (r.s2 === v) reason.push(`S2: ${v} pts`);
+    }
+    for (const v of prizePerEvent) {
+      if (r.totalScore === v) { reason = [`Evento Perfecto (${v})`]; break; }
+    }
     const p = r.p;
-    if (p.status === 'dq' || p.status === 'dns') return '';
     return `<tr style="border-bottom:1px solid #fef3c7;background:#fffbeb;">
         <td style="padding:10px 8px;text-align:center;width:40px;"><span style="color:#d97706;font-size:1.1rem;">&#9733;</span></td>
         <td style="padding:10px 8px;">
@@ -113,12 +124,12 @@ export function renderPosicionesTab(
   }).join('');
 
   if (perfectRowsHtml === '') {
-    perfectRowsHtml = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8;font-size:0.8rem;">Ningun tirador alcanzo puntaje perfecto (67 o 134).</td></tr>`;
+    perfectRowsHtml = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8;font-size:0.8rem;">Ningun tirador alcanzo puntaje premiado (${prizeLabel}).</td></tr>`;
   }
 
   const perfectTable = `<div style="background:#ffffff;border:1px solid #fde68a;border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 4px rgba(245,158,11,0.1);">
       <div style="background:#fef3c7;padding:12px 16px;border-bottom:1px solid #fde68a;display:flex;align-items:center;gap:8px;">
-        <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;color:#b45309;font-size:1.1rem;text-transform:uppercase;">Premios Especiales (67/134)</h4>
+        <h4 style="margin:0;font-family:'Rajdhani',sans-serif;font-weight:700;color:#b45309;font-size:1.1rem;text-transform:uppercase;">Premios Especiales (${prizeLabel})</h4>
       </div>
       <table style="width:100%;border-collapse:collapse;"><tbody>${perfectRowsHtml}</tbody></table>
     </div>`;

@@ -400,7 +400,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  // ── Handler: print ranking ──
  document.getElementById('btn-print-ranking')?.addEventListener('click', async () => {
   const fresh = await db.participants.where('eventId').equals(Number(id)).filter((item: any) => !item.is_deleted).toArray();
-  if (fresh.length > 0) printRankingCard(event!, fresh, allSeries);
+   if (fresh.length > 0) printRankingCard(event!, fresh, allSeries, isCF);
  });
 
  // ── Handler: print event ──
@@ -435,7 +435,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    else printEventCards(event!, participants, []);
   }
  });
- document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => { printRankingCard(event!, participants, allSeries); });
+ document.getElementById('btn-print-ranking-tab')?.addEventListener('click', () => { printRankingCard(event!, participants, allSeries, isCF); });
 
  // ── Back ──
  document.getElementById('btn-back-event')?.addEventListener('click', () => navigate('/'));

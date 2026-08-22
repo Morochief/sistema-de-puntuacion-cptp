@@ -16,7 +16,7 @@ function formatDate(isoDate: string): string {
   } catch { return isoDate; }
 }
 
-export function printRankingCard(event: ShootingEvent, participants: Participant[], seriesList: Series[]): void {
+export function printRankingCard(event: ShootingEvent, participants: Participant[], seriesList: Series[], isCF: boolean = false): void {
   const year = new Date(event.date + 'T12:00:00').getFullYear();
 
   const getRanking = (seriesNum: number | null) => {
@@ -78,26 +78,34 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   const rowsS1Html = buildRows(rankS1);
   const rowsS2Html = buildRows(rankS2);
 
+  const prizePerSeries = isCF ? [87, 96] : [67];
+  const prizePerEvent  = isCF ? [174, 192] : [134];
+  const prizeLabel     = isCF ? '87 / 96 / 174 / 192' : '67 / 134';
+
   const perfectScores = participants.map(p => {
     const pSeries = seriesList.filter(s => s.participantId === p.id);
     const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
     const s1 = pSeries.find(s => s.seriesNumber === 1)?.totalScore || 0;
     const s2 = pSeries.find(s => s.seriesNumber === 2)?.totalScore || 0;
     return { p, s1, s2, totalScore };
-  }).filter(x => x.s1 === 67 || x.s2 === 67 || x.totalScore === 134);
+  }).filter(x => {
+    if (x.p.status === 'dq' || x.p.status === 'dns') return false;
+    return prizePerSeries.some(v => x.s1 === v || x.s2 === v) || prizePerEvent.some(v => x.totalScore === v);
+  });
   
   perfectScores.sort((a, b) => b.totalScore - a.totalScore);
 
   let perfectRowsHtml = perfectScores.map(r => {
-    let reason = [];
-    if (r.s1 === 67) reason.push("Serie 1 (67 pts)");
-    if (r.s2 === 67) reason.push("Serie 2 (67 pts)");
-    if (r.totalScore === 134) reason = ["Evento Perfecto (134 pts)"];
+    let reason: string[] = [];
+    for (const v of prizePerSeries) {
+      if (r.s1 === v) reason.push(`Serie 1 (${v} pts)`);
+      if (r.s2 === v) reason.push(`Serie 2 (${v} pts)`);
+    }
+    for (const v of prizePerEvent) {
+      if (r.totalScore === v) { reason = [`Evento Perfecto (${v} pts)`]; break; }
+    }
 
     const p = r.p;
-    const isDq = p.status === 'dq';
-    const isDns = p.status === 'dns';
-    if (isDq || isDns) return '';
 
     return `
       <tr class="rank-row" style="background:#fffbeb;">
@@ -113,7 +121,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   }).join('');
 
   if (perfectRowsHtml.trim() === '') {
-    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">Ningun tirador alcanzo puntaje perfecto (67 o 134).</td></tr>`;
+    perfectRowsHtml = `<tr><td colspan="3" style="text-align:center;padding:40px;color:#64748b;font-weight:bold;">Ningun tirador alcanzo puntaje premiado (${prizeLabel}).</td></tr>`;
   }
 
   const buildPage = (titleExtra: string, tableHtml: string, isLast: boolean = false) => `
@@ -260,7 +268,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
    ${buildPage('Total Evento', rowsTotalHtml)}
    ${buildPage('Serie 1', rowsS1Html)}
    ${buildPage('Serie 2', rowsS2Html)}
-   ${buildPage('Reporte de Premios (67 / 134 pts)', perfectRowsHtml, true)}
+   ${buildPage(`Reporte de Premios (${prizeLabel} pts)`, perfectRowsHtml, true)}
  </div>
 </body>
 </html>`;
