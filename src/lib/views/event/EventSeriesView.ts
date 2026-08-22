@@ -132,7 +132,7 @@ export function renderListaSeries(
       if (!p) return;
       if (!await showConfirm('Vaciar Series', `¿Confirma eliminar todas las series de ${esc(p.name)}?`)) return;
       try {
-        await db.series.where('participantId').equals(pid).delete();
+        await db.series.where('participantId').equals(pid).modify({ is_deleted: true });
         showToast(`Series de ${esc(p.name)} eliminadas.`, 'info');
         await onRefresh();
       } catch (err) {

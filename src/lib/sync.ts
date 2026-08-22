@@ -31,10 +31,10 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
     console.log('[Sync] Iniciando subida local -> Supabase...');
 
     // Obtener datos locales
-    const localEvents = await db.events.filter((item: ShootingEvent) => !item.is_deleted).toArray();
-    const localParticipants = await db.participants.filter((item: Participant) => !item.is_deleted).toArray();
-    const localSeries = await db.series.filter((item: Series) => !item.is_deleted).toArray();
-    const localMasterCompetitors = await db.masterCompetitors.filter((item: MasterCompetitor) => !item.is_deleted).toArray();
+    const localEvents = await db.events.toArray();
+    const localParticipants = await db.participants.toArray();
+    const localSeries = await db.series.toArray();
+    const localMasterCompetitors = await db.masterCompetitors.toArray();
 
     let eventsSynced = 0;
     let participantsSynced = 0;
@@ -186,8 +186,11 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     //    Los datos locales que no existen en la nube se conservan.
     if (cloudEvents) {
       for (const e of cloudEvents) {
-        if (e.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(e.id);
+        if (e.is_deleted) {
+          await db.events.update(localId, { is_deleted: true }).catch(() => {});
+          continue;
+        }
         await db.events.put({
           id: localId,
           name: e.name,
@@ -204,8 +207,11 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
 
     if (cloudParticipants) {
       for (const p of cloudParticipants) {
-        if (p.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(p.id);
+        if (p.is_deleted) {
+          await db.participants.update(localId, { is_deleted: true }).catch(() => {});
+          continue;
+        }
         const localEventId = fromDeterministicUuid(p.event_id);
         const catParts = (p.category || '').split('::');
         const rawCategory = catParts[0] || '';
@@ -237,9 +243,48 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
     }
 
     if (cloudSeries) {
+      // 1. Agrupar series no borradas por (participant_id, series_number)
+      const activeSeries = cloudSeries.filter(s => !s.is_deleted);
+      const groups = new Map<string, typeof cloudSeries>();
+      for (const s of activeSeries) {
+        const key = `${s.participant_id}_${s.series_number}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(s);
+      }
+
+      // 2. Identificar la más nueva de cada grupo y marcar el resto como duplicados
+      const duplicateIds: string[] = [];
+      for (const [_, list] of groups.entries()) {
+        if (list.length > 1) {
+          // Ordenar de más nueva a más vieja (created_at desc)
+          list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          // La primera (index 0) es la buena/reciente. Las demás son duplicadas.
+          for (let i = 1; i < list.length; i++) {
+            duplicateIds.push(list[i].id);
+          }
+        }
+      }
+
+      // 3. Actualizar en Supabase para que queden borradas lógicamente en la nube permanentemente
+      if (duplicateIds.length > 0) {
+        console.log(`[Sync] Limpiando ${duplicateIds.length} series duplicadas en la nube...`);
+        const { error: updErr } = await supabase
+          .from('series')
+          .update({ is_deleted: true })
+          .in('id', duplicateIds);
+        if (updErr) {
+          console.error('[Sync] Error al marcar duplicados en la nube:', updErr);
+        }
+      }
+
+      // 4. Escribir series en IndexedDB
       for (const s of cloudSeries) {
-        if (s.is_deleted) continue; // Omitir borrados de la nube
         const localId = fromDeterministicUuid(s.id);
+        // Si el registro está borrado o fue identificado como duplicado, marcarlo como borrado localmente
+        if (s.is_deleted || duplicateIds.includes(s.id)) {
+          await db.series.update(localId, { is_deleted: true }).catch(() => {});
+          continue;
+        }
         const localEventId = fromDeterministicUuid(s.event_id);
         const localParticipantId = fromDeterministicUuid(s.participant_id);
         await db.series.put({

@@ -211,8 +211,8 @@ export function renderListaInscritos(
       if (!p) return;
       if (!await showConfirm('Eliminar Inscripcion', `Eliminar la inscripcion de ${esc(p.name)}? Se perderan sus series.`)) return;
       try {
-        await db.participants.delete(pid);
-        await db.series.where('participantId').equals(pid).delete();
+        await db.participants.update(pid, { is_deleted: true });
+        await db.series.where('participantId').equals(pid).modify({ is_deleted: true });
         const restantes = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
         restantes.sort((a, b) => a.competitorNumber - b.competitorNumber);
         for (let i = 0; i < restantes.length; i++) {

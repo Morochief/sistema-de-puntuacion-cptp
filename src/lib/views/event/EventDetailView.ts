@@ -416,7 +416,7 @@ export async function renderEvent(eventId: string): Promise<void> {
  document.getElementById('btn-clear-all-series')?.addEventListener('click', async () => {
   if (allSeries.length === 0) return;
   if (!await showConfirm('Reiniciar Todo', 'Eliminar TODAS las series?')) return;
-  await db.series.where('eventId').equals(id).delete();
+  await db.series.where('eventId').equals(id).modify({ is_deleted: true });
   allSeries = []; renderSeriesSubView();
   showToast('Series eliminadas.', 'info');
  });
