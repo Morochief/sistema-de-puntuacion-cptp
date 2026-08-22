@@ -79,8 +79,8 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
   const rowsS2Html = buildRows(rankS2);
 
   const prizePerSeries = isCF ? [87, 96] : [67];
-  const prizePerEvent  = isCF ? [174, 192] : [134];
-  const prizeLabel     = isCF ? '87 / 96 / 174 / 192' : '67 / 134';
+  const prizePerEvent  = isCF ? [87, 96] : [134];
+  const prizeLabel     = isCF ? '87 / 96' : '67 / 134';
 
   const perfectScores = participants.map(p => {
     const pSeries = seriesList.filter(s => s.participantId === p.id);

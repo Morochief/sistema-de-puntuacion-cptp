@@ -86,8 +86,8 @@ export function renderPosicionesTab(
 
   // Prize thresholds depend on modality
   const prizePerSeries = isCF ? [87, 96] : [67];
-  const prizePerEvent  = isCF ? [174, 192] : [134];
-  const prizeLabel     = isCF ? '87 / 96 / 174 / 192' : '67 / 134';
+  const prizePerEvent  = isCF ? [87, 96] : [134];
+  const prizeLabel     = isCF ? '87 / 96' : '67 / 134';
 
   const perfectScores = participants.map(p => {
     const pSeries = allSeries.filter(s => s.participantId === p.id);
