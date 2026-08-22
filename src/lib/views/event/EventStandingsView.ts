@@ -140,6 +140,6 @@ export function renderPosicionesTab(
       ${maxSeriesPerEvent > 1 ? buildTable('Serie 1', rankS1) : ''}
       ${maxSeriesPerEvent > 1 ? buildTable('Serie 2', rankS2) : ''}
     </div>
-    ${maxSeriesPerEvent > 1 ? perfectTable : ''}
+    ${perfectTable}
   `;
 }
