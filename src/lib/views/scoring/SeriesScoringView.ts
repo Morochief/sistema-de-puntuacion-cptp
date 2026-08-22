@@ -294,6 +294,29 @@ export async function renderSeries(seriesId: string): Promise<void> {
       value,
     });
 
+    // Auto-fill logic
+    let newPhaseType: any = '15"';
+    if (isBJ) newPhaseType = deriveCurrentPhaseBJ(currentShots);
+    else if (isCF) newPhaseType = deriveCurrentPhaseCF(currentShots);
+    else newPhaseType = deriveCurrentPhase(currentShots);
+
+    if (newPhaseType === 'additional' || newPhaseType === '2" (bonus)') {
+      const nextN = currentShots.length + 1;
+      let addCount = 0;
+      for (let n = nextN; n <= maxShots; n++) {
+        let addVal = 1;
+        if (isBJ) addVal = calculateShotValueBJ(newPhaseType, true);
+        else if (isCF) addVal = calculateShotValueCF(n, newPhaseType, true, bonusActive);
+        else addVal = calculateShotValue(n, newPhaseType, true);
+        
+        currentShots.push({ shotNumber: n, targetType: newPhaseType, hit: true, value: addVal });
+        addCount++;
+      }
+      if (addCount > 0) {
+        showToast(`+${addCount} adicionales automáticos`, 'success', 2500);
+      }
+    }
+
     await persistShots();
     renderProgressBar();
     renderHistory();
