@@ -314,6 +314,56 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       }
     }
 
+    // 5. Limpieza local post-sincronización para evitar duplicados en IndexedDB
+    try {
+      const allLocalSeries = await db.series.toArray();
+      const allLocalEvents = await db.events.toArray();
+      
+      const eventModalityMap = new Map<number, string>();
+      for (const e of allLocalEvents) {
+        if (e.id !== undefined) {
+          eventModalityMap.set(e.id, e.modality || '.22 LR');
+        }
+      }
+
+      const activeLocalSeries = allLocalSeries.filter(s => !s.is_deleted);
+      const localGroups = new Map<string, typeof allLocalSeries>();
+      
+      for (const s of activeLocalSeries) {
+        const key = `${s.participantId}_${s.seriesNumber}`;
+        if (!localGroups.has(key)) {
+          localGroups.set(key, []);
+        }
+        localGroups.get(key)!.push(s);
+      }
+
+      for (const [key, list] of localGroups.entries()) {
+        if (list.length > 1) {
+          list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          for (let i = 1; i < list.length; i++) {
+            const dup = list[i];
+            if (dup.id !== undefined) {
+              await db.series.update(dup.id, { is_deleted: true }).catch(() => {});
+              console.log(`[Sync-Cleanup] Marcado duplicado local ID ${dup.id} como borrado (Participante: ${dup.participantId}, Serie: ${dup.seriesNumber})`);
+            }
+          }
+        }
+      }
+
+      for (const s of activeLocalSeries) {
+        const modality = eventModalityMap.get(s.eventId) || '.22 LR';
+        const isCFModality = modality === '.308' || modality === '.223' || modality === '21 Blackjack';
+        if (isCFModality && s.seriesNumber > 1) {
+          if (s.id !== undefined) {
+            await db.series.update(s.id, { is_deleted: true }).catch(() => {});
+            console.log(`[Sync-Cleanup] Marcada serie local incorrecta ID ${s.id} (Serie: ${s.seriesNumber}) como borrada para modalidad Fuego Central (Evento: ${s.eventId})`);
+          }
+        }
+      }
+    } catch (cleanupErr) {
+      console.error('[Sync-Cleanup] Error en la autolimpieza local:', cleanupErr);
+    }
+
     console.log('[Sync] Datos de la nube sincronizados con exito (upsert).');
     return { success: true };
   } catch (err: any) {

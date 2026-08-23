@@ -56,7 +56,7 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
        : `<div class="pos-number">${pos}</div>`;
        
       const laneLabel = p.tanda
-       ? `S1: T${p.tanda}·M${p.spot} | S2: T${p.tandaS2 || '—'}·M${p.spotS2 || '—'}`
+       ? (isCF ? `Turno ${p.tanda}` : `S1: T${p.tanda}·M${p.spot} | S2: T${p.tandaS2 || '—'}·M${p.spotS2 || '—'}`)
        : 'Sin posición';
       const scoreDisplay = isDq ? '<span style="color:#ef4444;">DQ (0)</span>' : isDns ? '<span style="color:#f59e0b;">DNS</span>' : String(r.totalScore);
 
@@ -264,12 +264,20 @@ export function printRankingCard(event: ShootingEvent, participants: Participant
  <div class="no-print" style="text-align:center; padding:10px; background:#e2e8f0; border-bottom:1px solid #cbd5e1;">
    <button class="print-btn" onclick="window.print()" style="display:inline-block; margin:0;">Imprimir Reportes Completos</button>
  </div>
- <div class="pages-container">
-   ${buildPage('Total Evento', rowsTotalHtml)}
-   ${buildPage('Serie 1', rowsS1Html)}
-   ${buildPage('Serie 2', rowsS2Html)}
-   ${buildPage(`Reporte de Premios (${prizeLabel} pts)`, perfectRowsHtml, true)}
- </div>
+  <div class="pages-container">
+    ${isCF 
+      ? `
+        ${buildPage('Total Evento', rowsTotalHtml)}
+        ${buildPage(`Reporte de Premios (${prizeLabel} pts)`, perfectRowsHtml, true)}
+      `
+      : `
+        ${buildPage('Total Evento', rowsTotalHtml)}
+        ${buildPage('Serie 1', rowsS1Html)}
+        ${buildPage('Serie 2', rowsS2Html)}
+        ${buildPage(`Reporte de Premios (${prizeLabel} pts)`, perfectRowsHtml, true)}
+      `
+    }
+  </div>
 </body>
 </html>`;
 
