@@ -11,8 +11,8 @@ import type { Participant } from './types';
  * 2. Facundo Dominguez debe tirar SIEMPRE en una tanda ANTERIOR (menor numero) que Angel Dominguez.
  */
 export function applySpecialFamilySeedingRulesS2(participants: Participant[]): Participant[] {
-  const facundoIndex = participants.findIndex(p => p.name.toLowerCase().includes('facundo domínguez') || p.name.toLowerCase().includes('facundo dominguez'));
-  const angelIndex = participants.findIndex(p => p.name.toLowerCase().includes('ángel domínguez') || p.name.toLowerCase().includes('angel dominguez'));
+  const facundoIndex = participants.findIndex(p => (p.name || '').toLowerCase().includes('facundo domínguez') || (p.name || '').toLowerCase().includes('facundo dominguez'));
+  const angelIndex = participants.findIndex(p => (p.name || '').toLowerCase().includes('ángel domínguez') || (p.name || '').toLowerCase().includes('angel dominguez'));
 
   if (facundoIndex >= 0 && angelIndex >= 0) {
     const facundo = participants[facundoIndex];
@@ -90,8 +90,8 @@ export function applySpecialFamilySeedingRulesS2(participants: Participant[]): P
  * 2. Facundo Dominguez debe tirar SIEMPRE en una tanda ANTERIOR (menor numero) que Angel Dominguez.
  */
 export function applySpecialFamilySeedingRules(participants: Participant[]): Participant[] {
-  const facundoIndex = participants.findIndex(p => p.name.toLowerCase().includes('facundo domínguez') || p.name.toLowerCase().includes('facundo dominguez'));
-  const angelIndex = participants.findIndex(p => p.name.toLowerCase().includes('ángel domínguez') || p.name.toLowerCase().includes('angel dominguez'));
+  const facundoIndex = participants.findIndex(p => (p.name || '').toLowerCase().includes('facundo domínguez') || (p.name || '').toLowerCase().includes('facundo dominguez'));
+  const angelIndex = participants.findIndex(p => (p.name || '').toLowerCase().includes('ángel domínguez') || (p.name || '').toLowerCase().includes('angel dominguez'));
 
   if (facundoIndex >= 0 && angelIndex >= 0) {
     const facundo = participants[facundoIndex];
@@ -188,10 +188,10 @@ export function applySharedRifleRules(participants: Participant[]): Participant[
           x.tanda !== m.tanda &&
           !tandasOccupied.has(x.tanda!) &&
           x.sharedRifleId !== rifleId &&
-          !x.name.toLowerCase().includes('domnguez') &&
-          !x.name.toLowerCase().includes('dominguez') &&
-          !m.name.toLowerCase().includes('domnguez') &&
-          !m.name.toLowerCase().includes('dominguez')
+          !(x.name || '').toLowerCase().includes('domnguez') &&
+          !(x.name || '').toLowerCase().includes('dominguez') &&
+          !(m.name || '').toLowerCase().includes('domnguez') &&
+          !(m.name || '').toLowerCase().includes('dominguez')
         );
         if (candidate) {
           const tempT = m.tanda;

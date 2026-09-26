@@ -25,9 +25,8 @@ export function renderListaSeries(
   const mConfig = getModalityConfig(modality);
   const isSingleSeries = maxSeriesPerEvent === 1;
 
-  const hasSorteoOrSeries = participants.some(p => p.tanda !== undefined) || allSeries.length > 0;
-  if (!hasSorteoOrSeries && participants.length > 0) {
-    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">Debe realizar el sorteo de tandas primero para poder cargar puntuaciones.</div>`;
+  if (participants.length === 0) {
+    containerEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:0.82rem;color:#475569;">No hay competidores inscritos.</div>`;
     return;
   }
 

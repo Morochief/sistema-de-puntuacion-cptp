@@ -19,7 +19,7 @@ import { printCFSeriesCard, printCFEventCards, printCFBlankSheet } from '../../p
 import { printBlackjackScoreSheet, printBlackjackEventCards } from '../../printBlackjack';
 import html2canvas from 'html2canvas';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../../masterCompetitors';
-import { applySpecialFamilySeedingRules, applySharedRifleRules } from '../../heatsRules';
+import { applySpecialFamilySeedingRules, applySpecialFamilySeedingRulesS2, applySharedRifleRules } from '../../heatsRules';
 import { resetEventSeeding, showManualHeatsReorderModal } from '../../heatsReorder';
 import { sortRanking, showTieBreakerModal } from '../../tiebreaker';
 import { handleSeedParticipants, handleSeedScores } from '../../seeder';
@@ -235,8 +235,8 @@ export async function renderEvent(eventId: string): Promise<void> {
   });
  }
 
- document.getElementById('tab-btn-tiradores')?.addEventListener('click', () => { activeMainTab = 'tiradores'; switchTab('tiradores'); updateTabStyles(); });
- document.getElementById('tab-btn-series')?.addEventListener('click', () => { activeMainTab = 'series'; switchTab('series'); updateTabStyles(); });
+ document.getElementById('tab-btn-tiradores')?.addEventListener('click', () => { activeMainTab = 'tiradores'; switchTab('tiradores'); updateTabStyles(); renderRosterSubViews(); });
+ document.getElementById('tab-btn-series')?.addEventListener('click', () => { activeMainTab = 'series'; switchTab('series'); updateTabStyles(); renderSeriesSubView(); });
  document.getElementById('tab-btn-posiciones')?.addEventListener('click', () => { activeMainTab = 'posiciones'; switchTab('posiciones'); updateTabStyles(); renderSubStandings(); });
 
  // ── Sub-view renders ──
@@ -309,6 +309,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   await handleSeedParticipants(id, participants, findFirstFreeSpot, async () => {
    await refreshData();
    renderRosterSubViews();
+   renderSeriesSubView();
    const tabBtn = document.getElementById('tab-btn-tiradores');
    if (tabBtn) tabBtn.textContent = 'Sorteo (' + participants.length + '/32)';
    const ss = document.getElementById('btn-seed-scores') as HTMLButtonElement;
@@ -345,6 +346,7 @@ export async function renderEvent(eventId: string): Promise<void> {
     const g: Record<number, Participant[]> = {};
     for (const p of listS1) { if (p.tanda) { if (!g[p.tanda]) g[p.tanda] = []; g[p.tanda].push(p); } }
     for (const t in g) { const spots = [1,2,3,4].slice(0, g[t].length); for (let i = spots.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [spots[i],spots[j]] = [spots[j],spots[i]]; } g[t].forEach((p,idx) => { p.tandaS2 = Number(t); p.spotS2 = spots[idx] as 1|2|3|4; }); }
+    if (mConfig.useFamilyRules) applySpecialFamilySeedingRulesS2(listS1);
    }
    for (const p of list) { const p1 = listS1.find(x => x.id === p.id); if (p1) { p.tanda = p1.tanda; p.spot = p1.spot; p.tandaS2 = p1.tandaS2; p.spotS2 = p1.spotS2; } p.sector = undefined; }
    let nextNum = list.length + 1;
@@ -354,6 +356,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    showToast('Sorteo completado!', 'success');
    await refreshData();
    renderRosterSubViews();
+   renderSeriesSubView();
    updateTabStyles();
   } catch (err) { console.error('[DB] Error sorteo:', err); showToast('Error al guardar sorteo.', 'error'); }
  });
@@ -361,11 +364,11 @@ export async function renderEvent(eventId: string): Promise<void> {
  // ── Handler: reorder heats ──
  document.getElementById('btn-reorder-heats')?.addEventListener('click', async () => {
   if (participants.length === 0) { showToast('No hay competidores.', 'error'); return; }
-  await showManualHeatsReorderModal(id, async () => { await refreshData(); renderRosterSubViews(); }, 1, isCF);
+  await showManualHeatsReorderModal(id, async () => { await refreshData(); renderRosterSubViews(); renderSeriesSubView(); }, 1, isCF);
  });
  document.getElementById('btn-reorder-heats-s2')?.addEventListener('click', async () => {
   if (participants.length === 0) { showToast('No hay competidores.', 'error'); return; }
-  await showManualHeatsReorderModal(id, async () => { await refreshData(); renderRosterSubViews(); }, 2);
+  await showManualHeatsReorderModal(id, async () => { await refreshData(); renderRosterSubViews(); renderSeriesSubView(); }, 2);
  });
 
  // ── Handler: undo sorteo ──
@@ -381,6 +384,8 @@ export async function renderEvent(eventId: string): Promise<void> {
    showToast('Sorteo deshecho.', 'info');
    await refreshData();
    renderRosterSubViews();
+   renderSeriesSubView();
+   updateTabStyles();
   });
  }
 
