@@ -6,7 +6,7 @@
 import { db } from './db';
 import type { Participant } from './types';
 import { esc, showToast, showConfirm } from './modals';
-import { applySpecialFamilySeedingRules, applySharedRifleRules } from './heatsRules';
+import { applySharedRifleRules } from './heatsRules';
 
 /**
  * Deshacer/limpiar el sorteo de tandas de todos los competidores de un evento.
@@ -218,7 +218,6 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
     let vp = [...workingParticipants];
     if (seriesNum === 1) {
-      vp = applySpecialFamilySeedingRules(vp);
       vp = applySharedRifleRules(vp);
       const groups: Record<number, typeof vp> = {};
       for (const p of vp) { if (p.tanda) { if (!groups[p.tanda]) groups[p.tanda]=[]; groups[p.tanda].push(p); } }
