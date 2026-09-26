@@ -6,7 +6,6 @@
 import { db } from './db';
 import type { Participant } from './types';
 import { esc, showToast, showConfirm } from './modals';
-import { applySharedRifleRules } from './heatsRules';
 
 /**
  * Deshacer/limpiar el sorteo de tandas de todos los competidores de un evento.
@@ -123,6 +122,23 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       <button id="btn-save-heats" class="btn-primary-custom" style="padding:8px 20px;background:#0056b3;color:#ffffff;border-radius:8px;font-weight:bold;">Guardar Nuevo Orden</button>
     </div>`;
 
+  const normalizeSpots = () => {
+    const heatsMap = new Map<number, typeof workingParticipants>();
+    workingParticipants.forEach(p => {
+      const t = (seriesNum === 1 ? p.tanda : p.tandaS2) || 0;
+      if (!heatsMap.has(t)) heatsMap.set(t, []);
+      heatsMap.get(t)!.push(p);
+    });
+    for (const [t, group] of heatsMap.entries()) {
+      if (t === 0) continue;
+      group.sort((a, b) => ((seriesNum === 1 ? a.spot : a.spotS2) ?? 99) - ((seriesNum === 1 ? b.spot : b.spotS2) ?? 99));
+      group.forEach((p, idx) => {
+        if (seriesNum === 1) p.spot = (idx + 1) as 1 | 2 | 3 | 4;
+        else p.spotS2 = (idx + 1) as 1 | 2 | 3 | 4;
+      });
+    }
+  };
+
   const renderList = () => {
     const scrollBody = modalBox.querySelector('#modal-scroll-body');
     if (!scrollBody) return;
@@ -132,15 +148,15 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
       if (tA !== tB) return tA - tB;
       return ((seriesNum === 1 ? a.spot : a.spotS2) ?? 999) - ((seriesNum === 1 ? b.spot : b.spotS2) ?? 999);
     });
-    const heatsMap = new Map();
+    const heatsMap = new Map<number, typeof workingParticipants>();
     workingParticipants.forEach(p => {
       const t = (seriesNum === 1 ? p.tanda : p.tandaS2) || 0;
       if (!heatsMap.has(t)) heatsMap.set(t, []);
-      heatsMap.get(t).push(p);
+      heatsMap.get(t)!.push(p);
     });
     const sortedTandas = Array.from(heatsMap.keys()).sort((a, b) => a - b);
     scrollBody.innerHTML = sortedTandas.map(tandaNum => {
-      const group = heatsMap.get(tandaNum);
+      const group = heatsMap.get(tandaNum)!;
       const title = tandaNum === 0 ? '⚠️ Sin Tanda' : `Tanda ${tandaNum}`;
       return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:14px;">
         <div style="font-size:0.95rem;font-weight:800;color:#0056b3;font-family:'Orbitron',sans-serif;margin-bottom:10px;display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;">
@@ -163,8 +179,8 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
               </div>
               <div style="display:flex;gap:4px;align-items:center;">
                 <span style="font-size:0.75rem;font-weight:700;color:#475569;margin-left:4px;">Mesa:</span>
-                <button class="btn-arrow-up" data-p-id="${p.id}" data-tanda="${tandaNum}" data-spot="${pSpot}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;" ${gIdx===0||!pSpot?'disabled':''}>▲</button>
-                <button class="btn-arrow-down" data-p-id="${p.id}" data-tanda="${tandaNum}" data-spot="${pSpot}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;" ${gIdx===group.length-1||!pSpot?'disabled':''}>▼</button>
+                <button class="btn-arrow-up" data-p-id="${p.id}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;" ${gIdx===0?'disabled':''}>▲</button>
+                <button class="btn-arrow-down" data-p-id="${p.id}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;width:30px;height:30px;cursor:pointer;font-weight:bold;font-size:0.85rem;" ${gIdx===group.length-1?'disabled':''}>▼</button>
               </div>
             </div>
           </div>`;
@@ -177,36 +193,70 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
         const newTanda = Number((e.currentTarget as HTMLSelectElement).value);
         const target = workingParticipants.find(p => p.id === pId);
         if (!target) return;
-        const occupied = new Set();
-        workingParticipants.forEach(p => { if (p.id !== pId && (seriesNum===1?p.tanda:p.tandaS2)===newTanda) { const s=seriesNum===1?p.spot:p.spotS2; if(s) occupied.add(s); } });
-        let nextSpot = 1;
-        for (let s=1; s<=4; s++) { if (!occupied.has(s)) { nextSpot=s; break; } }
-        if (seriesNum===1) { target.tanda=newTanda; target.spot=nextSpot as 1|2|3|4; } else { target.tandaS2=newTanda; target.spotS2=nextSpot as 1|2|3|4; }
+        const currentTanda = (seriesNum === 1 ? target.tanda : target.tandaS2) || 0;
+        if (newTanda === currentTanda) return;
+
+        const targetTandaShooters = workingParticipants.filter(p => p.id !== pId && (seriesNum === 1 ? p.tanda : p.tandaS2) === newTanda);
+        if (targetTandaShooters.length >= 4) {
+          showToast(`La Tanda ${newTanda} ya tiene 4 tiradores (máximo 4 mesas).`, 'error');
+          renderList();
+          return;
+        }
+
+        if (seriesNum === 1) {
+          target.tanda = newTanda;
+          target.spot = (targetTandaShooters.length + 1) as 1 | 2 | 3 | 4;
+        } else {
+          target.tandaS2 = newTanda;
+          target.spotS2 = (targetTandaShooters.length + 1) as 1 | 2 | 3 | 4;
+        }
+
+        normalizeSpots();
         renderList();
       });
     });
+
     scrollBody.querySelectorAll('.btn-arrow-up').forEach(btn => {
       btn.addEventListener('click', e => {
         const pId = Number((e.currentTarget as HTMLButtonElement).dataset.pId);
-        const cur = workingParticipants.find(p => p.id===pId);
+        const cur = workingParticipants.find(p => p.id === pId);
         if (!cur) return;
-        const ct = seriesNum===1?cur.tanda:cur.tandaS2, cs=seriesNum===1?cur.spot:cur.spotS2;
-        if (!cs||cs===1) return;
-        const prev = workingParticipants.find(p=>(seriesNum===1?p.tanda:p.tandaS2)===ct&&Number(seriesNum===1?p.spot:p.spotS2)===cs-1);
-        if (seriesNum===1){cur.spot=(cs-1) as 1|2|3|4;if(prev)prev.spot=cs as 1|2|3|4;}else{cur.spotS2=(cs-1) as 1|2|3|4;if(prev)prev.spotS2=cs as 1|2|3|4;}
-        renderList();
+        const t = (seriesNum === 1 ? cur.tanda : cur.tandaS2) || 0;
+        const group = workingParticipants.filter(p => (seriesNum === 1 ? p.tanda : p.tandaS2) === t);
+        group.sort((a, b) => ((seriesNum === 1 ? a.spot : a.spotS2) ?? 99) - ((seriesNum === 1 ? b.spot : b.spotS2) ?? 99));
+        const idx = group.findIndex(p => p.id === pId);
+        if (idx > 0) {
+          const prev = group[idx - 1];
+          if (seriesNum === 1) {
+            const temp = cur.spot; cur.spot = prev.spot; prev.spot = temp;
+          } else {
+            const temp = cur.spotS2; cur.spotS2 = prev.spotS2; prev.spotS2 = temp;
+          }
+          normalizeSpots();
+          renderList();
+        }
       });
     });
+
     scrollBody.querySelectorAll('.btn-arrow-down').forEach(btn => {
       btn.addEventListener('click', e => {
         const pId = Number((e.currentTarget as HTMLButtonElement).dataset.pId);
-        const cur = workingParticipants.find(p => p.id===pId);
+        const cur = workingParticipants.find(p => p.id === pId);
         if (!cur) return;
-        const ct = seriesNum===1?cur.tanda:cur.tandaS2, cs=seriesNum===1?cur.spot:cur.spotS2;
-        if (!cs||cs===4) return;
-        const nxt = workingParticipants.find(p=>(seriesNum===1?p.tanda:p.tandaS2)===ct&&Number(seriesNum===1?p.spot:p.spotS2)===cs+1);
-        if (seriesNum===1){cur.spot=(cs+1) as 1|2|3|4;if(nxt)nxt.spot=cs as 1|2|3|4;}else{cur.spotS2=(cs+1) as 1|2|3|4;if(nxt)nxt.spotS2=cs as 1|2|3|4;}
-        renderList();
+        const t = (seriesNum === 1 ? cur.tanda : cur.tandaS2) || 0;
+        const group = workingParticipants.filter(p => (seriesNum === 1 ? p.tanda : p.tandaS2) === t);
+        group.sort((a, b) => ((seriesNum === 1 ? a.spot : a.spotS2) ?? 99) - ((seriesNum === 1 ? b.spot : b.spotS2) ?? 99));
+        const idx = group.findIndex(p => p.id === pId);
+        if (idx >= 0 && idx < group.length - 1) {
+          const next = group[idx + 1];
+          if (seriesNum === 1) {
+            const temp = cur.spot; cur.spot = next.spot; next.spot = temp;
+          } else {
+            const temp = cur.spotS2; cur.spotS2 = next.spotS2; next.spotS2 = temp;
+          }
+          normalizeSpots();
+          renderList();
+        }
       });
     });
   };
@@ -217,14 +267,15 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
 
   modalBox.querySelector('#btn-save-heats')?.addEventListener('click', async () => {
     let vp = [...workingParticipants];
+    normalizeSpots();
+
     if (seriesNum === 1) {
-      vp = applySharedRifleRules(vp);
       const groups: Record<number, typeof vp> = {};
       for (const p of vp) { if (p.tanda) { if (!groups[p.tanda]) groups[p.tanda]=[]; groups[p.tanda].push(p); } }
       for (const tStr in groups) {
         const t = Number(tStr), group = groups[t];
         group.forEach(p => { p.tandaS2 = t; });
-        const as2 = new Set(), us2: typeof vp = [];
+        const as2 = new Set<number>(), us2: typeof vp = [];
         group.forEach(p => { const ts=p.spotS2; if(ts&&ts>=1&&ts<=4&&!as2.has(ts)){as2.add(ts);p.spotS2=ts;}else{us2.push(p);} });
         const avail=[1,2,3,4].filter(s=>!as2.has(s));
         for(let i=avail.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[avail[i],avail[j]]=[avail[j],avail[i]];}
@@ -241,5 +292,7 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
   });
 
   backdrop.appendChild(modalBox); document.body.appendChild(backdrop);
-  void backdrop.offsetWidth; backdrop.classList.add('is-open'); renderList();
+  void backdrop.offsetWidth; backdrop.classList.add('is-open');
+  normalizeSpots();
+  renderList();
 }

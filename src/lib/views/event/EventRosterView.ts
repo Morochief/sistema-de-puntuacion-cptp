@@ -211,7 +211,14 @@ export function renderListaInscritos(
       if (!p) return;
       if (!await showConfirm('Eliminar Inscripcion', `Eliminar la inscripcion de ${esc(p.name)}? Se perderan sus series.`)) return;
       try {
-        await db.participants.update(pid, { is_deleted: true });
+        await db.participants.update(pid, {
+          is_deleted: true,
+          tanda: undefined,
+          spot: undefined,
+          tandaS2: undefined,
+          spotS2: undefined,
+          sector: undefined
+        });
         await db.series.where('participantId').equals(pid).modify({ is_deleted: true });
         const restantes = await db.participants.where('eventId').equals(eventId).filter((item: any) => !item.is_deleted).toArray();
         restantes.sort((a, b) => a.competitorNumber - b.competitorNumber);
@@ -219,8 +226,7 @@ export function renderListaInscritos(
           if (restantes[i].competitorNumber !== i + 1) await db.participants.update(restantes[i].id!, { competitorNumber: i + 1 });
         }
         showToast('Inscripcion eliminada. Tiradores reordenados.', 'info');
-        await callbacks.onRefreshData();
-        callbacks.updateTabCounter(restantes.length);
+        await callbacks.onRefresh();
       } catch (err) {
         console.error('[DB] Error eliminando inscripcion:', err);
         showToast('Error al eliminar la inscripcion', 'error');
