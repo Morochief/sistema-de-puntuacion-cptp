@@ -5,7 +5,7 @@ import { esc } from '../modals';
 import { exportChampionshipToExcel, printChampionshipPreview } from '../printChampionship';
 import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
 
-let currentSortBy: 'baseFirme' | 'totalActual' = 'totalActual';
+let currentSortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual';
 let selectedModality: Modality = '.22 LR';
 
 // Estado global de Simulación Multi-Tirador (100% en memoria)
@@ -70,7 +70,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               Campeonato General Anual - ${mConfig.shortLabel}
             </h3>
             <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b;font-weight:600;">
-              Se suman los 3 mejores puntajes de todos los eventos del año. El Top 2 compone la "Base Firme".
+              Se toman los 3 mejores puntajes para el Total Actual, Top 2 para Base Firme, y se incluye la columna de los Mejores 4 puntajes.
             </p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -319,14 +319,19 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           </td>
           ${cellsHtml}
           ${simCellHtml}
-          <td style="padding:10px 4px;text-align:center;width:85px;background:${currentSortBy === 'baseFirme' ? '#f0fdf4' : 'transparent'};">
+          <td style="padding:10px 4px;text-align:center;width:80px;background:${currentSortBy === 'baseFirme' ? '#f0fdf4' : 'transparent'};">
             <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:${currentSortBy === 'baseFirme' ? '#16a34a' : '#64748b'};">
               ${row.baseFirme}
             </span>
           </td>
-          <td style="padding:10px 4px;text-align:center;width:85px;background:${currentSortBy === 'totalActual' ? '#eff6ff' : 'transparent'};">
+          <td style="padding:10px 4px;text-align:center;width:80px;background:${currentSortBy === 'totalActual' ? '#eff6ff' : 'transparent'};">
             <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:900;color:${currentSortBy === 'totalActual' ? '#0056b3' : '#64748b'};">
               ${row.totalActual}
+            </span>
+          </td>
+          <td style="padding:10px 4px;text-align:center;width:80px;background:${currentSortBy === 'mejores4' ? '#f5f3ff' : 'transparent'};">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:${currentSortBy === 'mejores4' ? '#6366f1' : '#64748b'};">
+              ${row.mejores4}
             </span>
           </td>
         </tr>
@@ -344,7 +349,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               ${simHeaderHtml}
               
               <!-- CABECERAS ORDENABLES -->
-              <th id="th-sort-base" style="padding:10px 4px;text-align:center;color:#16a34a;width:85px;cursor:pointer;background:${currentSortBy === 'baseFirme' ? '#dcfce7' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Base Firme">
+              <th id="th-sort-base" style="padding:10px 4px;text-align:center;color:#16a34a;width:80px;cursor:pointer;background:${currentSortBy === 'baseFirme' ? '#dcfce7' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Base Firme">
                 <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
                   Base Firme
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'baseFirme' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
@@ -352,12 +357,20 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                 <div style="font-size:0.6rem;color:#15803d;font-weight:600;margin-top:2px;">(Mejores 2)</div>
               </th>
               
-              <th id="th-sort-total" style="padding:10px 4px;text-align:center;color:#0056b3;width:85px;cursor:pointer;background:${currentSortBy === 'totalActual' ? '#dbeafe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Total Actual">
+              <th id="th-sort-total" style="padding:10px 4px;text-align:center;color:#0056b3;width:80px;cursor:pointer;background:${currentSortBy === 'totalActual' ? '#dbeafe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Total Actual">
                 <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
                   Total
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'totalActual' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
                 <div style="font-size:0.6rem;color:#0369a1;font-weight:600;margin-top:2px;">(Mejores 3)</div>
+              </th>
+
+              <th id="th-sort-mejores4" style="padding:10px 4px;text-align:center;color:#6366f1;width:80px;cursor:pointer;background:${currentSortBy === 'mejores4' ? '#ede9fe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Mejores 4">
+                <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
+                  Mejores 4
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'mejores4' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+                </div>
+                <div style="font-size:0.6rem;color:#4f46e5;font-weight:600;margin-top:2px;">(Top 4)</div>
               </th>
             </tr>
           </thead>
@@ -398,6 +411,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     document.getElementById('th-sort-total')?.addEventListener('click', () => {
       if (currentSortBy !== 'totalActual') {
         currentSortBy = 'totalActual';
+        loadAndDraw();
+      }
+    });
+    document.getElementById('th-sort-mejores4')?.addEventListener('click', () => {
+      if (currentSortBy !== 'mejores4') {
+        currentSortBy = 'mejores4';
         loadAndDraw();
       }
     });

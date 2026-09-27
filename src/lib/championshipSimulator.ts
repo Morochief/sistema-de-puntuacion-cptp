@@ -48,7 +48,7 @@ export function getMaxEventScore(modality: Modality, withBonus: boolean = true):
 export function simulateChampionshipRankings(
   originalRankings: ChampionshipRankingRow[],
   simulations: Map<string, { eventId: number; score: number }[]>, // competitorName -> lista de puntajes simulados por evento
-  sortBy: 'baseFirme' | 'totalActual' = 'totalActual'
+  sortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual'
 ): SimulatedChampionshipRow[] {
   // 1. Guardar ranking original ordenado
   const sortedOriginal = sortChampionshipRanking(originalRankings, sortBy);
@@ -102,12 +102,14 @@ export function simulateChampionshipRankings(
 
     const baseFirme = (validScoresList[0]?.score || 0) + (validScoresList[1]?.score || 0);
     const totalActual = baseFirme + (validScoresList[2]?.score || 0);
+    const mejores4 = totalActual + (validScoresList[3]?.score || 0);
 
     return {
       ...row,
       events: newEvents,
       baseFirme,
-      totalActual
+      totalActual,
+      mejores4
     };
   });
 
@@ -139,7 +141,7 @@ export function calculatePodiumRequirements(
   competitorName: string,
   rankings: ChampionshipRankingRow[],
   modality: Modality,
-  sortBy: 'baseFirme' | 'totalActual' = 'totalActual'
+  sortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual'
 ): PodiumRequirement[] {
   const sorted = sortChampionshipRanking(rankings, sortBy);
   const compRow = sorted.find(r => r.competitorName === competitorName);

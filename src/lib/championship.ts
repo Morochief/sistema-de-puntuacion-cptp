@@ -24,6 +24,7 @@ export interface ChampionshipRankingRow {
   events: Record<number, ChampionshipScore | null>; 
   totalActual: number; // Suma de los 3 mejores
   baseFirme: number;   // Suma de los 2 mejores
+  mejores4: number;    // Suma de los 4 mejores
   tieRank?: number;    // Posición táctica manual en caso de empate general
 }
 
@@ -86,6 +87,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
       events: {},
       totalActual: 0,
       baseFirme: 0,
+      mejores4: 0,
       tieRank
     };
 
@@ -115,6 +117,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
     const sortedScores = [...scoresList].sort((a, b) => b.score - a.score);
     let totalActual = 0;
     let baseFirme = 0;
+    let mejores4 = 0;
 
     const totalEvents = yearEvents.length;
 
@@ -127,6 +130,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
 
       if (isBaseFirme) baseFirme += s.score;
       if (isTaken) totalActual += s.score;
+      if (i < 4) mejores4 += s.score;
 
       if (row.events[s.eventId] !== null) {
          row.events[s.eventId] = {
@@ -143,6 +147,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
 
     row.totalActual = totalActual;
     row.baseFirme = baseFirme;
+    row.mejores4 = mejores4;
     rankings.push(row);
   }
 
@@ -151,7 +156,7 @@ export async function getChampionshipData(year: number, modality: Modality = '.2
 
 export function sortChampionshipRanking(
   rankings: ChampionshipRankingRow[],
-  sortBy: 'baseFirme' | 'totalActual' = 'totalActual'
+  sortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual'
 ): ChampionshipRankingRow[] {
   return [...rankings].sort((a, b) => {
     // 1. Criterio Primario
@@ -162,6 +167,9 @@ export function sortChampionshipRanking(
     const secondarySort = sortBy === 'totalActual' ? 'baseFirme' : 'totalActual';
     if (a[secondarySort] !== b[secondarySort]) {
       return b[secondarySort] - a[secondarySort];
+    }
+    if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) {
+      return b.baseFirme - a.baseFirme;
     }
     // 3. Desempate táctico manual (MasterCompetitors)
     const rankA = a.tieRank ?? 999;

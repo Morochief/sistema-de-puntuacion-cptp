@@ -22,6 +22,7 @@ export function exportChampionshipToExcel(
     }
     headers.push('Base Firme (Mejores 2)');
     headers.push('Total (Mejores 3)');
+    headers.push('Mejores 4 (Top 4)');
 
     csv += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(';') + '\n';
 
@@ -59,6 +60,7 @@ export function exportChampionshipToExcel(
 
       line.push(String(r.baseFirme));
       line.push(String(r.totalActual));
+      line.push(String(r.mejores4));
       csv += line.map(c => `"${c.replace(/"/g, '""')}"`).join(';') + '\n';
     });
 
@@ -82,7 +84,7 @@ export function printChampionshipPreview(
   sortedBy: string
 ): void {
   const tableHeadersHtml = events.map((e, idx) => `
-    <th style="border:1px solid #000000;padding:6px;text-align:center;font-size:10px;width:11%;">
+    <th style="border:1px solid #000000;padding:6px;text-align:center;font-size:10px;width:10%;">
       E${idx + 1}<br>
       <span style="font-size:8px;font-weight:normal;color:#333;">${esc(e.championshipDate || e.name)}</span>
     </th>
@@ -90,13 +92,15 @@ export function printChampionshipPreview(
 
   const targetColumns = Math.max(4, events.length);
   const emptyHeadersHtml = Array.from({ length: targetColumns - events.length }, (_, i) => `
-    <th style="border:1px solid #000000;padding:6px;text-align:center;font-size:10px;color:#666;width:11%;">
+    <th style="border:1px solid #000000;padding:6px;text-align:center;font-size:10px;color:#666;width:10%;">
       E${events.length + i + 1}<br>
       <span style="font-size:8px;font-weight:normal;">(Pendiente)</span>
     </th>
   `).join('');
 
   const isSortedByBase = sortedBy === 'baseFirme';
+  const isSortedByMejores4 = sortedBy === 'mejores4';
+  const isSortedByTotal = sortedBy === 'totalActual' || (!isSortedByBase && !isSortedByMejores4);
 
   const tableRowsHtml = rows.map((r, rankIdx) => {
     const pos = rankIdx + 1;
@@ -143,8 +147,11 @@ export function printChampionshipPreview(
         <td style="border:1px solid #000000;padding:6px;text-align:center;font-weight:bold;font-size:12px;${isSortedByBase ? 'background:#dcfce7;color:#16a34a;' : 'color:#555;'}">
           ${r.baseFirme}
         </td>
-        <td style="border:1px solid #000000;padding:6px;text-align:center;font-weight:bold;font-size:13px;${!isSortedByBase ? 'background:#eff6ff;color:#0056b3;' : 'color:#555;'}">
+        <td style="border:1px solid #000000;padding:6px;text-align:center;font-weight:bold;font-size:13px;${isSortedByTotal ? 'background:#eff6ff;color:#0056b3;' : 'color:#555;'}">
           ${r.totalActual}
+        </td>
+        <td style="border:1px solid #000000;padding:6px;text-align:center;font-weight:bold;font-size:12px;${isSortedByMejores4 ? 'background:#ede9fe;color:#4f46e5;' : 'color:#555;'}">
+          ${r.mejores4}
         </td>
       </tr>
     `;
@@ -184,7 +191,7 @@ export function printChampionshipPreview(
         <div>
           <span class="sub-title">Club Paraguayo de Tiro de Long Range</span>
           <h1 class="title-main">RANKING CAMPEONATO GENERAL ANUAL - ${modality}</h1>
-          <span style="font-size:11px;color:#333;font-weight:bold;">PLANILLA OFICIAL ACUMULADA (Orden: ${isSortedByBase ? 'BASE FIRME' : 'TOTAL'})</span>
+          <span style="font-size:11px;color:#333;font-weight:bold;">PLANILLA OFICIAL ACUMULADA (Orden: ${isSortedByBase ? 'BASE FIRME' : isSortedByMejores4 ? 'MEJORES 4' : 'TOTAL'})</span>
         </div>
         <div class="date-info">
           <div class="year-txt">${year}</div>
@@ -193,20 +200,22 @@ export function printChampionshipPreview(
       </header>
       
       <div style="font-size:9px;color:#444;margin-bottom:10px;">
-        <strong>Regla:</strong> Se toman los mejores 3 puntajes (del total de fechas). 
+        <strong>Regla:</strong> Total Actual toma los 3 mejores puntajes. 
         <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Base Firme: Mejores 2</span> 
-        <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje (Se descarta si en la última fecha saca algo mejor)</span>
+        <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje</span>
+        <span style="background:#ede9fe;color:#4f46e5;padding:2px 4px;font-weight:bold;">Mejores 4: Suma Top 4</span>
       </div>
 
       <table class="data-table">
         <thead>
           <tr>
-            <th style="width:6%;text-align:center;">Pos</th>
+            <th style="width:5%;text-align:center;">Pos</th>
             <th style="text-align:left;">Tirador / Categoría</th>
             ${tableHeadersHtml}
             ${emptyHeadersHtml}
-            <th style="width:11%;text-align:center;${isSortedByBase ? 'background:#dcfce7;color:#16a34a;' : ''}">Base (Top 2)</th>
-            <th style="width:11%;text-align:center;${!isSortedByBase ? 'background:#dbeafe;color:#0056b3;' : ''}">Total (Top 3)</th>
+            <th style="width:9%;text-align:center;${isSortedByBase ? 'background:#dcfce7;color:#16a34a;' : ''}">Base (Top 2)</th>
+            <th style="width:10%;text-align:center;${isSortedByTotal ? 'background:#dbeafe;color:#0056b3;' : ''}">Total (Top 3)</th>
+            <th style="width:10%;text-align:center;${isSortedByMejores4 ? 'background:#ede9fe;color:#4f46e5;' : ''}">Mejores 4</th>
           </tr>
         </thead>
         <tbody>
