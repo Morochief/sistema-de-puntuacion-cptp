@@ -20,9 +20,9 @@ export function exportChampionshipToExcel(
     for (let i = events.length; i < targetColumns; i++) {
       headers.push(`Evento ${i + 1} (Pendiente)`);
     }
-    headers.push('Base Firme (Mejores 2)');
-    headers.push('Total (Mejores 3)');
-    headers.push('Mejores 4 (Top 4)');
+    headers.push('Top 2');
+    headers.push('Top 3');
+    headers.push('Top Gun');
 
     csv += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(';') + '\n';
 
@@ -191,7 +191,7 @@ export function printChampionshipPreview(
         <div>
           <span class="sub-title">Club Paraguayo de Tiro de Long Range</span>
           <h1 class="title-main">RANKING CAMPEONATO GENERAL ANUAL - ${modality}</h1>
-          <span style="font-size:11px;color:#333;font-weight:bold;">PLANILLA OFICIAL ACUMULADA (Orden: ${isSortedByBase ? 'BASE FIRME' : isSortedByMejores4 ? 'MEJORES 4' : 'TOTAL'})</span>
+          <span style="font-size:11px;color:#333;font-weight:bold;">PLANILLA OFICIAL ACUMULADA (Orden: ${isSortedByBase ? 'TOP 2' : isSortedByMejores4 ? 'TOP GUN' : 'TOP 3'})</span>
         </div>
         <div class="date-info">
           <div class="year-txt">${year}</div>
@@ -200,10 +200,10 @@ export function printChampionshipPreview(
       </header>
       
       <div style="font-size:9px;color:#444;margin-bottom:10px;">
-        <strong>Regla:</strong> Total Actual toma los 3 mejores puntajes. 
-        <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Base Firme: Mejores 2</span> 
+        <strong>Regla:</strong> Top 3 toma los 3 mejores puntajes. 
+        <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Top 2: Mejores 2 (Base Firme)</span> 
         <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje</span>
-        <span style="background:#ede9fe;color:#4f46e5;padding:2px 4px;font-weight:bold;">Mejores 4: Suma Top 4</span>
+        <span style="background:#ede9fe;color:#4f46e5;padding:2px 4px;font-weight:bold;">Top Gun: Suma de los Mejores 4</span>
       </div>
 
       <table class="data-table">
@@ -213,9 +213,9 @@ export function printChampionshipPreview(
             <th style="text-align:left;">Tirador / Categoría</th>
             ${tableHeadersHtml}
             ${emptyHeadersHtml}
-            <th style="width:9%;text-align:center;${isSortedByBase ? 'background:#dcfce7;color:#16a34a;' : ''}">Base (Top 2)</th>
-            <th style="width:10%;text-align:center;${isSortedByTotal ? 'background:#dbeafe;color:#0056b3;' : ''}">Total (Top 3)</th>
-            <th style="width:10%;text-align:center;${isSortedByMejores4 ? 'background:#ede9fe;color:#4f46e5;' : ''}">Mejores 4</th>
+            <th style="width:9%;text-align:center;${isSortedByBase ? 'background:#dcfce7;color:#16a34a;' : ''}">Top 2</th>
+            <th style="width:10%;text-align:center;${isSortedByTotal ? 'background:#dbeafe;color:#0056b3;' : ''}">Top 3</th>
+            <th style="width:10%;text-align:center;${isSortedByMejores4 ? 'background:#ede9fe;color:#4f46e5;' : ''}">Top Gun</th>
           </tr>
         </thead>
         <tbody>
