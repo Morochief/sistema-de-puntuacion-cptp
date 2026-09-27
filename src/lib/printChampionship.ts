@@ -201,7 +201,7 @@ export function printChampionshipPreview(
       
       <div style="font-size:9px;color:#444;margin-bottom:10px;">
         <strong>Regla:</strong> Top 3 toma los 3 mejores puntajes. 
-        <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Top 2: Mejores 2 (Base Firme)</span> 
+        <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Top 2: Mejores 2</span> 
         <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje</span>
         <span style="background:#ede9fe;color:#4f46e5;padding:2px 4px;font-weight:bold;">Top Gun: Suma de los Mejores 4</span>
       </div>

@@ -70,7 +70,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               Campeonato General Anual - ${mConfig.shortLabel}
             </h3>
             <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b;font-weight:600;">
-              Se totalizan las columnas: Top 2 (Base Firme), Top 3 (Total Actual) y Top Gun (Mejores 4).
+              Clasificación anual acumulada: Top 2, Top 3 y Top Gun.
             </p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -354,7 +354,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                   Top 2
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'baseFirme' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
-                <div style="font-size:0.6rem;color:#15803d;font-weight:600;margin-top:2px;">(Base Firme)</div>
               </th>
               
               <th id="th-sort-total" style="padding:10px 4px;text-align:center;color:#0056b3;width:80px;cursor:pointer;background:${currentSortBy === 'totalActual' ? '#dbeafe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Top 3">
@@ -362,7 +361,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                   Top 3
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'totalActual' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
-                <div style="font-size:0.6rem;color:#0369a1;font-weight:600;margin-top:2px;">(Total)</div>
               </th>
 
               <th id="th-sort-mejores4" style="padding:10px 4px;text-align:center;color:#6366f1;width:80px;cursor:pointer;background:${currentSortBy === 'mejores4' ? '#ede9fe' : 'transparent'};transition: background 0.2s;" title="Clic para ordenar por Top Gun">
@@ -370,7 +368,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                   Top Gun
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="opacity:${currentSortBy === 'mejores4' ? '1' : '0.3'};"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 </div>
-                <div style="font-size:0.6rem;color:#4f46e5;font-weight:600;margin-top:2px;">(Mejores 4)</div>
               </th>
             </tr>
           </thead>
