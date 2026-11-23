@@ -65,6 +65,19 @@ Campeonato General. Rama: `fix/campeonato-general`.
   4. Final: la vista Top 6 muestra 6 filas y no tiene la leyenda de fiscalización. Los dos logos cargan, el PNG `Campeonato_22LR_2026_Top6.png` se descarga bien y el CSV `Campeonato_22LR_2026_Top6.csv` trae el título con el calibre más 6 filas. La impresión completa tampoco tiene la leyenda. El PDF generado conserva los colores. No hubo errores en la consola.
 - **Build y tests:** `npm run build` OK, `npm test` 12/12.
 
+## Ciclo 6: ordenar a mano los empates (pedido de Kevin: en .308 el que iba primero quedó segundo)
+
+- **Diagnóstico:** el desempate manual existía en el código (`championshipTieRank` en el Padrón Maestro, usado como 3er criterio de orden), pero **no había ninguna pantalla para cargarlo**. Ni el Padrón ni el módulo permitían editarlo, así que todos quedaban en 999 y los empates exactos se resolvían por orden alfabético. No era algo propio de .308: pasaba en todas las modalidades.
+- **Cambio:**
+  - `championshipCore.ts`: `detectChampionshipTies()` y `isChampionshipTie()` detectan los grupos empatados en todos los totales (con el criterio elegido, el otro total y Top 2 cuando se ordena por Top Gun) y con puntaje mayor a 0.
+  - Nuevo `championshipTieBreaker.ts`: modal **Resolver Empates** con ▲ ▼, igual al de los eventos. Al guardar asigna 1, 2, 3… a cada tirador del grupo en **todos** sus registros del Padrón con ese nombre (si no tiene registro, lo crea). El orden se sube a la nube con el sync normal (columna `championship_tie_rank` existente, sin cambios en la base).
+  - `ChampionshipView.ts`: botón **⚖️ Resolver Empates (n)** (solo staff/admin, oculto con el simulador abierto) y etiqueta **EMPATE** en las filas empatadas. Como el orden se aplica en `sortChampionshipRanking`, también se respeta en la impresión, el Top 6, la imagen y el Excel.
+- **Verificación:**
+  - Tests nuevos 13 y 14: detectar empates, que el orden manual decida y que se lea del Padrón. Resultado: `npm test` 14/14.
+  - Navegador, con un empate en .308 (Abel y Zoe con 170 en todos los totales): antes Abel salía 2° por orden alfabético. Después de Resolver Empates, Zoe queda 2° y Abel 3°. El orden se guarda en el Padrón (Zoe 1, Abel 2), se mantiene al recargar y se respeta en el Top 6 impreso y en el Excel. El botón queda oculto para espectadores y no hubo errores en la consola.
+  - `npm run build` OK.
+- **Límite conocido:** el número de desempate se guarda por tirador, no por año ni modalidad. Solo se usa cuando dos tiradores empatan en **todos** los totales, así que un conflicto entre modalidades exige que la misma pareja empate exacto en las dos (muy raro). Si pasa, alcanza con volver a usar Resolver Empates.
+
 ## Estructura final
 
 - `championship.ts`: solo lee Dexie y llama al core. Agrega `getChampionshipYears()`.

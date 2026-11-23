@@ -209,6 +209,7 @@ modalityConfig.ts ──────► types.ts
 championship.ts ────────► db.ts, championshipCore.ts
 championshipCore.ts ────► types.ts (pure, no DB/DOM)
 championshipSimulator.ts► championshipCore.ts, modalityConfig.ts
+championshipTieBreaker.ts► championshipCore.ts, db.ts, modals.ts
 heatsManager.ts ────────► db.ts, types.ts, modals.ts (barrel)
 heatsRules.ts ──────────► types.ts
 heatsReorder.ts ────────► db.ts, types.ts, modals.ts, heatsRules.ts
@@ -396,6 +397,7 @@ cptp-scoring/
 │       ├── championship.ts        # Annual championship data loading (Dexie)
 │       ├── championshipCore.ts    # Annual championship pure logic (Top 2 / Top 3 / Top Gun)
 │       ├── championshipSimulator.ts # Championship simulator + max score per modality
+│       ├── championshipTieBreaker.ts # "Resolver Empates" modal (manual order of exact ties)
 │       ├── masterCompetitors.ts   # Padron Maestro CRUD + management modal
 │       ├── tiebreaker.ts          # Manual tie resolution logic + modal
 │       ├── backup.ts              # JSON export/import of a full event

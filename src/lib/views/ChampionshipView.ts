@@ -4,6 +4,9 @@ import type { ShootingEvent, Modality } from '../types';
 import { esc } from '../modals';
 import { exportChampionshipToExcel, printChampionshipPreview, PRIZE_POSITIONS } from '../printChampionship';
 import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
+import { detectChampionshipTies } from '../championshipCore';
+import { showChampionshipTieBreakerModal } from '../championshipTieBreaker';
+import { updateUIRoles } from '../authManager';
 
 let currentSortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual';
 let selectedModality: Modality = '.22 LR';
@@ -17,6 +20,8 @@ let simulatedCompetitorsMap = new Map<string, number>();
 export async function renderChampionshipPanel(container: HTMLElement): Promise<void> {
   const currentYear = new Date().getFullYear();
   let selectedYear = currentYear;
+
+  let currentRankings: ChampionshipRankingRow[] = [];
 
   const loadAndDraw = async () => {
     container.innerHTML = `<div style="text-align:center;padding:32px;color:#64748b;font-size:0.9rem;">Cargando tabla de campeonato...</div>`;
@@ -62,6 +67,10 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           isSimulated: false
         }));
 
+    // Empates exactos (mismos totales): se pueden ordenar a mano con "Resolver Empates"
+    const tieGroups = detectChampionshipTies(rankings, currentSortBy);
+    const tiedNames = new Set(tieGroups.flatMap(g => g.rows.map(r => r.competitorName)));
+
     let html = `
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:24px;box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
@@ -100,6 +109,10 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               <button id="btn-excel-champ" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(34,197,94,0.35);color:#22c55e;cursor:pointer;" title="Exportar Excel">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:-2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Exportar
               </button>
+              ${tieGroups.length > 0 && !isSimulatorActive ? `
+              <button id="btn-champ-tiebreak" class="btn-ghost-custom staff-only" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(183,32,28,0.45);color:#b7201c;cursor:pointer;font-weight:700;" title="Ordenar a mano a los tiradores con puntajes iguales">
+                ⚖️ Resolver Empates (${tieGroups.length})
+              </button>` : ''}
               <button id="btn-print-top6" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(245,158,11,0.5);color:#b45309;cursor:pointer;font-weight:700;" title="Imprimir o descargar las ${PRIZE_POSITIONS} posiciones premiadas">
                 🏆 Top ${PRIZE_POSITIONS} Premiados
               </button>
@@ -326,6 +339,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           <td style="padding:10px 6px;">
             <div style="font-weight:700;color:#0f172a;font-size:0.9rem;text-transform:uppercase;display:flex;align-items:center;">
               ${esc(row.competitorName)}
+              ${tiedNames.has(row.competitorName) && !isSimulatorActive ? `<span style="font-size:0.6rem;font-weight:800;background:#fef2f2;color:#b91c1c;padding:1px 5px;border-radius:4px;margin-left:6px;" title="Empata con otro tirador en todos los totales. Usá 'Resolver Empates' para definir el orden.">EMPATE</span>` : ''}
               ${deltaBadge}
             </div>
             <div style="font-size:0.7rem;color:#64748b;font-weight:600;margin-top:2px;">${esc(row.category)}</div>
@@ -392,6 +406,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     </div>`;
 
     container.innerHTML = html;
+    currentRankings = rankings;
+    updateUIRoles();
     bindYearSelect();
     bindSorting();
     bindSimulatorControls(defaultMaxScore);
@@ -528,6 +544,11 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     document.getElementById('btn-print-champ')?.addEventListener('click', () => {
       printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy);
+    });
+
+    document.getElementById('btn-champ-tiebreak')?.addEventListener('click', () => {
+      const label = `${MODALITY_CONFIGS[selectedModality]?.shortLabel || selectedModality} · ${selectedYear}`;
+      showChampionshipTieBreakerModal(currentRankings, currentSortBy, label, () => { loadAndDraw(); });
     });
 
     document.getElementById('btn-print-top6')?.addEventListener('click', () => {

@@ -96,6 +96,7 @@ src/
     ├── championship.ts            # Campeonato: carga Dexie + delega en championshipCore
     ├── championshipCore.ts        # Campeonato: logica pura (Top 2/Top 3/Top Gun, En Riesgo, orden)
     ├── championshipSimulator.ts   # Simulador multirival + maximos por modalidad
+    ├── championshipTieBreaker.ts  # Modal "Resolver Empates" del campeonato (orden manual de empatados)
     ├── eventsManager.ts           # CRUD eventos + filtros + paginacion
     ├── heatsManager.ts            # Barrel de re-export (compatibilidad)
     ├── heatsRules.ts              # Reglas Dominguez + rifle compartido
@@ -301,6 +302,8 @@ Logica pura en `championshipCore.ts` (testeada con `npm test`); `championship.ts
 9. Categoria: la de la inscripcion mas reciente distinta de 'General', luego la del Padron
 
 **Ordenamiento:** criterio elegido (Top 3 / Top 2 / Top Gun) → el otro total → championshipTieRank manual → alfabetico
+
+**Resolver Empates** (`championshipTieBreaker.ts`, boton staff-only en el modulo): `detectChampionshipTies()` agrupa empates exactos (todos los totales iguales, puntaje > 0); el usuario ordena con ▲▼ y se guarda `championshipTieRank` = 1..n en todos los registros del Padron con ese nombre (sync via `championship_tie_rank`). Las filas empatadas muestran badge EMPATE.
 
 **Simulador:** recalcula con `applyPlacements()` sobre copias (no muta datos reales). Max por evento desde modalityConfig (.22 LR 134, .308/.223 96/87, Blackjack 147). Imprimir/Exportar usan SIEMPRE los datos reales, nunca los simulados.
 
