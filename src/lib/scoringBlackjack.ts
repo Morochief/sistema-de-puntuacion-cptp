@@ -1,7 +1,7 @@
 /**
  * scoringBlackjack.ts
  * 
- * Módulo puro de lógica matemática para la modalidad "21 Blackjack Challenge" (.22 LR - 200m).
+ * Módulo puro de lógica matemática para la modalidad "21 Blackjack Challenge" (.22 LR - 25/50 m).
  * 
  * Reglas:
  * - 12 disparos totales por serie.
@@ -116,13 +116,13 @@ export function getMaxPossibleRemainingBJ(nextShotNumber: number, currentPhase: 
  */
 export function getTargetLabelBJ(phase: BlackjackPhase): string {
   switch (phase) {
-    case '12"': return 'Blanco 12" (1 pt)';
-    case '10"': return 'Blanco 10" (2 pts)';
-    case '8"':  return 'Blanco 8" (3 pts)';
-    case '6"':  return 'Blanco 6" (4 pts)';
-    case '4"':  return 'Blanco 4" (5 pts)';
-    case '2"':  return 'Blanco 2" (6 pts - Blackjack)';
-    case '2" (bonus)': return '🎯 BONUS 2" (+21 pts)';
+    case '12"':  return 'Objetivo 1 – 6 cm (1 pt)';
+    case '10"':  return 'Objetivo 2 – 5 cm (2 pts)';
+    case '8"':   return 'Objetivo 3 – 4 cm (3 pts)';
+    case '6"':   return 'Objetivo 4 – 3 cm (4 pts)';
+    case '4"':   return 'Objetivo 5 – 2 cm (5 pts)';
+    case '2"':   return 'Objetivo 6 – 1 cm (6 pts - Blackjack)';
+    case '2" (bonus)': return '🎯 BlackJack adicional – 1 cm (+21 pts)';
     default:    return 'Fase Final';
   }
 }

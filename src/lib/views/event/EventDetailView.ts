@@ -146,7 +146,7 @@ export async function renderEvent(eventId: string): Promise<void> {
      <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button id="btn-padron-selector" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(0,86,179,0.35);color:#0056b3;" ${participants.length >= 32 ? 'disabled' : ''}>Padron Maestro</button>
       <button id="btn-seed-participants" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(59,130,246,0.25);">Importar Padron en Lote</button>
-      <button id="btn-seed-scores" class="btn-ghost-custom staff-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(34,197,94,0.25);color:#22c55e;" ${participants.length === 0 ? 'disabled' : ''}>Simular Resultados</button>
+      <button id="btn-seed-scores" class="btn-ghost-custom admin-only" style="font-size:0.68rem;padding:4px 8px;border-color:rgba(34,197,94,0.25);color:#22c55e;" ${participants.length === 0 ? 'disabled' : ''}>Simular Resultados</button>
      </div>
     </div>
    </div>
@@ -349,8 +349,9 @@ export async function renderEvent(eventId: string): Promise<void> {
     if (mConfig.useFamilyRules) applySpecialFamilySeedingRulesS2(listS1);
    }
    for (const p of list) { const p1 = listS1.find(x => x.id === p.id); if (p1) { p.tanda = p1.tanda; p.spot = p1.spot; p.tandaS2 = p1.tandaS2; p.spotS2 = p1.spotS2; } p.sector = undefined; }
-   let nextNum = list.length + 1;
-   for (const p of participants.filter(p => p.presentForRaffle === false)) { p.tanda = undefined; p.spot = undefined; p.tandaS2 = undefined; p.spotS2 = undefined; p.sector = undefined; p.competitorNumber = nextNum++; }
+   // Los ausentes quedan sin tanda. Conservan su número de competidor (antes se les asignaba
+   // presentes+1, +2..., lo que repetía números que ya tenían los presentes).
+   for (const p of participants.filter(p => p.presentForRaffle === false)) { p.tanda = undefined; p.spot = undefined; p.tandaS2 = undefined; p.spotS2 = undefined; p.sector = undefined; }
    await Promise.all(list.map(p => db.participants.put(p)));
    await Promise.all(participants.filter(p => p.presentForRaffle === false).map(p => db.participants.put(p)));
    showToast('Sorteo completado!', 'success');
@@ -378,7 +379,7 @@ export async function renderEvent(eventId: string): Promise<void> {
   btnUndo.parentNode?.replaceChild(newBtnUndo, btnUndo);
   newBtnUndo.addEventListener('click', async () => {
    if (!await showConfirm('Deshacer Sorteo', 'Borrar todas las tandas?')) return;
-   participants.sort((a, b) => (a.id || 0) - (b.id || 0));
+   participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    let num = 1;
    for (const p of participants) { p.tanda = undefined; p.spot = undefined; p.sector = undefined; p.tandaS2 = undefined; p.spotS2 = undefined; p.competitorNumber = num++; await db.participants.put(p); }
    showToast('Sorteo deshecho.', 'info');
@@ -395,6 +396,7 @@ export async function renderEvent(eventId: string): Promise<void> {
    participants = await db.participants.where('eventId').equals(Number(id)).filter((item: any) => !item.is_deleted).toArray();
    participants.sort((a, b) => a.competitorNumber - b.competitorNumber);
    renderSeriesSubView();
+   renderSubStandings();
   });
  });
 

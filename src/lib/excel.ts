@@ -1,5 +1,6 @@
 import type { ShootingEvent, Participant, Series } from './types';
 import { sortRanking } from './tiebreaker';
+import { showToast } from './modals';
 
 function formatDate(isoDate: string): string {
   try {

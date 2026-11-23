@@ -107,19 +107,23 @@ showManualHeatsReorderModal():
 **Push (local → cloud)**
 ```
 pushLocalDatabaseToCloud()
-  → read non-deleted rows: db.events / db.participants / db.series / db.masterCompetitors
+  → read rows with pending local changes (_dirty !== 0; set by db.ts hooks on every local write)
   → map each numeric id → deterministic UUID (00000000-0000-4000-{ns}-{id padded to 12})
   → supabase.from(table).upsert(rows, { onConflict: 'id' })
   → returns SyncResult { success, eventsSynced, participantsSynced, seriesSynced, error? }
+  → marks pushed rows _dirty = 0 (+ _syncRev) if unchanged since read
   → no destructive deletes are synced (is_deleted propagated instead)
 ```
+New records get a random id (10^9..10^12) from the db.ts `creating` hook, so two
+offline devices cannot generate the same deterministic UUID.
 
 **Pull (cloud → local)**
 ```
 pullCloudDatabaseToLocal()
   → supabase.from(table).select('*')  for events/participants/series/masterCompetitors
   → fromDeterministicUuid(uuid) → numeric id (parses trailing UUID segment)
-  → db.<table>.put(convertedRow)  for every cloud row (upsert — does NOT clear local data)
+  → db.<table>.put({...localRow, ...convertedRow, _dirty: 0, _syncRev})  (merge — keeps local-only fields)
+  → skips rows with _dirty === 1 (unpushed local edits) unless keepLocalChanges=false (spectators)
   → triggered: (a) silently ~1.2s after app load if events table is empty and online
                (b) every 30s for role === 'spectator' (auto-render current view)
 ```

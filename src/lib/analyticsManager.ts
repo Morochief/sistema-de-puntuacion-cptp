@@ -1,5 +1,6 @@
 import { db } from './db';
-import { resolveEventModality } from './championshipCore';
+import { resolveEventModality, normalizeName, sortChampionshipRanking } from './championshipCore';
+import { getChampionshipData } from './championship';
 import type { Modality, ShootingEvent, Participant, Series } from './types';
 
 export interface ChartDataset {
@@ -59,7 +60,13 @@ export async function getCompetitiveGrowthData(modality: string, year: string): 
     if (!e.id) continue;
     
     // Traer todas las series válidas del evento
-    const series = await db.series.where('eventId').equals(e.id).filter((s: any) => !s.is_deleted).toArray();
+    // Solo series realmente tiradas (con disparos) de competidores activos (sin DQ / DNS):
+    // las series vacías o de descalificados bajaban el promedio.
+    const excluded = new Set(
+      (await db.participants.where('eventId').equals(e.id).filter((p: any) => p.status === 'dq' || p.status === 'dns').toArray()).map(p => p.id)
+    );
+    const series = await db.series.where('eventId').equals(e.id)
+      .filter((s: any) => !s.is_deleted && Array.isArray(s.shots) && s.shots.length > 0 && !excluded.has(s.participantId)).toArray();
     
     const [year, month, day] = e.date.split('T')[0].split('-');
     const dateShort = `${day}-${month}`; // "DD-MM"
@@ -137,6 +144,19 @@ export async function getPrecisionFactorData(modality: string, year: string): Pr
 }
 
 export async function getAnnualChampionshipData(modality: string, year: string): Promise<ChartDataset> {
+  // Con una modalidad y un año elegidos se muestra el ranking OFICIAL del Campeonato General
+  // (mismo cálculo y orden que la pestaña Campeonato: Top 3 + desempates). Antes era una
+  // suma simple de todos los puntos y no coincidía con el Campeonato.
+  if (modality !== 'Todas' && year !== 'Todos' && !isNaN(Number(year))) {
+    const { rankings } = await getChampionshipData(Number(year), modality as Modality);
+    const top10 = sortChampionshipRanking(rankings, 'totalActual').slice(0, 10);
+    return {
+      labels: top10.map(r => r.competitorName),
+      data1: top10.map(r => r.totalActual)
+    };
+  }
+
+  // Sin modalidad/año concretos no hay campeonato oficial: suma simple de puntos.
   const events = await getAnalyticsEvents(modality, year);
   const eventIds = events.map(e => e.id!);
   
@@ -149,7 +169,7 @@ export async function getAnnualChampionshipData(modality: string, year: string):
     const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
     
     for (const p of participants) {
-      const pName = p.name.trim().toLowerCase();
+      const pName = normalizeName(p.name);
       const pSeries = series.filter(s => s.participantId === p.id);
       
       let sum = 0;
@@ -191,8 +211,9 @@ export async function getTopShootersData(modality: string, year: string): Promis
     const series = await db.series.where('eventId').equals(eid).filter((s: any) => !s.is_deleted).toArray();
     
     for (const p of participants) {
-      const pName = p.name.trim().toLowerCase();
-      const pSeries = series.filter(s => s.participantId === p.id);
+      const pName = normalizeName(p.name);
+      // Solo series con disparos (las vacías bajaban el promedio)
+      const pSeries = series.filter(s => s.participantId === p.id && Array.isArray(s.shots) && s.shots.length > 0);
       
       let sum = 0;
       for (const s of pSeries) sum += (s.totalScore || 0);
@@ -229,12 +250,12 @@ export async function getShooterHistoryData(masterName: string, modality: string
   const labels: string[] = [];
   const data1: number[] = []; // Puntaje Promedio que hizo el tirador en esa fecha
   
-  const targetName = masterName.trim().toLowerCase();
+  const targetName = normalizeName(masterName);
 
   for (const e of events) {
     if (!e.id) continue;
     
-    const participants = await db.participants.where('eventId').equals(e.id).filter((p: any) => !p.is_deleted && p.name.trim().toLowerCase() === targetName).toArray();
+    const participants = await db.participants.where('eventId').equals(e.id).filter((p: any) => !p.is_deleted && normalizeName(p.name) === targetName).toArray();
     
     // Usamos el campeonato o el nombre corto si es muy largo
     const label = e.championshipDate || (e.name.length > 15 ? e.name.substring(0, 12) + '...' : e.name);
@@ -346,7 +367,7 @@ export async function getRetentionData(modality: string, year: string): Promise<
   for (const eid of eventIds) {
     const participants = await db.participants.where('eventId').equals(eid).filter((p: any) => !p.is_deleted && p.status !== 'dq' && p.status !== 'dns').toArray();
     for (const p of participants) {
-      const name = p.name.trim().toLowerCase();
+      const name = normalizeName(p.name);
       if (!participantEventMap.has(name)) participantEventMap.set(name, new Set());
       participantEventMap.get(name)!.add(eid);
     }

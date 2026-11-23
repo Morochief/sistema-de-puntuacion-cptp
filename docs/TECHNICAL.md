@@ -237,12 +237,14 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
 
 ## Cloud Sync (`sync.ts`)
 
-- **Push (`pushLocalDatabaseToCloud`)**: Uploads all non-deleted local records (events, participants, series, masterCompetitors) to Supabase via `upsert(..., { onConflict: 'id' })`. Local Dexie auto-increment numeric IDs are mapped to **deterministic UUIDs** using `toDeterministicUuid(id, namespace)`:
+- **Change tracking (`db.ts` hooks)**: every local write (add/put/update/modify) sets `_dirty = 1`. Writes made by the sync itself carry a `_syncRev` value and leave `_dirty = 0`. Legacy records without the flag count as pending for push.
+- **Random IDs for new records**: the `creating` hook assigns a random numeric ID between 10^9 and 10^12 (`generateRecordId`) so two devices working offline never produce the same UUID. Old records keep their small auto-increment IDs. Do not sort participants by `id` to recover inscription order; use `competitorNumber`.
+- **Push (`pushLocalDatabaseToCloud`)**: Uploads only the records with pending changes (`_dirty !== 0`) to Supabase via `upsert(..., { onConflict: 'id' })`, then marks them as pushed if they did not change meanwhile. A device holding stale data no longer overwrites what another device uploaded. Local numeric IDs are mapped to **deterministic UUIDs** using `toDeterministicUuid(id, namespace)`:
   ```
   00000000-0000-4000-{namespace:0000}-{id:000000000000}
   ```
   Namespaces: `0` = events, `1` = participants, `2` = series, `3` = masterCompetitors. This guarantees the same local ID always maps to the same UUID, enabling stable upserts without a server-side ID-mapping table.
-- **Pull (`pullCloudDatabaseToLocal`)**: Downloads *all* rows from Supabase, then inserts/updates each row into Dexie using `put()` (upsert). **No local data is cleared** — this prevents data loss from offline-created records. UUIDs are converted back to numeric IDs via `fromDeterministicUuid()` (parses the trailing UUID segment as an integer). If a cloud record carries `is_deleted: true`, it is upserted into Dexie with the same flag, so sync is eventually consistent.
+- **Pull (`pullCloudDatabaseToLocal`)**: Downloads *all* rows from Supabase and merges each one into Dexie (`{...local, ...cloud}`, so fields the cloud does not store — Padron category/phone, shared rifle — survive). Records with `_dirty === 1` (local changes not yet pushed) are skipped, except with `{ keepLocalChanges: false }` (used by the spectator auto-pull). **No local data is cleared** — this prevents data loss from offline-created records. UUIDs are converted back to numeric IDs via `fromDeterministicUuid()` (parses the trailing UUID segment as an integer). If a cloud record carries `is_deleted: true`, it is upserted into Dexie with the same flag, so sync is eventually consistent.
 - **Soft delete everywhere**: no destructive deletes are synced; every table carries `is_deleted`, and both push/pull propagate this flag rather than physically removing rows.
 - **Silent auto-pull on startup**: in `app.ts`, if the local `events` table is empty and the browser is online, the app silently pulls the cloud database ~1.2s after load.
 - **Periodic auto-pull for spectators**: every 30 seconds, if `navigator.onLine` and the current role is `spectator`, the app re-pulls and re-renders the current view (dashboard/event/series) to keep read-only viewers live-updated.
@@ -288,6 +290,8 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
 - **Offline indicator**: a `#offline-indicator` element toggled by `navigator.onLine` / `online`/`offline` window events (inline script in `BaseLayout.astro`)
 
 ## Backup & Restore (`backup.ts`)
+
+- **Zod schemas match the stored data**: shots are objects `{shotNumber, targetType, hit, value}`, participant `status` is `active | dq | dns` (legacy `disqualified`/`withdrawn` are mapped), `paymentStatus` includes `exempt`, `seriesNumber` is any positive integer, and Padron records keep `category`/`phone`. Single-event import keeps `tieRank`.
 
 - **Export**: Serializes an event + its participants + their series into a JSON file with versioned format (`version: 1`). File name: `cptp_backup_{eventName}_{date}.json`.
 - **Import**: Reads a JSON backup, re-creates the event with fresh Dexie IDs (auto-increment), reorders participants by `competitorNumber`, preserves referential integrity by re-mapping participant IDs in series data.

@@ -10,14 +10,30 @@ import type { MasterCompetitor } from './types';
 import { esc, showToast, showConfirm, showPrompt } from './modals';
 
 /**
- * Normaliza un nombre: saca acentos, convierte a formato titulo (primera letra mayuscula de cada palabra).
- * Ej: "josé giménez" -> "Jose Gimenez"
+ * Normaliza un nombre: saca acentos (pero conserva la ñ), convierte a formato titulo
+ * (primera letra mayuscula de cada palabra).
+ * Ej: "josé muñoz" -> "Jose Muñoz"
  */
 export function normalizeName(raw: string): string {
   return raw
     .normalize('NFD')
+    // quitar tildes, salvo la virgulilla de la ñ
+    .replace(/(?<![nN])[\u0300-\u036f]|(?<=[nN])[\u0300-\u0302\u0304-\u036f]/g, '')
+    .normalize('NFC')
+    .replace(/(^|[\s\-'])(\p{L})/gu, (_m, sep: string, c: string) => sep + c.toUpperCase())
+    .trim();
+}
+
+/**
+ * Clave para comparar nombres: sin ningún acento (ñ = n), en minúsculas y con espacios simples.
+ * "Muñoz" y "Munoz" se consideran el mismo tirador (el Padrón viejo guardaba los nombres sin ñ).
+ */
+export function nameKey(raw: string): string {
+  return raw
+    .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\b\w/g, c => c.toUpperCase())
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -31,7 +47,7 @@ export async function addMasterCompetitor(name: string, category = '', phone = '
 
   // Verificar si ya existe en el padrón (búsqueda normalizada)
   const all = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
-  const existing = all.find(c => normalizeName(c.name) === trimmedName);
+  const existing = all.find(c => nameKey(c.name) === nameKey(trimmedName));
   if (existing) {
     // Si existe pero con distinta capitalización, actualizar al nombre normalizado
     if (existing.name !== trimmedName) {
@@ -40,12 +56,12 @@ export async function addMasterCompetitor(name: string, category = '', phone = '
     return existing.id!;
   }
 
-  return await db.masterCompetitors.add({
+  return (await db.masterCompetitors.add({
     name: trimmedName,
     category: category.trim(),
     phone: phone.trim(),
     createdAt: Date.now()
-  });
+  }))!;
 }
 
 export async function updateMasterCompetitor(id: number, changes: Partial<MasterCompetitor>): Promise<void> {
@@ -53,7 +69,8 @@ export async function updateMasterCompetitor(id: number, changes: Partial<Master
 }
 
 export async function deleteMasterCompetitor(id: number): Promise<void> {
-  await db.masterCompetitors.delete(id);
+  // Borrado lógico: así se sincroniza a la nube y no "revive" en la próxima descarga
+  await db.masterCompetitors.update(id, { is_deleted: true });
 }
 
 /**
@@ -66,7 +83,7 @@ export async function deduplicatePadron(): Promise<number> {
   const grouped = new Map<string, MasterCompetitor[]>();
 
   for (const mc of all) {
-    const key = normalizeName(mc.name).toLowerCase();
+    const key = nameKey(mc.name);
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(mc);
   }
@@ -87,8 +104,18 @@ export async function deduplicatePadron(): Promise<number> {
       await db.masterCompetitors.update(keep.id!, { name: normalized });
     }
 
+    // Completar los datos que le falten al registro que se queda
+    const fill: Partial<MasterCompetitor> = {};
+    for (const other of entries.slice(1)) {
+      if (!keep.phone && !fill.phone && other.phone) fill.phone = other.phone;
+      if (!keep.category && !fill.category && other.category) fill.category = other.category;
+      if (!keep.championshipTieRank && !fill.championshipTieRank && other.championshipTieRank) fill.championshipTieRank = other.championshipTieRank;
+    }
+    if (Object.keys(fill).length > 0) await db.masterCompetitors.update(keep.id!, fill);
+
+    // Borrado lógico de los repetidos (se sincroniza y no vuelve en la próxima descarga)
     for (let i = 1; i < entries.length; i++) {
-      await db.masterCompetitors.delete(entries[i].id!);
+      await db.masterCompetitors.update(entries[i].id!, { is_deleted: true });
       removed++;
     }
   }
@@ -111,14 +138,14 @@ export async function migrateParticipantsToPadron(): Promise<number> {
     // Cargar el padrón actual una sola vez
     const currentPadron = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
     console.log(`[Padron] Padron actual tiene ${currentPadron.length} entradas.`);
-    const padronNames = new Set(currentPadron.map(c => normalizeName(c.name).toLowerCase()));
+    const padronNames = new Set(currentPadron.map(c => nameKey(c.name)));
 
     let added = 0;
     const seenInBatch = new Set<string>();
 
     for (const p of allParticipants) {
       const normalized = normalizeName(p.name);
-      const nameLower = normalized.toLowerCase();
+      const nameLower = nameKey(normalized);
       if (!nameLower || seenInBatch.has(nameLower) || padronNames.has(nameLower)) continue;
 
       seenInBatch.add(nameLower);

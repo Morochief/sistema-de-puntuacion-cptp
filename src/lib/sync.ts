@@ -1,7 +1,8 @@
 import { db } from './db';
 import { supabase } from './supabase';
 import { showToast } from './modals';
-import type { ShootingEvent, Participant, Series, MasterCompetitor } from './types';
+import type { Table } from 'dexie';
+import type { SyncMeta } from './types';
 
 export interface SyncResult {
   success: boolean;
@@ -22,24 +23,71 @@ export function toDeterministicUuid(id: number | undefined, namespace: 0 | 1 | 2
   return `00000000-0000-4000-${namespaceStr}-${paddedId}`;
 }
 
+/** Registro con cambios locales todavía no subidos (los registros viejos sin marca cuentan como pendientes). */
+function isPendingPush(r: SyncMeta): boolean {
+  return r._dirty !== 0;
+}
+
+/** Quita los metadatos de sincronización para comparar contenido. */
+function stripMeta<T extends SyncMeta>(r: T): Omit<T, '_dirty' | '_syncRev'> {
+  const { _dirty, _syncRev, ...rest } = r as any;
+  return rest;
+}
+
+let syncRevCounter = 0;
+/** Valor único para marcar escrituras hechas por la sincronización (no cuentan como cambio local). */
+export function nextSyncRev(): number {
+  syncRevCounter = (syncRevCounter + 1) % 1000;
+  return Date.now() * 1000 + syncRevCounter;
+}
+
 /**
- * Sube exclusivamente toda la base de datos local (Dexie) hacia la nube (Supabase)
- * utilizando Upserts basados en las llaves primarias mapeadas a UUID.
+ * Marca como "subidos" los registros enviados, solo si no cambiaron desde que se leyeron
+ * (si el usuario editó algo mientras se subía, queda pendiente para la próxima subida).
+ */
+async function markPushed<T extends SyncMeta & { id?: number }>(table: Table<any, any, any>, pushed: T[]): Promise<void> {
+  if (pushed.length === 0) return;
+  await db.transaction('rw', table, async () => {
+    for (const snap of pushed) {
+      if (snap.id === undefined) continue;
+      const current = await table.get(snap.id);
+      if (!current) continue;
+      if (JSON.stringify(stripMeta(current)) === JSON.stringify(stripMeta(snap))) {
+        await table.update(snap.id, { _dirty: 0, _syncRev: nextSyncRev() } as any);
+      }
+    }
+  });
+}
+
+/** Cantidad de registros locales con cambios pendientes de subir. */
+export async function countPendingChanges(): Promise<number> {
+  const [e, p, s, m] = await Promise.all([
+    db.events.filter(isPendingPush).count(),
+    db.participants.filter(isPendingPush).count(),
+    db.series.filter(isPendingPush).count(),
+    db.masterCompetitors.filter(isPendingPush).count(),
+  ]);
+  return e + p + s + m;
+}
+
+/**
+ * Sube a la nube (Supabase) los registros locales con cambios pendientes, con upsert
+ * por UUID determinista. Ya no sube toda la base: así un dispositivo con datos viejos
+ * no pisa lo que cargó otro dispositivo.
  */
 export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
   try {
     console.log('[Sync] Iniciando subida local -> Supabase...');
 
-    // Obtener datos locales
-    const localEvents = await db.events.toArray();
-    const localParticipants = await db.participants.toArray();
-    const localSeries = await db.series.toArray();
-    const localMasterCompetitors = await db.masterCompetitors.toArray();
+    // Obtener solo los registros con cambios pendientes
+    const localEvents = await db.events.filter(isPendingPush).toArray();
+    const localParticipants = await db.participants.filter(isPendingPush).toArray();
+    const localSeries = await db.series.filter(isPendingPush).toArray();
+    const localMasterCompetitors = await db.masterCompetitors.filter(isPendingPush).toArray();
 
     let eventsSynced = 0;
     let participantsSynced = 0;
     let seriesSynced = 0;
-
     // --- Sincronización Destructiva Removida ---
     // Ya no se ejecutan deletes en la nube. Todo el borrado es lógico usando is_deleted.
     // 1. Sincronizar Eventos
@@ -132,6 +180,12 @@ export async function pushLocalDatabaseToCloud(): Promise<SyncResult> {
       if (mErr) throw new Error(`Error sincronizando padrón maestro: ${mErr.message}`);
     }
 
+    // Todo se subió bien: marcar como sincronizado
+    await markPushed(db.events, localEvents);
+    await markPushed(db.participants, localParticipants);
+    await markPushed(db.series, localSeries);
+    await markPushed(db.masterCompetitors, localMasterCompetitors);
+
     console.log('[Sync] Subida a la nube finalizada con éxito.');
     return {
       success: true,
@@ -162,10 +216,37 @@ function fromDeterministicUuid(uuid: string): number {
 }
 
 /**
+ * Aplica un registro bajado de la nube sin pisar cambios locales pendientes de subir.
+ * Conserva los campos que la nube no guarda (ej: categoría/teléfono del Padrón, rifle compartido).
+ */
+async function applyCloudRecord(
+  table: Table<any, any, any>, id: number, mapped: Record<string, unknown>, keepLocalChanges: boolean
+): Promise<void> {
+  if (!id) return;
+  const local = await table.get(id);
+  if (keepLocalChanges && local && local._dirty === 1) return; // gana el cambio local que todavía no se subió
+  await table.put({ ...(local || {}), ...mapped, id, _dirty: 0, _syncRev: nextSyncRev() });
+}
+
+/** Aplica un borrado lógico venido de la nube (salvo que haya cambios locales pendientes). */
+async function applyCloudDelete(table: Table<any, any, any>, id: number, keepLocalChanges: boolean): Promise<void> {
+  if (!id) return;
+  const local = await table.get(id);
+  if (!local || (local as any).is_deleted) return;
+  if (keepLocalChanges && local._dirty === 1) return;
+  await table.update(id, { is_deleted: true, _dirty: 0, _syncRev: nextSyncRev() } as any);
+}
+
+/**
  * Descarga todos los registros desde Supabase y los inserta/actualiza en Dexie (IndexedDB)
  * eliminando localmente lo que haya sido borrado en la nube (excepto ítems creados offline hace menos de 5 minutos).
  */
-export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; error?: string }> {
+export async function pullCloudDatabaseToLocal(
+  options: { keepLocalChanges?: boolean } = {}
+): Promise<{ success: boolean; error?: string }> {
+  // Por defecto no se pisan cambios locales pendientes de subir. Los espectadores
+  // (que nunca suben) descargan con keepLocalChanges=false: la nube manda siempre.
+  const keepLocalChanges = options.keepLocalChanges ?? true;
   try {
     console.log('[Sync] Descargando datos desde Supabase...');
 
@@ -188,11 +269,10 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       for (const e of cloudEvents) {
         const localId = fromDeterministicUuid(e.id);
         if (e.is_deleted) {
-          await db.events.update(localId, { is_deleted: true }).catch(() => {});
+          await applyCloudDelete(db.events, localId, keepLocalChanges);
           continue;
         }
-        await db.events.put({
-          id: localId,
+        await applyCloudRecord(db.events, localId, {
           name: e.name,
           date: e.date,
           location: e.location || '',
@@ -201,7 +281,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           createdAt: new Date(e.created_at).getTime(),
           is_deleted: false,
           isPilot: !!e.is_pilot
-        });
+        }, keepLocalChanges);
       }
     }
 
@@ -209,7 +289,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
       for (const p of cloudParticipants) {
         const localId = fromDeterministicUuid(p.id);
         if (p.is_deleted) {
-          await db.participants.update(localId, { is_deleted: true }).catch(() => {});
+          await applyCloudDelete(db.participants, localId, keepLocalChanges);
           continue;
         }
         const localEventId = fromDeterministicUuid(p.event_id);
@@ -221,8 +301,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           ? !!p.present_for_raffle
           : (catParts[3] === '1' || catParts.length === 1);
 
-        await db.participants.put({
-          id: localId,
+        await applyCloudRecord(db.participants, localId, {
           eventId: localEventId,
           name: p.name,
           competitorNumber: p.competitor_number,
@@ -238,7 +317,7 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           sector: p.sector || undefined,
           sectorS2: p.sector_s2 || undefined,
           is_deleted: false
-        });
+        }, keepLocalChanges);
       }
     }
 
@@ -282,13 +361,12 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
         const localId = fromDeterministicUuid(s.id);
         // Si el registro está borrado o fue identificado como duplicado, marcarlo como borrado localmente
         if (s.is_deleted || duplicateIds.includes(s.id)) {
-          await db.series.update(localId, { is_deleted: true }).catch(() => {});
+          await applyCloudDelete(db.series, localId, keepLocalChanges);
           continue;
         }
         const localEventId = fromDeterministicUuid(s.event_id);
         const localParticipantId = fromDeterministicUuid(s.participant_id);
-        await db.series.put({
-          id: localId,
+        await applyCloudRecord(db.series, localId, {
           eventId: localEventId,
           participantId: localParticipantId,
           seriesNumber: s.series_number,
@@ -297,20 +375,19 @@ export async function pullCloudDatabaseToLocal(): Promise<{ success: boolean; er
           bonusActive: !!s.bonus_active,
           createdAt: new Date(s.created_at).getTime(),
           is_deleted: false
-        });
+        }, keepLocalChanges);
       }
     }
 
     if (cloudMaster) {
       for (const m of cloudMaster) {
         const localId = fromDeterministicUuid(m.id);
-        await db.masterCompetitors.put({
-          id: localId,
+        await applyCloudRecord(db.masterCompetitors, localId, {
           name: m.name,
           championshipTieRank: m.championship_tie_rank || undefined,
           createdAt: new Date(m.created_at).getTime(),
           is_deleted: !!m.is_deleted
-        });
+        }, keepLocalChanges);
       }
     }
 

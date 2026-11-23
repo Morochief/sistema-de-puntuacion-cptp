@@ -9,6 +9,9 @@ import { navigate } from '../../router';
 import { db } from '../../db';
 import { getModalityConfig } from '../../modalityConfig';
 
+/** Tiradores para los que se está creando una serie (evita series duplicadas por doble toque). */
+const creatingSeriesFor = new Set<number>();
+
 export function renderListaSeries(
   containerId: string,
   participants: Participant[],
@@ -96,13 +99,23 @@ export function renderListaSeries(
       const pid = Number((e.currentTarget as HTMLElement).dataset.addSeriesFor);
       const p = participants.find(x => x.id === pid);
       if (!p) return;
-      const existingSeries = allSeries.filter(s => s.participantId === pid);
-      if (existingSeries.length >= maxSeriesPerEvent) {
-        showToast('Límite alcanzado: Máximo ' + maxSeriesPerEvent + ' serie(s) por participante.', 'error');
-        return;
-      }
-      const nextNum = existingSeries.length > 0 ? Math.max(...existingSeries.map(s => s.seriesNumber)) + 1 : 1;
+      // Evitar doble toque: mientras se crea la serie, ignorar más clics para este tirador
+      if (creatingSeriesFor.has(pid)) return;
+      creatingSeriesFor.add(pid);
+      (e.currentTarget as HTMLButtonElement).disabled = true;
       try {
+        // Releer de la base (la lista en pantalla puede estar desactualizada)
+        const existingSeries = await db.series.where('participantId').equals(pid)
+          .filter((s: any) => !s.is_deleted && s.eventId === eventId).toArray();
+        if (existingSeries.length >= maxSeriesPerEvent) {
+          showToast('Límite alcanzado: Máximo ' + maxSeriesPerEvent + ' serie(s) por participante.', 'error');
+          await onRefresh();
+          return;
+        }
+        // Usar el primer número libre (si se borró la Serie 1 y queda la 2, se crea la 1, no la 3)
+        const used = new Set(existingSeries.map(s => s.seriesNumber));
+        let nextNum = 1;
+        while (used.has(nextNum)) nextNum++;
         const seriesId = await db.series.add({
           eventId, participantId: pid, seriesNumber: nextNum, shots: [], totalScore: 0, createdAt: Date.now()
         });
@@ -110,6 +123,8 @@ export function renderListaSeries(
       } catch (err) {
         console.error('[DB] Error creando serie:', err);
         showToast('Error al crear serie.', 'error');
+      } finally {
+        creatingSeriesFor.delete(pid);
       }
     });
   });

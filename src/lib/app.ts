@@ -38,6 +38,20 @@ export async function router(): Promise<void> {
   }
 }
 
+// Observador global para aplicar roles cuando cambia el DOM dinamicamente.
+// Se crea UNA sola vez (antes se agregaba uno nuevo en cada navegación y la app
+// se volvía más lenta cuanto más se usaba).
+let roleObserver: MutationObserver | null = null;
+function setupRoleObserver(): void {
+  if (roleObserver) return;
+  const appRoot = document.getElementById('app-root');
+  if (!appRoot) return;
+  roleObserver = new MutationObserver(() => {
+    updateUIRoles();
+  });
+  roleObserver.observe(appRoot, { childList: true, subtree: true });
+}
+
 // Router routing listeners
 window.addEventListener('hashchange', router);
 window.addEventListener('load', router);
@@ -81,21 +95,14 @@ window.addEventListener('load', async () => {
   }, 2000);
 
   setupDashboardTabs();
-  // Observador global para aplicar roles cuando cambia el DOM dinamicamente
-  const appRoot = document.getElementById('app-root');
-  if (appRoot) {
-    const observer = new MutationObserver(() => {
-      updateUIRoles();
-    });
-    observer.observe(appRoot, { childList: true, subtree: true });
-  }
+  setupRoleObserver();
 
 
   // Auto-pull periódico silencioso para Espectadores (cada 30s)
   setInterval(async () => {
     if (navigator.onLine && getCurrentRole() === 'spectator') {
       try {
-        await pullCloudDatabaseToLocal();
+        await pullCloudDatabaseToLocal({ keepLocalChanges: false });
       } catch (err) {}
     }
   }, 30000);
@@ -105,14 +112,7 @@ window.addEventListener('hashchange', () => {
   setTimeout(() => {
     setupCloudSync();
     setupDashboardTabs();
-  // Observador global para aplicar roles cuando cambia el DOM dinamicamente
-  const appRoot = document.getElementById('app-root');
-  if (appRoot) {
-    const observer = new MutationObserver(() => {
-      updateUIRoles();
-    });
-    observer.observe(appRoot, { childList: true, subtree: true });
-  }
+  setupRoleObserver();
 
   }, 100);
 });

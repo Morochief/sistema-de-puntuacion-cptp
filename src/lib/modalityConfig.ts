@@ -58,15 +58,16 @@ const TARGETS_CF: TargetConfig[] = [
   { id: 'pequeño', label: 'Blanco Pequeño', scoreTable: [42, 38, 34, 30, 26, 22, 18, 14, 11, 7],   shotOffset: 3 },
 ];
 
-// 21 Blackjack Challenge (.22 LR 200m)
+// 21 Blackjack Challenge (.22 LR, 25/50 m). Los ids ('12"', '10"'...) son internos y se
+// conservan por compatibilidad con los datos guardados; los rótulos siguen el reglamento.
 const TARGETS_BLACKJACK: TargetConfig[] = [
-  { id: '12"', label: 'Blanco 12"', scoreTable: [1], shotOffset: 1 },
-  { id: '10"', label: 'Blanco 10"', scoreTable: [2], shotOffset: 2 },
-  { id: '8"',  label: 'Blanco 8"',  scoreTable: [3], shotOffset: 3 },
-  { id: '6"',  label: 'Blanco 6"',  scoreTable: [4], shotOffset: 4 },
-  { id: '4"',  label: 'Blanco 4"',  scoreTable: [5], shotOffset: 5 },
-  { id: '2"',  label: 'Blanco 2"',  scoreTable: [6], shotOffset: 6 },
-  { id: '2" (bonus)', label: 'Bonus 2"', scoreTable: [21], shotOffset: 7 },
+  { id: '12"', label: 'Objetivo 1 (6 cm)', scoreTable: [1], shotOffset: 1 },
+  { id: '10"', label: 'Objetivo 2 (5 cm)', scoreTable: [2], shotOffset: 2 },
+  { id: '8"',  label: 'Objetivo 3 (4 cm)',  scoreTable: [3], shotOffset: 3 },
+  { id: '6"',  label: 'Objetivo 4 (3 cm)',  scoreTable: [4], shotOffset: 4 },
+  { id: '4"',  label: 'Objetivo 5 (2 cm)',  scoreTable: [5], shotOffset: 5 },
+  { id: '2"',  label: 'Objetivo 6 (1 cm)',  scoreTable: [6], shotOffset: 6 },
+  { id: '2" (bonus)', label: 'BlackJack adicional (1 cm)', scoreTable: [21], shotOffset: 7 },
 ];
 
 // ── Configuraciones por Modalidad ───────────────────────────────────────────
@@ -142,7 +143,7 @@ const CONFIG_223: ModalityConfig = {
 
 const CONFIG_BLACKJACK: ModalityConfig = {
   key: '21 Blackjack',
-  label: '21 Blackjack Challenge (.22 LR 200m)',
+  label: '21 Blackjack Challenge (.22 LR 25/50 m)',
   shortLabel: '21 Blackjack',
   color: '#7c3aed',
   bgColor: '#f3e8ff',

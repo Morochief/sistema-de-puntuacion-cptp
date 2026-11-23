@@ -10,6 +10,7 @@ import {
   getAnnualChampionshipData
 } from '../analyticsManager';
 import { db } from '../db';
+import type { ChartDataset } from '../analyticsManager';
 import Chart from 'chart.js/auto';
 
 export async function renderAnalytics(): Promise<void> {
@@ -132,7 +133,7 @@ export async function renderAnalytics(): Promise<void> {
       <div style="background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.04); position:relative; overflow:hidden;">
         <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:#b7201c;"></div>
         <h2 style="font-family:'Orbitron', sans-serif; font-size:1.25rem; font-weight:800; color:#0f1f3d; margin:0 0 4px; text-transform:uppercase; letter-spacing:0.5px;">Ranking Campeonato Anual (Top 10)</h2>
-        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Suma de puntos acumulados en la temporada.</p>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px; font-weight:600;">Con una modalidad y un año elegidos: ranking oficial del Campeonato General (Top 3). Con "Todas" o "Todos": suma simple de puntos.</p>
         <div style="position:relative; height:420px; width:100%;">
           <canvas id="chart-championship"></canvas>
         </div>
@@ -232,12 +233,12 @@ export async function renderAnalytics(): Promise<void> {
       }
     }
     
-    let distributionData = { labels: [], data1: [] };
+    let distributionData: ChartDataset = { labels: [], data1: [] };
     if (currentDistEvent !== -1) {
       distributionData = await getScoreDistributionData(currentDistEvent, currentModality);
     }
     
-    let historyData = { labels: [], data1: [] };
+    let historyData: ChartDataset = { labels: [], data1: [] };
     if (currentShooter !== 'Todos') {
       historyData = await getShooterHistoryData(currentShooter, currentModality, currentYear);
     }
