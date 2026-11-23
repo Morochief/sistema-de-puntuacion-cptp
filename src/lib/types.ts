@@ -7,6 +7,12 @@ export type TargetTypeCF = 'grande' | 'mediano' | 'pequeño';
 export type TargetTypeBJ = '12"' | '10"' | '8"' | '6"' | '4"' | '2"' | '2" (bonus)';
 export type AnyTargetType = TargetType22 | TargetTypeCF | TargetTypeBJ | 'additional';
 
+/** Metadatos de sincronización que se guardan en cada registro local. */
+export interface SyncMeta {
+  _dirty?: 0 | 1;     // 1 = cambio local todavía no subido a la nube
+  _syncRev?: number;  // marca de la última escritura hecha por la sincronización
+}
+
 export interface Shot {
   shotNumber: number;  // 1-10 (.22 LR) o 1-12 (.308/.223/21 Blackjack)
   targetType: AnyTargetType;
@@ -14,7 +20,7 @@ export interface Shot {
   value: number;
 }
 
-export interface Participant {
+export interface Participant extends SyncMeta {
   id?: number;
   eventId: number;
   name: string;
@@ -24,6 +30,7 @@ export interface Participant {
   tanda?: number; // 1, 2, 3 o 4 (Representa la Serie 1)
   tandaS2?: number; // Tanda para la Serie 2
   spotS2?: 1 | 2 | 3 | 4; // Mesa para la Serie 2
+  sectorS2?: 'A' | 'B'; // Sector para la Serie 2 (se sincroniza como sector_s2)
   category?: string;
   tieRank?: number;
   status?: 'active' | 'dq' | 'dns'; // Estado del competidor (Activo, Descalificado, No presentado)
@@ -33,7 +40,7 @@ export interface Participant {
   is_deleted?: boolean;
 }
 
-export interface Series {
+export interface Series extends SyncMeta {
   id?: number;
   eventId: number;
   participantId: number; // Vinculado al participante
@@ -45,7 +52,7 @@ export interface Series {
   is_deleted?: boolean;
 }
 
-export interface ShootingEvent {
+export interface ShootingEvent extends SyncMeta {
   id?: number;
   name: string;
   date: string; // ISO date
@@ -57,7 +64,7 @@ export interface ShootingEvent {
   isPilot?: boolean; // Si es true, no cuenta para el campeonato general
 }
 
-export interface MasterCompetitor {
+export interface MasterCompetitor extends SyncMeta {
   id?: number;
   name: string;
   category?: string;

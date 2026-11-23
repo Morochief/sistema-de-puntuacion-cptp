@@ -10,7 +10,8 @@
     "build": "astro build && node scripts/inject-sw-cache.js",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "esbuild tests/championship.test.mjs --bundle --platform=node --format=esm --outfile=dist-tests/championship.test.mjs --log-level=warning && node --test dist-tests/championship.test.mjs"
+    "test": "esbuild tests/championship.test.mjs tests/fixes.test.mjs --bundle --platform=node --format=esm --outdir=dist-tests --define:import.meta.env={} --log-level=warning && node --test dist-tests/championship.test.js dist-tests/fixes.test.js",
+    "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
@@ -25,6 +26,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.8",
     "typescript": "^7.0.2"
   }
 }

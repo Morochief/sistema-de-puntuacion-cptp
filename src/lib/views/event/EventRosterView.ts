@@ -150,6 +150,22 @@ export function renderListaInscritos(
       const p = participants.find(x => x.id === pid);
       if (!p) return;
 
+      // Fuego central / 21 Blackjack: 1 tirador por turno. Se le da el primer turno libre
+      // (antes se usaba la grilla de .22 LR de 8 tandas x 4 mesas y el tirador podía
+      // quedar en una "mesa 2-4" que el cuadro de turnos no muestra).
+      if (isCF) {
+        const usedTurns = new Set(participants.filter(x => x.id !== p.id && x.tanda !== undefined).map(x => x.tanda!));
+        let turn = 1;
+        while (usedTurns.has(turn)) turn++;
+        if (turn > 50) { showToast('No hay turnos libres disponibles.', 'error'); return; }
+        p.tanda = turn; p.spot = 1; p.tandaS2 = undefined; p.spotS2 = undefined;
+        p.presentForRaffle = true;
+        await db.participants.put(p);
+        showToast(`Se asigno a ${esc(p.name)} al Turno ${turn}.`, 'success');
+        await callbacks.onRefresh();
+        return;
+      }
+
       const occupiedS1 = new Set<string>();
       participants.forEach(x => {
         if (x.tanda !== undefined && x.spot !== undefined) occupiedS1.add(`${x.tanda}-${x.spot}`);
@@ -198,10 +214,10 @@ export function renderListaInscritos(
   });
 
   // Bind filter dropdowns
-  (listEl.querySelector('#p-filter-tanda') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterTanda = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks); });
-  (listEl.querySelector('#p-filter-status') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterStatus = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks); });
-  (listEl.querySelector('#p-filter-payment') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterPayment = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks); });
-  (listEl.querySelector('#p-sort-by') as HTMLSelectElement)?.addEventListener('change', (e) => { pSortBy = (e.target as HTMLSelectElement).value as any; renderListaInscritos(containerId, participants, eventId, callbacks); });
+  (listEl.querySelector('#p-filter-tanda') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterTanda = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks, isCF); });
+  (listEl.querySelector('#p-filter-status') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterStatus = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks, isCF); });
+  (listEl.querySelector('#p-filter-payment') as HTMLSelectElement)?.addEventListener('change', (e) => { pFilterPayment = (e.target as HTMLSelectElement).value; renderListaInscritos(containerId, participants, eventId, callbacks, isCF); });
+  (listEl.querySelector('#p-sort-by') as HTMLSelectElement)?.addEventListener('change', (e) => { pSortBy = (e.target as HTMLSelectElement).value as any; renderListaInscritos(containerId, participants, eventId, callbacks, isCF); });
 
   // Bind remove
   listEl.querySelectorAll('[data-remove-participant]').forEach((btn) => {
@@ -242,7 +258,7 @@ export function renderListaInscritos(
       await db.participants.update(pid, { status: val });
       const data = await callbacks.onRefreshData();
       participants.length = 0; participants.push(...data.participants);
-      renderListaInscritos(containerId, participants, eventId, callbacks);
+      renderListaInscritos(containerId, participants, eventId, callbacks, isCF);
       showToast(val === 'dq' ? 'Competidor DQ' : val === 'dns' ? 'Competidor DNS' : 'Competidor reactivado', val === 'active' ? 'success' : 'info');
     });
   });
@@ -255,7 +271,7 @@ export function renderListaInscritos(
       await db.participants.update(pid, { paymentStatus: val });
       const data = await callbacks.onRefreshData();
       participants.length = 0; participants.push(...data.participants);
-      renderListaInscritos(containerId, participants, eventId, callbacks);
+      renderListaInscritos(containerId, participants, eventId, callbacks, isCF);
       showToast(val === 'paid' ? 'Pago registrado como Abonado' : val === 'pending' ? 'Pago marcado como Pendiente' : 'Competidor Exento', 'info');
     });
   });
@@ -271,7 +287,7 @@ export function renderListaInscritos(
         await db.participants.update(pid, { name: res.name.trim(), category: res.category, sharedRifleId: res.sharedRifleId });
         const data = await callbacks.onRefreshData();
         participants.length = 0; participants.push(...data.participants);
-        renderListaInscritos(containerId, participants, eventId, callbacks);
+        renderListaInscritos(containerId, participants, eventId, callbacks, isCF);
         showToast('Nombre actualizado con exito', 'success');
       }
     });

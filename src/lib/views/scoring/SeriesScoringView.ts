@@ -243,7 +243,7 @@ export async function renderSeries(seriesId: string): Promise<void> {
           ↩ Deshacer Último Disparo
         </button>
 
-        ${mConfig.hasBonus ? `
+        ${isCF && mConfig.hasBonus ? `
         <div style="margin-top:4px;display:flex;align-items:center;gap:10px;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #cbd5e1;">
           <input type="checkbox" id="chk-bonus-active" ${bonusActive ? 'checked' : ''} style="width:20px;height:20px;cursor:pointer;">
           <label for="chk-bonus-active" style="font-size:0.95rem;font-weight:700;color:#0f172a;cursor:pointer;">Tiro "Bonus" acertado (Puntos Dobles)</label>
@@ -255,12 +255,19 @@ export async function renderSeries(seriesId: string): Promise<void> {
     document.getElementById('btn-miss')?.addEventListener('click', () => registerShot(false));
     document.getElementById('btn-undo-action')?.addEventListener('click', undoLastShot);
 
-    if (mConfig.hasBonus) {
+    if (isCF && mConfig.hasBonus) {
       document.getElementById('chk-bonus-active')?.addEventListener('change', async (e) => {
         bonusActive = (e.target as HTMLInputElement).checked;
+        // Recalcular los adicionales ya cargados (1 pt sin bonus, 2 pts con bonus)
+        currentShots = currentShots.map((s) =>
+          s.targetType === 'additional'
+            ? { ...s, value: calculateShotValueCF(s.shotNumber, 'additional', s.hit, bonusActive) }
+            : s
+        );
         await persistShots();
-        renderNextShotPanel();
-        renderShotsHistory();
+        renderProgressBar();
+        renderHistory();
+        renderActionPanel();
       });
     }
   }
@@ -294,19 +301,20 @@ export async function renderSeries(seriesId: string): Promise<void> {
       value,
     });
 
-    // Auto-fill logic
+    // Auto-fill: en .22 LR y fuego central, al pegar los tres blancos el resto de los
+    // tiros cuenta automático. En 21 Blackjack NO: cada BlackJack adicional (+21) solo
+    // suma si golpea el objetivo más chico, así que esos tiros se cargan uno por uno.
     let newPhaseType: any = '15"';
     if (isBJ) newPhaseType = deriveCurrentPhaseBJ(currentShots);
     else if (isCF) newPhaseType = deriveCurrentPhaseCF(currentShots);
     else newPhaseType = deriveCurrentPhase(currentShots);
 
-    if (newPhaseType === 'additional' || newPhaseType === '2" (bonus)') {
+    if (!isBJ && newPhaseType === 'additional') {
       const nextN = currentShots.length + 1;
       let addCount = 0;
       for (let n = nextN; n <= maxShots; n++) {
         let addVal = 1;
-        if (isBJ) addVal = calculateShotValueBJ(newPhaseType, true);
-        else if (isCF) addVal = calculateShotValueCF(n, newPhaseType, true, bonusActive);
+        if (isCF) addVal = calculateShotValueCF(n, newPhaseType, true, bonusActive);
         else addVal = calculateShotValue(n, newPhaseType, true);
         
         currentShots.push({ shotNumber: n, targetType: newPhaseType, hit: true, value: addVal });
@@ -406,11 +414,12 @@ export async function renderSeries(seriesId: string): Promise<void> {
   document.getElementById('btn-nav-back')?.addEventListener('click', () => navigate(`/event/${series!.eventId}`));
   document.getElementById('btn-print-series')?.addEventListener('click', () => {
     if (isBJ) {
-      printBlackjackSeriesCard(event!, participant!, series!);
+      // Imprimir con los disparos actuales (no los que había al abrir la pantalla)
+      printBlackjackSeriesCard(event!, participant!, { ...series!, shots: currentShots, totalScore: calculateSeriesTotalBJ(currentShots) });
     } else if (isCF || mConfig.seriesPerEvent === 1) {
-      printCFSeriesCard(event!, participant!, series!, currentShots);
+      printCFSeriesCard(event!, participant!, series!);
     } else {
-      printSeriesCard(event!, participant!, series!, currentShots);
+      printSeriesCard(event!, participant!, series!);
     }
   });
 

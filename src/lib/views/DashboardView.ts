@@ -6,7 +6,7 @@ import { getCurrentRole, updateUIRoles } from '../authManager';
 import { getFilteredEvents, showEditEventModal } from '../eventsManager';
 import { renderMasterCompetitorsModal, addMasterCompetitor } from '../masterCompetitors';
 import { renderChampionshipPanel } from './ChampionshipView';
-import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid } from '../sync';
+import { pushLocalDatabaseToCloud, pullCloudDatabaseToLocal, toDeterministicUuid, countPendingChanges } from '../sync';
 import { importEventBackup, exportFullDatabaseBackup, importFullDatabaseBackup } from '../backup';
 import { supabase } from '../supabase';
 
@@ -398,25 +398,22 @@ export const setupCloudSync = () => {
           return;
         }
 
-        const localEventsCount = await db.events.filter((e: ShootingEvent) => !e.is_deleted).count();
-        if (localEventsCount === 0) {
-          const proceedEmpty = await showConfirm(
-            '¡ATENCIÓN! Base de Datos Vacía',
-            'No tenés eventos locales guardados en este dispositivo. Si subís ahora a la nube, se marcarán los datos en Supabase como borrados. ¿Estás seguro de que querés continuar?'
-          );
-          if (!proceedEmpty) return;
-        } else {
-          const confirmUpload = await showConfirm(
-            'Subir a la Nube',
-            `Se subirán ${localEventsCount} eventos locales a Supabase para sincronizar. ¿Deseás continuar?`
-          );
-          if (!confirmUpload) return;
+        const pendingCount = await countPendingChanges();
+        if (pendingCount === 0) {
+          showToast('No hay cambios nuevos para subir. Todo está sincronizado.', 'info', 3000);
+          return;
         }
+        const confirmUpload = await showConfirm(
+          'Subir a la Nube',
+          `Se subirán ${pendingCount} cambios de este dispositivo a Supabase. ¿Deseás continuar?`
+        );
+        if (!confirmUpload) return;
+        (uploadBtn as HTMLButtonElement).disabled = true;
         uploadBtn.style.opacity = '0.5';
         showToast('Subiendo datos locales a la nube...', 'info', 2000);
 
         const res = await pushLocalDatabaseToCloud();
-        uploadBtn.disabled = false;
+        (uploadBtn as HTMLButtonElement).disabled = false;
         uploadBtn.style.opacity = '1';
 
         if (res.success) {
@@ -438,14 +435,14 @@ export const setupCloudSync = () => {
           return;
         }
 
-        if (!await showConfirm('Descargar Datos', '¿Descargar datos oficiales de la nube? Esto REEMPLAZARÁ la base de datos de este dispositivo con los datos guardados en internet.')) return;
+        if (!await showConfirm('Descargar Datos', '¿Descargar datos oficiales de la nube? Se actualizará este dispositivo con los datos guardados en internet (los cambios locales que todavía no subiste se conservan).')) return;
 
-        downloadBtn.disabled = true;
+        (downloadBtn as HTMLButtonElement).disabled = true;
         downloadBtn.style.opacity = '0.5';
         showToast('Descargando datos oficiales...', 'info', 2000);
 
         const res = await pullCloudDatabaseToLocal();
-        downloadBtn.disabled = false;
+        (downloadBtn as HTMLButtonElement).disabled = false;
         downloadBtn.style.opacity = '1';
 
         if (res.success) {

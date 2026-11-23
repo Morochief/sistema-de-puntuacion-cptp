@@ -81,6 +81,14 @@ Máximos:
 - **Con bonus: 96 pts** (12 + 24 + 42 + 9 × 2)
 - **Sin bonus: 87 pts** (12 + 24 + 42 + 9 × 1)
 
+### 3.3.1. Adicionales automáticos
+
+En .22 LR y fuego central, al pegar los tres blancos el resto de los tiros cuenta automático. En 21 Blackjack no: cada BlackJack adicional se carga tiro por tiro.
+
+### 3.3.2. 21 Blackjack Challenge (reglamento)
+
+.22 LR a 25/50 m. Objetivos 1 a 6 (6, 5, 4, 3, 2 y 1 cm) valen de 1 a 6 pts: completar los seis da 21 (BlackJack). Hay que golpear un objetivo para pasar al siguiente. Con munición y tiempo restantes, cada golpe adicional al objetivo 6 (1 cm) suma +21; los tiros errados no suman. La app tiene un tope de 12 tiros (pendiente de confirmar con el organizador). Pendientes: orden inverso (hasta 42 pts) y desempate por menor tiempo.
+
 ### 3.4. Notación oficial
 
 | Símbolo | Significado |
@@ -328,11 +336,13 @@ Tres funciones clave en cada motor:
 |---|---|---|
 | `sync.ts` | 272 | Push (local → nube) y Pull (nube → local) con UUIDs deterministas |
 
-Push: lee todos los registros no-eliminados de Dexie, los mapea a UUIDs, hace `upsert` en Supabase.
+Cada escritura local marca el registro como pendiente (`_dirty = 1`, hooks de `db.ts`). Los registros nuevos reciben un ID aleatorio grande para que dos dispositivos no choquen.
 
-Pull: descarga todo de Supabase, convierte UUIDs a IDs numéricos, hace `put()` (upsert) en Dexie. **No borra datos locales.**
+Push: sube solo los registros pendientes, los mapea a UUIDs y hace `upsert` en Supabase. Un dispositivo con datos viejos ya no pisa lo que cargó otro.
 
-Auto-pull para espectadores cada 30 segundos.
+Pull: descarga todo de Supabase, convierte UUIDs a IDs numéricos y mezcla con lo local (conserva categoría/teléfono del Padrón y rifle compartido). **No borra datos locales** y no pisa cambios locales sin subir.
+
+Auto-pull para espectadores cada 30 segundos (la nube manda siempre).
 
 ### 6.5. Impresión y exportación
 

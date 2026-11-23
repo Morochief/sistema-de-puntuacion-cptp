@@ -1,5 +1,5 @@
 import { db } from './db';
-import type { Participant, Series, Shot } from './types';
+import type { Participant, Series, Shot, MasterCompetitor } from './types';
 import { showToast, showConfirm, showPrompt } from './modals';
 import { getModalityConfig } from './modalityConfig';
 
@@ -11,7 +11,7 @@ export async function handleSeedParticipants(id: number, participants: Participa
   }
 
   // 1. Obtener tiradores reales del Padrón Maestro
-  let padronTiradores = [];
+  let padronTiradores: MasterCompetitor[] = [];
   try {
     padronTiradores = await db.masterCompetitors.filter((item: any) => !item.is_deleted).toArray();
   } catch (err) {
@@ -109,13 +109,15 @@ export async function handleSeedParticipants(id: number, participants: Participa
 }
 
 // --- HANDLER: SIMULAR RESULTADOS (SERIES Y PUNTUACIONES DEMO) ---
-export async function handleSeedScores(id: string, participants: Participant[], onComplete: () => Promise<void>) {
+export async function handleSeedScores(id: number, participants: Participant[], onComplete: () => Promise<void>) {
   if (participants.length === 0) {
     showToast('No hay competidores inscritos para simular.', 'error');
     return;
   }
 
-  if (!await showConfirm('Simular Puntuaciones', '¿Simular puntuaciones de prueba para todos los competidores? Esto borrará las series actuales de este evento.')) return;
+  if (!await showConfirm('Simular Puntuaciones', '¿Simular puntuaciones de PRUEBA para todos los competidores? Esto borrará las series actuales de este evento.')) return;
+  const realSeries = await db.series.where('eventId').equals(id).filter((s: any) => !s.is_deleted && Array.isArray(s.shots) && s.shots.length > 0).count();
+  if (realSeries > 0 && !await showConfirm('¡Atención! Hay puntajes cargados', `Este evento ya tiene ${realSeries} series con disparos. Si continuás, se reemplazan por puntajes inventados. ¿Seguro?`)) return;
 
   try {
     const event = await db.events.get(Number(id));
@@ -125,8 +127,8 @@ export async function handleSeedScores(id: string, participants: Participant[], 
     const isBJ = modality === '21 Blackjack';
     const isCF = modality === '.308' || modality === '.223';
     
-    // 1. Limpiar series anteriores para este evento
-    await db.series.where('eventId').equals(id).delete();
+    // 1. Limpiar series anteriores para este evento (borrado lógico: se sincroniza y no vuelve al bajar de la nube)
+    await db.series.where('eventId').equals(id).modify({ is_deleted: true });
 
     const bulkSeries: Series[] = [];
 

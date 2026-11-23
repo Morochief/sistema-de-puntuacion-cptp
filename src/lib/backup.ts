@@ -34,8 +34,12 @@ export const ParticipantZodSchema = z.object({
   tanda: z.number().optional(),
   spot: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
   tieRank: z.number().optional(),
-  paymentStatus: z.enum(['pending', 'paid']).optional().default('paid'),
-  status: z.enum(['active', 'withdrawn', 'disqualified']).optional().default('active'),
+  paymentStatus: z.enum(['pending', 'paid', 'exempt']).optional().default('paid'),
+  // La app guarda 'active' | 'dq' | 'dns'. Se aceptan tambien los nombres viejos.
+  status: z.preprocess(
+    (v) => (v === 'disqualified' ? 'dq' : v === 'withdrawn' ? 'dns' : v),
+    z.enum(['active', 'dq', 'dns'])
+  ).optional().default('active'),
   presentForRaffle: z.boolean().optional().default(true),
   tandaS2: z.number().optional(),
   spotS2: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
@@ -45,12 +49,19 @@ export const ParticipantZodSchema = z.object({
   is_deleted: z.boolean().optional().default(false)
 });
 
+export const ShotZodSchema = z.object({
+  shotNumber: z.number(),
+  targetType: z.string(),
+  hit: z.boolean(),
+  value: z.number()
+});
+
 export const SeriesZodSchema = z.object({
   id: z.number().optional(),
   eventId: z.number(),
   participantId: z.number(),
-  seriesNumber: z.union([z.literal(1), z.literal(2)]),
-  shots: z.array(z.number()),
+  seriesNumber: z.number().int().positive(),
+  shots: z.array(ShotZodSchema),
   totalScore: z.number(),
   bonusActive: z.boolean().optional().default(false),
   createdAt: z.number().optional(),
@@ -60,6 +71,8 @@ export const SeriesZodSchema = z.object({
 export const MasterCompetitorZodSchema = z.object({
   id: z.number().optional(),
   name: z.string(),
+  category: z.string().optional(),
+  phone: z.string().optional(),
   championshipTieRank: z.number().optional(),
   createdAt: z.number().optional(),
   is_deleted: z.boolean().optional().default(false)
@@ -230,6 +243,7 @@ export function importEventBackup(onComplete: () => void): void {
           paymentStatus:    p.paymentStatus || 'paid',
           sharedRifleId:    p.sharedRifleId,
           presentForRaffle: p.presentForRaffle ?? true,
+          tieRank:          p.tieRank,
           is_deleted:       false
         } as Participant);
         participantIdMap.set(oldPId, newPId as number);

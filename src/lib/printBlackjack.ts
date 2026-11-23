@@ -1,6 +1,6 @@
 /**
  * printBlackjack.ts
- * Módulo de impresión específico para la modalidad "21 Blackjack Challenge" (.22 LR 200m).
+ * Módulo de impresión específico para la modalidad "21 Blackjack Challenge" (.22 LR 25/50 m).
  * Diseñado para tarjetas de SERIE ÚNICA y planillas en EXACTAMENTE 1 HOJA A4 Landscape.
  */
 
@@ -126,13 +126,13 @@ function getBJSeriesColumnHtml(event: ShootingEvent, participant: Participant, s
   const shots = series?.shots ?? [];
 
   const targetsList: { id: any; label: string; val: number }[] = [
-    { id: '12"', label: '12" (1 pt)', val: 1 },
-    { id: '10"', label: '10" (2 pts)', val: 2 },
-    { id: '8"',  label: '8" (3 pts)', val: 3 },
-    { id: '6"',  label: '6" (4 pts)', val: 4 },
-    { id: '4"',  label: '4" (5 pts)', val: 5 },
-    { id: '2"',  label: '2" (6 pts)', val: 6 },
-    { id: '2" (bonus)', label: '🎯 BONUS 2" (+21 pts)', val: 21 },
+    { id: '12"', label: 'Obj. 1 – 6 cm (1 pt)', val: 1 },
+    { id: '10"', label: 'Obj. 2 – 5 cm (2 pts)', val: 2 },
+    { id: '8"',  label: 'Obj. 3 – 4 cm (3 pts)', val: 3 },
+    { id: '6"',  label: 'Obj. 4 – 3 cm (4 pts)', val: 4 },
+    { id: '4"',  label: 'Obj. 5 – 2 cm (5 pts)', val: 5 },
+    { id: '2"',  label: 'Obj. 6 – 1 cm (6 pts)', val: 6 },
+    { id: '2" (bonus)', label: '🎯 BlackJack adicional 1 cm (+21 pts)', val: 21 },
   ];
 
   const rowsHtml = targetsList.map(t => {
@@ -184,7 +184,7 @@ function getBJSeriesColumnHtml(event: ShootingEvent, participant: Participant, s
       <div class="meta-grid">
         <div class="meta-box"><span class="lbl">TURNO DE TIRO</span><span class="vl">${participant.tanda || '—'}</span></div>
         <div class="meta-box"><span class="lbl">MODALIDAD</span><span class="vl" style="color:#7c3aed;">21 BLACKJACK</span></div>
-        <div class="meta-box"><span class="lbl">CALIBRE / DISTANCIA</span><span class="vl">.22 LR (200m)</span></div>
+        <div class="meta-box"><span class="lbl">CALIBRE / DISTANCIA</span><span class="vl">.22 LR (25/50 m)</span></div>
         <div class="meta-box"><span class="lbl">CATEGORÍA</span><span class="vl">${esc(participant.category || 'GENERAL')}</span></div>
       </div>
 
@@ -213,10 +213,10 @@ function getBJSeriesColumnHtml(event: ShootingEvent, participant: Participant, s
       </div>
 
       <div class="rules-box">
-        <div class="rules-title">Reglamento 21 Blackjack Challenge (.22 LR 200m)</div>
+        <div class="rules-title">Reglamento 21 Blackjack Challenge (.22 LR 25/50 m)</div>
         <ul class="rules-list">
-          <li>• 12 disparos totales por serie única. Secuencia obligatoria de rack: 12" ➔ 10" ➔ 8" ➔ 6" ➔ 4" ➔ 2" (21 pts).</li>
-          <li>• Al completar el rack de 21 pts, cada tiro sobrante acertado al blanco de 2" otorga +21 PUNTOS DE BONUS.</li>
+          <li>• 12 disparos totales por serie única. Secuencia: Objetivo 1 (6 cm) ➔ 2 (5 cm) ➔ 3 (4 cm) ➔ 4 (3 cm) ➔ 5 (2 cm) ➔ 6 (1 cm) = 21 pts (BlackJack).</li>
+          <li>• Hay que golpear un objetivo para pasar al siguiente. Con munición y tiempo restantes, cada golpe adicional al objetivo 6 (1 cm) suma +21 pts. Los tiros errados no suman.</li>
           <li>• Firma obligatoria del Fiscal al finalizar la serie.</li>
         </ul>
       </div>

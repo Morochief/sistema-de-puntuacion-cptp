@@ -6,7 +6,7 @@
 
 import { db } from './db';
 import type { Participant, Series } from './types';
-import { showToast } from './modals';
+import { showToast, esc } from './modals';
 
 /**
  * Ordena la lista de clasificación teniendo en cuenta el puntaje acumulado y el desempate manual.
@@ -48,6 +48,8 @@ export function detectTies(
   const scoreMap = new Map<number, { participant: Participant; totalScore: number }[]>();
 
   participants.forEach(p => {
+    // Los DQ / DNS no compiten por posición: no forman empates con los activos
+    if (p.status === 'dq' || p.status === 'dns') return;
     const pSeries = seriesList.filter(s => s.participantId === p.id);
     const totalScore = pSeries.reduce((sum, s) => sum + s.totalScore, 0);
     
@@ -246,7 +248,7 @@ export function showTieBreakerModal(
             ${overallPos}° Lugar
           </span>
           <span style="font-weight:700;font-size:0.9rem;color:#0f172a;">
-            ${row.participant.name}
+            ${esc(row.participant.name)}
           </span>
         `;
 

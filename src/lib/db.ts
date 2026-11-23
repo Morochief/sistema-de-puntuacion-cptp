@@ -91,4 +91,39 @@ db.version(8).stores({
   });
 });
 
+// ── IDs únicos entre dispositivos + marca de "cambios sin subir" ───────────
+//
+// Antes los IDs eran autoincrementales (1, 2, 3...). Dos tablets que creaban
+// registros sin sincronizar generaban el mismo ID y, al subir, una pisaba a la
+// otra en Supabase (el UUID de la nube se arma con el ID local).
+// Ahora cada registro nuevo recibe un ID aleatorio grande (< 10^12, para que
+// siga entrando en el UUID determinista de sync.ts).
+//
+// Además cada escritura local marca el registro con `_dirty = 1`. La subida
+// (pushLocalDatabaseToCloud) solo envía lo marcado, y la descarga no pisa
+// registros locales que todavía no se subieron. Las escrituras que hace la
+// propia sincronización llevan `_syncRev` y no se marcan.
+
+export const MIN_RANDOM_ID = 1_000_000_000;
+export const MAX_RANDOM_ID = 999_999_999_999;
+
+export function generateRecordId(): number {
+  return MIN_RANDOM_ID + Math.floor(Math.random() * (MAX_RANDOM_ID - MIN_RANDOM_ID));
+}
+
+for (const table of [db.events, db.participants, db.series, db.masterCompetitors]) {
+  table.hook('creating', function (primKey, obj: any) {
+    if (!('_syncRev' in obj)) obj._dirty = 1;
+    if (primKey === undefined || primKey === null) {
+      obj.id = generateRecordId();
+      return obj.id;
+    }
+    return undefined;
+  });
+  table.hook('updating', function (mods: any) {
+    if ('_syncRev' in mods) return undefined;
+    return { _dirty: 1 };
+  });
+}
+
 export { db };

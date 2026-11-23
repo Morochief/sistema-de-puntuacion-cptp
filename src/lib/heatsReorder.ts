@@ -80,11 +80,11 @@ export async function showManualHeatsReorderModal(eventId: number, onSaveCallbac
             </div>
           </div>`).join('')}
       </div>`;
-      body.querySelectorAll('.cf-up').forEach(b => b.addEventListener('click', () => {
+      body.querySelectorAll<HTMLElement>(".cf-up").forEach(b => b.addEventListener('click', () => {
         const i = Number(b.dataset.idx);
         if (i > 0) { [sorted[i-1], sorted[i]] = [sorted[i], sorted[i-1]]; renderCFList(); }
       }));
-      body.querySelectorAll('.cf-dn').forEach(b => b.addEventListener('click', () => {
+      body.querySelectorAll<HTMLElement>(".cf-dn").forEach(b => b.addEventListener('click', () => {
         const i = Number(b.dataset.idx);
         if (i < sorted.length - 1) { [sorted[i], sorted[i+1]] = [sorted[i+1], sorted[i]]; renderCFList(); }
       }));

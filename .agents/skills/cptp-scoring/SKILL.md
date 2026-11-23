@@ -146,16 +146,16 @@ El módulo de Analíticas (`AnalyticsView.ts`) NO DEBE usar fondos blancos gené
 
 ## Modalidades de Disparo
 
-| Propiedad | .22 LR | .308 | .223 |
-|---|---|---|---|
-| shotsPerSeries | 10 | 12 | 12 |
-| seriesPerEvent | 2 | 1 | 1 |
-| spotsPerHeat | 4 | 1 | 1 |
-| maxHeats | 8 | 50 | 50 |
-| hasBonus | false | true | true |
-| maxSeriesScore | 67 | 96 | 96 |
-| useFamilyRules | true | false | false |
-| useSharedRifle | true | false | false |
+| Propiedad | .22 LR | .308 | .223 | 21 Blackjack |
+|---|---|---|---|---|
+| shotsPerSeries | 10 | 12 | 12 | 12 (tope pendiente de confirmar con el organizador) |
+| seriesPerEvent | 2 | 1 | 1 | 1 |
+| spotsPerHeat | 4 | 1 | 1 | 1 |
+| maxHeats | 8 | 50 | 50 | 50 |
+| hasBonus | false | true | true | true (BlackJacks adicionales, no checkbox) |
+| maxSeriesScore | 67 | 96 | 96 | 147 |
+| useFamilyRules | true | false | false | false |
+| useSharedRifle | true | false | false | false |
 
 ---
 
@@ -184,6 +184,12 @@ pequeno: [42, 38, 34, 30, 26, 22, 18, 14, 11, 7]
 ```
 
 **Bonus CF:** Si el primer disparo impacta zona bonus del Grande, los adicionales valen x2 (2 pts en vez de 1). Max: 96 pts (con bonus) / 87 pts (sin bonus).
+
+**Autocompletado de adicionales:** en .22 LR y fuego central, al pegar los tres blancos el resto de los tiros cuenta automatico (`SeriesScoringView.registerShot`). En 21 Blackjack NO: cada BlackJack adicional (+21) solo suma si golpea el objetivo 6 (1 cm), se carga tiro por tiro.
+
+**Checkbox Bonus (solo .308/.223):** al marcarlo/desmarcarlo se recalculan los adicionales ya cargados (1 ↔ 2 pts).
+
+**21 Blackjack (reglamento):** .22 LR a 25/50 m. Objetivos 1-6 (6, 5, 4, 3, 2, 1 cm) valen 1-6 pts = 21 (BlackJack). Hay que golpear un objetivo para pasar al siguiente. Cada golpe adicional al objetivo 6 = +21. Los ids internos de los blancos siguen siendo `'12"'...'2"'`, `'2" (bonus)'` (compatibilidad con datos guardados); solo cambiaron los rotulos. Pendiente: orden inverso (42 pts) y desempate por menor tiempo (requiere columna nueva en Supabase).
 
 **Notacion oficial:** O = acierto, X = fallo
 
@@ -260,9 +266,17 @@ Para mapear IDs numericos de Dexie a UUIDs de Postgres sin tabla de traduccion:
 Namespaces: 0=events, 1=participants, 2=series, 3=masterCompetitors
 ```
 
-Push: upsert a Supabase. Pull: upsert a Dexie (NO borra datos locales).
+**IDs nuevos aleatorios** (`db.ts`, hook `creating`): cada registro nuevo recibe un ID aleatorio entre 10^9 y 10^12 (`generateRecordId`) para que dos dispositivos no generen el mismo UUID. Los registros viejos conservan sus IDs chicos. NO ordenar participantes por `id` para recuperar el orden de inscripcion: usar `competitorNumber`.
 
-Auto-pull para spectators cada 30s si hay conexion.
+**Cambios pendientes** (`_dirty`): los hooks de `db.ts` marcan `_dirty = 1` en cada escritura local (add/put/update/modify). Las escrituras de la sincronizacion llevan `_syncRev` y quedan con `_dirty = 0`. Registros viejos sin marca (`undefined`) cuentan como pendientes para subir.
+
+Push: upsert a Supabase SOLO de los registros pendientes (`_dirty !== 0`); despues los marca como subidos si no cambiaron mientras tanto. Un dispositivo con datos viejos ya no pisa lo que cargo otro.
+
+Pull: upsert a Dexie con merge (`{...local, ...nube}`), asi se conservan los campos que la nube no guarda (categoria/telefono del Padron, rifle compartido). NO pisa registros con `_dirty === 1` (cambios locales sin subir), salvo `pullCloudDatabaseToLocal({ keepLocalChanges: false })`, que usan los espectadores.
+
+Auto-pull para spectators cada 30s si hay conexion (con `keepLocalChanges: false`).
+
+**Borrados siempre logicos** (`is_deleted`): Padron (borrar y deduplicar), "Simular Resultados", series, tiradores. Un borrado fisico no llega a la nube y el registro vuelve en la proxima descarga.
 
 ---
 
@@ -461,6 +475,10 @@ Usar `modalityConfig.ts` como fuente unica de verdad para:
 
 ## Comandos Utiles
 
+- `npm test` — tests del Campeonato + tests de respaldos/sincronizacion/Padron (`tests/fixes.test.mjs`, usa fake-indexeddb)
+- `npm run typecheck` — verificacion de tipos de `src/`
+
+
 ```bash
 npm run build                          # Compila + inyecta SW cache
 npm run dev                            # Dev server
@@ -497,4 +515,7 @@ Toda fecha mostrada en la UI (listados, gráficos, selectores) debe usar el form
 | Reordenar S2 aparece en CF | isCF no aplicado | Usar !isCF en display |
 | Boton "Nuevo Evento" oculto | No es admin | Solo admin puede crear eventos |
 | Pull sobrescribe datos locales | Sync antiguo con clear() | Verificar sync.ts use put() no clear() |
+| Registro borrado reaparece tras bajar | Borrado fisico (`.delete()`) | Usar `update(id, { is_deleted: true })` |
+| Respaldo "invalido" al importar | Esquema Zod desalineado con los datos | `backup.ts`: shots son objetos, status `active/dq/dns`, pago incluye `exempt` |
+| `tsc` no muestra errores de `src/` | Error de sintaxis en otro archivo incluido | `tsconfig.json` solo incluye `src/`; correr `npm run typecheck` |
 | Paginacion no avanza | Condicion al reves (`>=` en vez de `<`) | Verificar `dash-next-page` use `dashPage < totalPages` |
