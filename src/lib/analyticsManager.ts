@@ -1,4 +1,5 @@
 import { db } from './db';
+import { resolveEventModality } from './championshipCore';
 import type { Modality, ShootingEvent, Participant, Series } from './types';
 
 export interface ChartDataset {
@@ -11,12 +12,7 @@ export async function getAnalyticsEvents(modalityFilter: string, yearFilter: str
   let events = await db.events.filter((e: any) => !e.is_deleted && !e.isPilot).toArray();
   
   if (modalityFilter !== 'Todas') {
-    events = events.filter((e: any) => {
-      let em = e.modality || '.22 LR';
-      if (e.name?.includes('.308') || e.championshipDate?.includes('.308')) em = '.308';
-      else if (e.name?.includes('.223') || e.championshipDate?.includes('.223')) em = '.223';
-      return em === modalityFilter;
-    });
+    events = events.filter((e: any) => resolveEventModality(e) === modalityFilter);
   }
   
   if (yearFilter !== 'Todos') {

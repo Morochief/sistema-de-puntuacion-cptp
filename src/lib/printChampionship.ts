@@ -3,6 +3,11 @@ import type { ChampionshipRankingRow } from './championship';
 import { esc, showToast } from './modals';
 import { openPrintModal } from './printModal';
 
+/** Evita que Excel interprete como fórmula un texto que empieza con =, +, - o @. */
+function safeCsvCell(value: string): string {
+  return /^[=+\-@]./.test(value) ? `'${value}` : value;
+}
+
 export function exportChampionshipToExcel(
   year: number,
   modality: string,
@@ -38,10 +43,11 @@ export function exportChampionshipToExcel(
         if (!item) {
           line.push('-');
         } else {
-          let val = String(item.score);
-          if (item.status === 'dq') val = 'DQ';
-          
-          if (item.isBaseFirme) {
+          const val = String(item.score);
+
+          if (item.status !== 'active') {
+            line.push(item.status === 'dq' ? 'DQ' : 'DNS');
+          } else if (item.isBaseFirme) {
             line.push(`${val} (Base Firme)`);
           } else if (item.isAtRisk) {
             line.push(`${val} (En Riesgo)`);
@@ -61,7 +67,7 @@ export function exportChampionshipToExcel(
       line.push(String(r.baseFirme));
       line.push(String(r.totalActual));
       line.push(String(r.mejores4));
-      csv += line.map(c => `"${c.replace(/"/g, '""')}"`).join(';') + '\n';
+      csv += line.map(c => `"${safeCsvCell(c).replace(/"/g, '""')}"`).join(';') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -117,9 +123,11 @@ export function printChampionshipPreview(
       const item = r.events[e.id!];
       if (!item) return `<td style="border:1px solid #000000;padding:6px;text-align:center;background:#f2f2f2;color:#999;">-</td>`;
       
-      let displayVal = String(item.score);
-      if (item.status === 'dq') displayVal = 'DQ';
+      if (item.status !== 'active') {
+        return `<td style="border:1px solid #000000;padding:6px;text-align:center;font-size:11px;font-weight:bold;background:#fef2f2;color:#b91c1c;">${item.status === 'dq' ? 'DQ' : 'DNS'}</td>`;
+      }
 
+      const displayVal = String(item.score);
       let style = '';
       if (item.isBaseFirme) style = 'font-weight:bold;background:#dcfce7;color:#16a34a;';
       else if (item.isAtRisk) style = 'font-weight:bold;background:#fef9c3;color:#ca8a04;';
@@ -202,7 +210,7 @@ export function printChampionshipPreview(
       <div style="font-size:9px;color:#444;margin-bottom:10px;">
         <strong>Regla:</strong> Top 3 toma los 3 mejores puntajes. 
         <span style="background:#dcfce7;color:#15803d;padding:2px 4px;font-weight:bold;">Top 2: Mejores 2</span> 
-        <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er Puntaje</span>
+        <span style="background:#fef9c3;color:#a16207;padding:2px 4px;font-weight:bold;">En Riesgo: 3er puntaje mientras falten fechas</span>
         <span style="background:#ede9fe;color:#4f46e5;padding:2px 4px;font-weight:bold;">Top Gun: Suma de los Mejores 4</span>
       </div>
 
