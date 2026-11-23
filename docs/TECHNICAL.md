@@ -74,7 +74,7 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `championship.ts` | Loads championship data from Dexie and delegates to `championshipCore.ts` |
 | `championshipCore.ts` | Pure logic for the annual "Campeonato General" — Top 2 (Base Firme) / Top 3 (Total Actual) / Top Gun (best 4), En Riesgo, tiebreakers. Covered by `npm test` |
 | `championshipSimulator.ts` | In-memory "next date" simulator + max score per modality |
-| `championshipTieBreaker.ts` | "Resolver Empates" modal: manual order of exact championship ties, saved as `championshipTieRank` on every Padron record with that name (synced via `championship_tie_rank`) |
+| `championshipTieBreaker.ts` | "Resolver Empates" modal: manual order of shooters with the same Top 3, saved as `encodeTieRank(top3, pos)` on every Padron record with that name (synced via `championship_tie_rank`) |
 | `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants and deduplication |
 | `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties within an event |
 | `backup.ts` | JSON export/import of full database and single event backups with strict Zod schema validation |
@@ -267,7 +267,8 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
 - **Sorting (`sortChampionshipRanking`)** applies, in order:
   1. Primary metric (`totalActual`, `baseFirme` or `mejores4`, user-selectable)
   2. Secondary metric (the other of the two totals)
-  3. Manual `championshipTieRank` from Padron Maestro (lower = better; unset treated as 999), set from the module's "⚖️ Resolver Empates" button (staff/admin) for exact ties detected by `detectChampionshipTies()`
+  - Official order (Top 3): Top 3 → manual order from "⚖️ Resolver Empates" (`championshipTieRank` encoded as `Top3 * 100 + position`; only applies while it matches the current Top 3) → **highest discard score** (club rule; discards compared best-first) → alphabetical. Top 2 / Top Gun views: chosen total → the other total (and Top 2 for Top Gun) → alphabetical.
+  - "Resolver Empates" groups every shooter with the same Top 3 (`detectChampionshipTies()`), only in the Top 3 view.
   4. Alphabetical by competitor name
 
 ## Print System (`print.ts`, `printCF.ts`, `printChampionship.ts`)

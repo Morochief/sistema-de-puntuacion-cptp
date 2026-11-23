@@ -422,10 +422,8 @@ Tiradores con el mismo `sharedRifleId` (Rifle A, B, C, D, E) no pueden estar en 
 
 ### 8.2. Ordenamiento del ranking
 
-1. Por el criterio seleccionado (Top 3, Top 2 o Top Gun)
-2. Por el otro criterio
-3. Por `championshipTieRank` manual (del Padrón Maestro). Se carga con el botón **⚖️ Resolver Empates** del módulo (staff/admin), que lista los grupos empatados en todos los totales y permite ordenarlos con ▲ ▼
-4. Alfabético por nombre
+1. **Orden oficial (Top 3):** Top 3 → orden manual de **⚖️ Resolver Empates** (si lo cargaron para ese mismo Top 3) → **mayor puntaje de descarte** (regla del club) → alfabético. En las vistas Top 2 y Top Gun: el total elegido → el otro total → alfabético.
+2. **⚖️ Resolver Empates** (staff/admin, en la vista Top 3) lista a todos los que tienen el mismo Top 3, con su descarte, y permite ordenarlos con ▲ ▼. Se guarda en el Padrón como `Top3 × 100 + posición`, así que deja de aplicarse solo si el Top 3 cambia.
 
 ---
 

@@ -1,7 +1,8 @@
 /**
  * championshipTieBreaker.ts
  * Modal "Resolver Empates" del Campeonato General: permite ordenar a mano a los
- * tiradores que empatan en todos los criterios (por ejemplo mismo Top 3 y mismo Top 2).
+ * tiradores con el mismo Top 3. Por defecto rige la regla del club (mayor descarte arriba);
+ * el orden manual guardado tiene prioridad sobre esa regla.
  * El orden se guarda como championshipTieRank en el Padrón Maestro (se sincroniza a la nube)
  * y se aplica en la tabla, la impresión, el Top 6 y la exportación.
  */
@@ -9,14 +10,16 @@ import { db } from './db';
 import { esc, showToast } from './modals';
 import {
   detectChampionshipTies,
+  encodeTieRank,
+  getDiscards,
   normalizeName,
   type ChampionshipRankingRow,
   type ChampionshipSortKey
 } from './championshipCore';
 
-const SORT_LABELS: Record<ChampionshipSortKey, string> = { baseFirme: 'Top 2', totalActual: 'Top 3', mejores4: 'Top Gun' };
 
-/** Guarda el orden de cada grupo (1 = va primero) en todos los registros del Padrón con ese nombre. */
+/** Guarda el orden de cada grupo (1 = va primero) en todos los registros del Padrón con ese nombre,
+ *  codificado con el Top 3 del empate para que solo valga en ese empate. */
 export async function saveChampionshipTieOrder(groups: ChampionshipRankingRow[][]): Promise<void> {
   const masters = await db.masterCompetitors.filter((m: any) => !m.is_deleted).toArray();
   for (const rows of groups) {
@@ -28,11 +31,11 @@ export async function saveChampionshipTieOrder(groups: ChampionshipRankingRow[][
           name: rows[i].competitorName,
           category: rows[i].category === 'General' ? '' : rows[i].category,
           phone: '',
-          championshipTieRank: i + 1,
+          championshipTieRank: encodeTieRank(rows[i].totalActual, i + 1),
           createdAt: Date.now()
         });
       } else {
-        for (const m of matches) await db.masterCompetitors.update(m.id!, { championshipTieRank: i + 1 });
+        for (const m of matches) await db.masterCompetitors.update(m.id!, { championshipTieRank: encodeTieRank(rows[i].totalActual, i + 1) });
       }
     }
   }
@@ -70,7 +73,7 @@ export function showChampionshipTieBreakerModal(
       <span style="font-size:0.75rem;background:#eff6ff;color:#0056b3;padding:4px 8px;border-radius:4px;font-weight:700;">${esc(contextLabel)}</span>
     </div>
     <div style="padding:10px 20px 0;font-size:0.8rem;color:#475569;font-weight:600;">
-      Ordená con ▲ ▼ a los tiradores que empatan en ${SORT_LABELS[sortBy]} y en los demás totales. El de arriba queda mejor ubicado.
+      Tiradores con el mismo Top 3. El orden sugerido sigue la regla del club (mayor descarte arriba); cambialo con ▲ ▼ si hace falta. El de arriba queda mejor ubicado.
     </div>
     <div data-tb-body style="padding:12px 20px 16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;"></div>
     <div style="padding:14px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;gap:12px;">
@@ -91,6 +94,7 @@ export function showChampionshipTieBreakerModal(
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-family:monospace;font-size:0.8rem;background:#eff6ff;color:#0056b3;padding:2px 6px;border-radius:4px;font-weight:bold;">${g.startPosition + ri}° Lugar</span>
             <span style="font-weight:700;font-size:0.92rem;text-transform:uppercase;">${esc(r.competitorName)}</span>
+            <span style="font-size:0.72rem;color:#64748b;font-weight:700;" title="Puntajes de descarte (fuera del Top 3)">Descarte: ${getDiscards(r).join(' · ') || '—'}</span>
           </div>
           <div style="display:flex;gap:6px;">
             <button data-tb-move="${gi}:${ri}:-1" ${ri === 0 ? 'disabled style="opacity:0.3;' : 'style="'}background:#e2e8f0;color:#0f172a;border:none;border-radius:4px;width:30px;height:30px;cursor:pointer;font-weight:bold;" title="Subir">▲</button>
@@ -100,7 +104,7 @@ export function showChampionshipTieBreakerModal(
       return `
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;">
           <div style="font-size:0.95rem;font-weight:700;color:#b7201c;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px;">
-            <span>Empate: Top 3 ${first.totalActual} · Top 2 ${first.baseFirme} · Top Gun ${first.mejores4}</span>
+            <span>Empate en Top 3: ${first.totalActual} pts</span>
             <span style="font-size:0.75rem;color:#64748b;white-space:nowrap;">${g.rows.length} tiradores</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;">${items}</div>

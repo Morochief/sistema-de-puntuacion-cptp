@@ -67,7 +67,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           isSimulated: false
         }));
 
-    // Empates exactos (mismos totales): se pueden ordenar a mano con "Resolver Empates"
+    // Mismo Top 3: se pueden ordenar a mano con "Resolver Empates" (solo en el orden oficial Top 3)
     const tieGroups = detectChampionshipTies(rankings, currentSortBy);
     const tiedNames = new Set(tieGroups.flatMap(g => g.rows.map(r => r.competitorName)));
 
@@ -339,7 +339,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           <td style="padding:10px 6px;">
             <div style="font-weight:700;color:#0f172a;font-size:0.9rem;text-transform:uppercase;display:flex;align-items:center;">
               ${esc(row.competitorName)}
-              ${tiedNames.has(row.competitorName) && !isSimulatorActive ? `<span style="font-size:0.6rem;font-weight:800;background:#fef2f2;color:#b91c1c;padding:1px 5px;border-radius:4px;margin-left:6px;" title="Empata con otro tirador en todos los totales. Usá 'Resolver Empates' para definir el orden.">EMPATE</span>` : ''}
+              ${tiedNames.has(row.competitorName) && !isSimulatorActive ? `<span style="font-size:0.6rem;font-weight:800;background:#fef2f2;color:#b91c1c;padding:1px 5px;border-radius:4px;margin-left:6px;" title="Mismo Top 3 que otro tirador. Por regla queda arriba el de mayor descarte; con 'Resolver Empates' podés cambiar el orden.">EMPATE</span>` : ''}
               ${deltaBadge}
             </div>
             <div style="font-size:0.7rem;color:#64748b;font-weight:600;margin-top:2px;">${esc(row.category)}</div>
