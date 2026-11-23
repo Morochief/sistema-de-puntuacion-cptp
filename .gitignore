@@ -29,3 +29,6 @@ cptp_backup_*.json
 
 # command code
 .commandcode/
+
+# test bundles
+dist-tests/

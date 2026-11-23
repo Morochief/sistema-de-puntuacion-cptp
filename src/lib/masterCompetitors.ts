@@ -132,10 +132,10 @@ export async function migrateParticipantsToPadron(): Promise<number> {
           createdAt: Date.now()
         });
         added++;
-        console.log(`[Padron] Agregado: "${nameTrimmed}"`);
+        console.log(`[Padron] Agregado: "${normalized}"`);
       } catch (addErr) {
         // Si falla un add individual (ej: constraint), lo saltamos y seguimos
-        console.warn(`[Padron] No se pudo agregar "${nameTrimmed}":`, addErr);
+        console.warn(`[Padron] No se pudo agregar "${normalized}":`, addErr);
       }
     }
 

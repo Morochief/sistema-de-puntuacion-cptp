@@ -1,10 +1,17 @@
 /**
  * championshipSimulator.ts
- * Módulo puro de simulación matemática y proyecciones para el Campeonato Anual.
+ * Simulación en memoria de una próxima fecha del Campeonato Anual.
+ * Recalcula Top 2 / Top 3 / Top Gun y las marcas de cada celda con las mismas
+ * reglas que championshipCore.ts, sin modificar los datos originales.
  */
 
-import type { ChampionshipRankingRow, ChampionshipScore } from './championship';
-import { sortChampionshipRanking } from './championship';
+import {
+  applyPlacements,
+  sortChampionshipRanking,
+  type ChampionshipRankingRow,
+  type ChampionshipSortKey
+} from './championshipCore';
+import { MODALITY_CONFIGS } from './modalityConfig';
 import type { Modality } from './types';
 
 export interface SimulatedChampionshipRow extends ChampionshipRankingRow {
@@ -14,60 +21,57 @@ export interface SimulatedChampionshipRow extends ChampionshipRankingRow {
   isSimulated: boolean;
 }
 
-export interface PodiumRequirement {
-  targetRank: 1 | 2 | 3;
-  targetLabel: string;
-  leaderScoreTotal: number;
-  leaderScoreBase: number;
-  neededPointsTotal: number | null; // Puntos necesarios en la siguiente fecha para Total Actual (Top 3)
-  neededPointsBase: number | null;  // Puntos necesarios en la siguiente fecha para Base Firme (Top 2)
-  isAchievableTotal: boolean;
-  isAchievableBase: boolean;
+/** Id reservado para la fecha simulada (no existe en la base). */
+export const SIMULATED_EVENT_ID = -1;
+
+/** Modalidades de Fuego Central (tienen máximo con y sin bonus). */
+export function isCentralFireModality(modality: Modality): boolean {
+  return modality === '.308' || modality === '.223';
 }
 
 /**
- * Calcula la puntuación máxima por evento según la modalidad.
- * - 21 Blackjack Challenge: Max 147 pts
- * - .22 LR: Max 134 pts (2 series x 67 pts)
- * - Fuego Central (.308 / .223): Max 87 pts (sin bonus) o 96 pts (con bonus)
+ * Puntaje máximo por evento según la modalidad (desde modalityConfig):
+ * - .22 LR: 134 (2 series × 67)
+ * - .308 / .223: 96 con bonus, 87 sin bonus (1 serie)
+ * - 21 Blackjack: 147 (1 serie)
  */
 export function getMaxEventScore(modality: Modality, withBonus: boolean = true): number {
-  if (modality === '21 Blackjack') {
-    return 147;
-  }
-  if (modality === '.308' || modality === '.223' || modality === 'Gran Calibre' || modality === '.308 / .223 Gran Calibre') {
-    return withBonus ? 96 : 87;
-  }
-  return 134; // .22 LR (2 series de 67 pts)
+  if (isCentralFireModality(modality) && !withBonus) return 87;
+  const cfg = MODALITY_CONFIGS[modality] ?? MODALITY_CONFIGS['.22 LR'];
+  return cfg.maxSeriesScore * cfg.seriesPerEvent;
 }
 
 /**
- * Aplica simulación de un puntaje en un nuevo evento (o actualización de un evento existente)
- * a una lista de competidores y retorna la tabla proyectada reordenada con los deltas de posición.
+ * Aplica puntajes simulados (por tirador) y devuelve la tabla proyectada
+ * reordenada con los deltas de posición.
  */
 export function simulateChampionshipRankings(
   originalRankings: ChampionshipRankingRow[],
-  simulations: Map<string, { eventId: number; score: number }[]>, // competitorName -> lista de puntajes simulados por evento
-  sortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual'
+  simulations: Map<string, { eventId: number; score: number }[]>, // competitorName -> puntajes simulados
+  sortBy: ChampionshipSortKey = 'totalActual',
+  seasonOpen: boolean = true
 ): SimulatedChampionshipRow[] {
-  // 1. Guardar ranking original ordenado
-  const sortedOriginal = sortChampionshipRanking(originalRankings, sortBy);
+  // 1. Posiciones originales
   const originalPosMap = new Map<string, number>();
-  sortedOriginal.forEach((row, idx) => {
+  sortChampionshipRanking(originalRankings, sortBy).forEach((row, idx) => {
     originalPosMap.set(row.competitorName, idx + 1);
   });
 
-  // 2. Proyectar cada competidor
+  // 2. Proyectar cada competidor (copias profundas de las celdas)
   const projectedRows: ChampionshipRankingRow[] = originalRankings.map(row => {
     const simList = simulations.get(row.competitorName);
     if (!simList || simList.length === 0) {
-      return { ...row, events: { ...row.events } };
+      const copy: ChampionshipRankingRow['events'] = {};
+      for (const key of Object.keys(row.events)) {
+        const ev = row.events[Number(key)];
+        copy[Number(key)] = ev ? { ...ev } : null;
+      }
+      return { ...row, events: copy };
     }
 
-    // Copiar eventos y aplicar simulaciones
-    const newEvents = { ...row.events };
+    const cells: ChampionshipRankingRow['events'] = { ...row.events };
     simList.forEach(sim => {
-      newEvents[sim.eventId] = {
+      cells[sim.eventId] = {
         eventId: sim.eventId,
         score: sim.score,
         status: 'active',
@@ -78,137 +82,26 @@ export function simulateChampionshipRankings(
       };
     });
 
-    // Recalcular Base Firme (Top 2) y Total Actual (Top 3)
-    const validScoresList: { eventId: number; score: number }[] = [];
-    Object.values(newEvents).forEach(ev => {
-      if (ev && ev.status === 'active') {
-        validScoresList.push({ eventId: ev.eventId, score: ev.score });
-      }
-    });
-
-    // Ordenar puntajes de mayor a menor para asignar correctamente los Top 2 (Base Firme) y Top 3
-    validScoresList.sort((a, b) => b.score - a.score);
-
-    const totalEventsCount = Object.keys(newEvents).length;
-    validScoresList.forEach((item, idx) => {
-      const ev = newEvents[item.eventId];
-      if (ev) {
-        ev.isBaseFirme = idx < 2;
-        ev.isTaken = idx < 3;
-        ev.isAtRisk = idx === 2 && totalEventsCount >= 4;
-        ev.isDiscarded = idx >= 3;
-      }
-    });
-
-    const baseFirme = (validScoresList[0]?.score || 0) + (validScoresList[1]?.score || 0);
-    const totalActual = baseFirme + (validScoresList[2]?.score || 0);
-    const mejores4 = totalActual + (validScoresList[3]?.score || 0);
-
+    const placed = applyPlacements(cells, seasonOpen);
     return {
       ...row,
-      events: newEvents,
-      baseFirme,
-      totalActual,
-      mejores4
+      events: placed.events,
+      baseFirme: placed.baseFirme,
+      totalActual: placed.totalActual,
+      mejores4: placed.mejores4
     };
   });
 
-  // 3. Reordenar con la simulación aplicada
-  const sortedProjected = sortChampionshipRanking(projectedRows, sortBy);
-
-  // 4. Calcular deltas
-  return sortedProjected.map((row, idx) => {
+  // 3. Reordenar con la simulación aplicada y calcular deltas
+  return sortChampionshipRanking(projectedRows, sortBy).map((row, idx) => {
     const projectedRank = idx + 1;
     const originalRank = originalPosMap.get(row.competitorName) || projectedRank;
-    const rankDelta = originalRank - projectedRank; // Positivo = subió puestos
-    const isSimulated = simulations.has(row.competitorName);
-
     return {
       ...row,
       originalRank,
       projectedRank,
-      rankDelta,
-      isSimulated
-    };
-  });
-}
-
-/**
- * Calcula los puntos necesarios en una nueva fecha para que el competidor indicado
- * alcance el Podio (1°, 2° o 3° puesto en el Campeonato).
- */
-export function calculatePodiumRequirements(
-  competitorName: string,
-  rankings: ChampionshipRankingRow[],
-  modality: Modality,
-  sortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual'
-): PodiumRequirement[] {
-  const sorted = sortChampionshipRanking(rankings, sortBy);
-  const compRow = sorted.find(r => r.competitorName === competitorName);
-  if (!compRow) return [];
-
-  const maxPossibleSingleEvent = getMaxEventScore(modality, true);
-
-  // Obtener los puntajes actuales del competidor ordenados de mayor a menor
-  const compScores: number[] = [];
-  Object.values(compRow.events).forEach(ev => {
-    if (ev && ev.status === 'active') compScores.push(ev.score);
-  });
-  compScores.sort((a, b) => b - a);
-
-  // El 3er puntaje actual (si tiene 3+) que sería desplazado en Total Actual si saca una nota mejor
-  const lowestTakenInTop3 = compScores.length >= 3 ? compScores[2] : 0;
-  // El 2do puntaje actual (si tiene 2+) que sería desplazado en Base Firme si saca una nota mejor
-  const lowestTakenInTop2 = compScores.length >= 2 ? compScores[1] : 0;
-
-  const targets: (1 | 2 | 3)[] = [1, 2, 3];
-  const labels: Record<1 | 2 | 3, string> = {
-    1: '🏆 1° Puesto (Campeón)',
-    2: '🥈 2° Puesto (Subcampeón)',
-    3: '🥉 3° Puesto (Podio)'
-  };
-
-  return targets.map(targetRank => {
-    const leaderIndex = targetRank - 1;
-    const leaderRow = sorted[leaderIndex];
-
-    if (!leaderRow || leaderRow.competitorName === competitorName) {
-      return {
-        targetRank,
-        targetLabel: labels[targetRank],
-        leaderScoreTotal: compRow.totalActual,
-        leaderScoreBase: compRow.baseFirme,
-        neededPointsTotal: 0,
-        neededPointsBase: 0,
-        isAchievableTotal: true,
-        isAchievableBase: true
-      };
-    }
-
-    // Puntos necesarios para superar el Total Actual del líder
-    const targetTotal = leaderRow.totalActual + 1; // +1 para superar
-    const currentTotalWithoutLowest = compRow.totalActual - lowestTakenInTop3;
-    let neededPointsTotal = targetTotal - currentTotalWithoutLowest;
-    if (neededPointsTotal < 0) neededPointsTotal = 0;
-
-    // Puntos necesarios para superar la Base Firme del líder
-    const targetBase = leaderRow.baseFirme + 1;
-    const currentBaseWithoutLowest = compRow.baseFirme - lowestTakenInTop2;
-    let neededPointsBase = targetBase - currentBaseWithoutLowest;
-    if (neededPointsBase < 0) neededPointsBase = 0;
-
-    const isAchievableTotal = neededPointsTotal !== null && neededPointsTotal <= maxPossibleSingleEvent;
-    const isAchievableBase = neededPointsBase !== null && neededPointsBase <= maxPossibleSingleEvent;
-
-    return {
-      targetRank,
-      targetLabel: labels[targetRank],
-      leaderScoreTotal: leaderRow.totalActual,
-      leaderScoreBase: leaderRow.baseFirme,
-      neededPointsTotal: isAchievableTotal ? neededPointsTotal : null,
-      neededPointsBase: isAchievableBase ? neededPointsBase : null,
-      isAchievableTotal,
-      isAchievableBase
+      rankDelta: originalRank - projectedRank, // Positivo = subió puestos
+      isSimulated: simulations.has(row.competitorName)
     };
   });
 }

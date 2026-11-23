@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/inject-sw-cache.js",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "esbuild tests/championship.test.mjs --bundle --platform=node --format=esm --outfile=dist-tests/championship.test.mjs --log-level=warning && node --test dist-tests/championship.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

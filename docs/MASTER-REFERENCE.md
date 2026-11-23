@@ -313,7 +313,9 @@ Tres funciones clave en cada motor:
 | `heatsManager.ts` | — | Barrel (re-export) |
 | `heatsRules.ts` | 400 | Reglas Domínguez (S1+S2) + rifle compartido |
 | `heatsReorder.ts` | 350 | Modal reorden manual + reset sorteo |
-| `championship.ts` | 175 | Campeonato General Anual: Base Firme (Top 2) + Total Actual (Top 3) |
+| `championship.ts` | 46 | Campeonato General Anual: carga de datos (Dexie) |
+| `championshipCore.ts` | 228 | Campeonato: lógica pura Top 2 / Top 3 / Top Gun, En Riesgo, orden (con tests) |
+| `championshipSimulator.ts` | 107 | Simulador multirival + máximos por modalidad |
 | `masterCompetitors.ts` | — | CRUD Padrón Maestro, migración automática, dedup |
 | `tiebreaker.ts` | — | Desempates manuales |
 | `backup.ts` | — | Export/Import JSON de eventos completos |
@@ -340,7 +342,7 @@ Auto-pull para espectadores cada 30 segundos.
 | `printScoreSheet.ts` | 558 | Planillas .22 LR A4 landscape (2 series lado a lado) |
 | `printRankingCard.ts` | 300 | Tarjeta de posiciones A4 vertical |
 | `printCF.ts` | 421 | Planillas Fuego Central (1 serie, columna bonus) |
-| `printChampionship.ts` | — | Impresión + CSV del Campeonato General |
+| `printChampionship.ts` | — | Impresión (mismo formato visual que el módulo, logos y calibre) + CSV del Campeonato General; opción Top 6 premiados |
 | `excel.ts` | — | Export CSV con BOM UTF-8 |
 
 Todas las planillas se renderizan en un **iframe dentro de un modal** para mantener estilos aislados.
@@ -386,24 +388,30 @@ Tiradores con el mismo `sharedRifleId` (Rifle A, B, C, D, E) no pueden estar en 
 
 ## 8. Campeonato General Anual
 
-### 8.1. Algoritmo (`championship.ts`)
+### 8.1. Algoritmo (`championshipCore.ts`, cargado por `championship.ts`)
 
-1. Filtra eventos del año y modalidad seleccionados (excluye `isPilot`)
-2. Agrupa participantes por **nombre normalizado** (sin acentos, minúsculas) a través de todos los eventos
+1. Filtra eventos del año y modalidad seleccionados (excluye `isPilot`). Si el nombre o la fecha de campeonato dice ".308" o ".223", el evento cuenta para esa modalidad (misma regla que Analytics)
+2. Agrupa participantes por **nombre normalizado** (sin acentos, minúsculas, sin espacios dobles) a través de todos los eventos
 3. Por cada tirador y cada evento:
-   - Si no está inscrito: 0 pts, status `dns`
-   - Si está `dq`: 0 pts, status `dq`
-   - Si está `active`: suma del `totalScore` de todas sus series en ese evento
-4. Ordena los puntajes de mayor a menor
+   - Si no está inscrito: celda vacía ("-")
+   - Si está `dq` o `dns`: 0 pts, se muestra DQ / DNS, sin etiqueta
+   - Si está `active`: suma del `totalScore` de sus series (una por número de serie; duplicados de sincronización no suman doble)
+4. Ordena los puntajes activos de mayor a menor
 5. Calcula marcadores:
-   - **Base Firme** (verde) = suma del Top 2
-   - **Total Actual** (azul) = suma del Top 3
-   - **En Riesgo** (amarillo) = el 3er puntaje si hay 4+ eventos
+   - **Top 2 / Base Firme** (verde) = suma de los 2 mejores
+   - **Top 3 / Total Actual** (azul) = suma de los 3 mejores
+   - **Top Gun** = suma de los 4 mejores
+   - **En Riesgo** (amarillo) = el 3er puntaje **mientras falten fechas** (año seleccionado >= año actual)
    - **Descarte** (tachado) = puntajes más allá del Top 3
+6. Categoría: la de la inscripción más reciente distinta de "General"; si no hay, la del Padrón
+7. Simulador: aplica las mismas reglas sobre copias; Imprimir y Exportar usan siempre los datos reales
+   - Impresión: mismo formato visual que la tabla del módulo, logos CPTP y Long Range, modalidad (calibre) y año en el encabezado, sin leyenda de "planilla oficial"
+   - **Top 6 Premiados** (`PRIZE_POSITIONS = 6`): imprimir, descargar como imagen PNG y exportar a Excel solo las 6 primeras posiciones
+8. Tests: `npm test` (`tests/championship.test.mjs`)
 
 ### 8.2. Ordenamiento del ranking
 
-1. Por el criterio seleccionado (Total Actual o Base Firme)
+1. Por el criterio seleccionado (Top 3, Top 2 o Top Gun)
 2. Por el otro criterio
 3. Por `championshipTieRank` manual (del Padrón Maestro)
 4. Alfabético por nombre

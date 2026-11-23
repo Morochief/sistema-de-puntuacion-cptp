@@ -1,8 +1,8 @@
-import { getChampionshipData, sortChampionshipRanking, type ChampionshipRankingRow } from '../championship';
-import { simulateChampionshipRankings, calculatePodiumRequirements, getMaxEventScore } from '../championshipSimulator';
+import { getChampionshipData, getChampionshipYears, sortChampionshipRanking, type ChampionshipRankingRow } from '../championship';
+import { simulateChampionshipRankings, getMaxEventScore, isCentralFireModality, SIMULATED_EVENT_ID } from '../championshipSimulator';
 import type { ShootingEvent, Modality } from '../types';
 import { esc } from '../modals';
-import { exportChampionshipToExcel, printChampionshipPreview } from '../printChampionship';
+import { exportChampionshipToExcel, printChampionshipPreview, PRIZE_POSITIONS } from '../printChampionship';
 import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
 
 let currentSortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual';
@@ -21,9 +21,15 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
   const loadAndDraw = async () => {
     container.innerHTML = `<div style="text-align:center;padding:32px;color:#64748b;font-size:0.9rem;">Cargando tabla de campeonato...</div>`;
     
-    const { rankings, allEvents } = await getChampionshipData(selectedYear, selectedModality);
+    const [{ rankings, allEvents }, yearsWithEvents] = await Promise.all([
+      getChampionshipData(selectedYear, selectedModality),
+      getChampionshipYears()
+    ]);
+    const yearOptions = [...new Set([currentYear, selectedYear, ...yearsWithEvents])].sort((a, b) => b - a);
+    // "Mientras falten fechas": la temporada del año en curso (o futuro) sigue abierta
+    const seasonOpen = selectedYear >= currentYear;
     const mConfig = MODALITY_CONFIGS[selectedModality];
-    const isCFModality = selectedModality === 'Gran Calibre' || selectedModality === '.308 / .223 Gran Calibre';
+    const isCFModality = isCentralFireModality(selectedModality);
     const defaultMaxScore = getMaxEventScore(selectedModality, true);
 
     // Sanitizar mapa de simulación para que ningún puntaje supere el máximo de la modalidad actual
@@ -42,12 +48,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     const simulationMap = new Map<string, { eventId: number; score: number }[]>();
     if (isSimulatorActive) {
       simulatedCompetitorsMap.forEach((scoreVal, compName) => {
-        simulationMap.set(compName, [{ eventId: 9999, score: scoreVal }]);
+        simulationMap.set(compName, [{ eventId: SIMULATED_EVENT_ID, score: scoreVal }]);
       });
     }
 
     const processedRankings = isSimulatorActive 
-      ? simulateChampionshipRankings(rankings, simulationMap, currentSortBy)
+      ? simulateChampionshipRankings(rankings, simulationMap, currentSortBy, seasonOpen)
       : sortChampionshipRanking(rankings, currentSortBy).map((r, i) => ({
           ...r,
           originalRank: i + 1,
@@ -55,12 +61,6 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           rankDelta: 0,
           isSimulated: false
         }));
-
-    // Primer tirador del mapa para mostrar las tarjetas de Podio de referencia
-    const primarySelectedName = Array.from(simulatedCompetitorsMap.keys())[0] || (rankings[0]?.competitorName ?? '');
-    const podiumRequirements = primarySelectedName
-      ? calculatePodiumRequirements(primarySelectedName, rankings, selectedModality, currentSortBy)
-      : [];
 
     let html = `
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:20px;margin-bottom:24px;box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
@@ -82,7 +82,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
             </select>
             <label style="font-size:0.85rem;font-weight:700;color:#475569;">Año:</label>
             <select id="champ-year-select" style="padding:6px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:0.88rem;background:#ffffff;color:#0f172a;font-weight:700;outline:none;cursor:pointer;">
-              ${[currentYear, currentYear - 1, currentYear - 2].map(y => `
+              ${yearOptions.map(y => `
                 <option value="${y}" ${selectedYear === y ? 'selected' : ''}>${y}</option>
               `).join('')}
             </select>
@@ -99,6 +99,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               </button>
               <button id="btn-excel-champ" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(34,197,94,0.35);color:#22c55e;cursor:pointer;" title="Exportar Excel">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:-2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Exportar
+              </button>
+              <button id="btn-print-top6" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(245,158,11,0.5);color:#b45309;cursor:pointer;font-weight:700;" title="Imprimir o descargar las ${PRIZE_POSITIONS} posiciones premiadas">
+                🏆 Top ${PRIZE_POSITIONS} Premiados
+              </button>
+              <button id="btn-excel-top6" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(34,197,94,0.35);color:#16a34a;cursor:pointer;" title="Exportar a Excel solo las ${PRIZE_POSITIONS} posiciones premiadas">
+                Exportar Top ${PRIZE_POSITIONS}
               </button>
             ` : ''}
           </div>
@@ -126,7 +132,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         else if (projPos === 3) posTag = `3° 🥉 Podio`;
 
         return `
-          <div style="background:#ffffff;border:1.5px solid #0056b3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 6px rgba(0,86,179,0.08);">
+          <div data-sim-card style="background:#ffffff;border:1.5px solid #0056b3;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 6px rgba(0,86,179,0.08);">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div style="font-weight:800;font-size:0.85rem;color:#0f172a;text-transform:uppercase;">
                 ${esc(compName)}
@@ -140,7 +146,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               <span style="font-size:0.72rem;color:#475569;font-weight:700;">Prox. Fecha:</span>
               <div style="display:flex;align-items:center;gap:6px;">
                 <button data-sim-step="${esc(compName)}" data-step="-5" style="padding:1px 6px;font-size:0.75rem;font-weight:800;border:1px solid #cbd5e1;background:#ffffff;border-radius:4px;cursor:pointer;" title="Restar 5 puntos">-5</button>
-                <span id="sim-score-text-${esc(compName)}" style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#0056b3;">${simScore} pts</span>
+                <span data-sim-score-text style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:#0056b3;">${simScore} pts</span>
                 <button data-sim-step="${esc(compName)}" data-step="5" style="padding:1px 6px;font-size:0.75rem;font-weight:800;border:1px solid #cbd5e1;background:#ffffff;border-radius:4px;cursor:pointer;" title="Sumar 5 puntos">+5</button>
               </div>
             </div>
@@ -148,8 +154,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
             <input type="range" data-sim-range="${esc(compName)}" min="0" max="${defaultMaxScore}" value="${simScore}" step="1" style="width:100%;accent-color:#0056b3;cursor:pointer;" />
 
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;border-top:1px dashed #e2e8f0;padding-top:6px;margin-top:2px;">
-              <span style="font-weight:700;color:#334155;">Proyección: <strong id="sim-proj-tag-${esc(compName)}">${posTag}</strong></span>
-              <span id="sim-delta-tag-${esc(compName)}">${deltaText}</span>
+              <span style="font-weight:700;color:#334155;">Proyección: <strong>${posTag}</strong></span>
+              <span>${deltaText}</span>
             </div>
           </div>
         `;
@@ -183,8 +189,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
                   ⚡ Max 96 (Con Bonus)
                 </button>
               ` : `
-                <button id="btn-sim-max-all" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto (134 pts)">
-                  ⚡ Todos Máximo (134 pts)
+                <button id="btn-sim-max-all" class="btn-ghost-custom" style="padding:4px 10px;font-size:0.72rem;font-weight:700;border-color:rgba(0,86,179,0.3);color:#0056b3;cursor:pointer;" title="Simular puntaje perfecto (${defaultMaxScore} pts)">
+                  ⚡ Todos Máximo (${defaultMaxScore} pts)
                 </button>
               `}
 
@@ -261,9 +267,16 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
           return `<td style="padding:10px 8px;text-align:center;color:#cbd5e1;" class="cell-discarded">-</td>`;
         }
 
-        let displayVal = String(item.score);
-        if (item.status === 'dq') displayVal = 'DQ';
+        if (item.status !== 'active') {
+          const label = item.status === 'dq' ? 'DQ' : 'DNS';
+          return `
+          <td style="padding:6px;text-align:center;font-size:0.85rem;border-radius:6px;background:#fef2f2;color:#b91c1c;font-weight:700;border:1px solid #fecaca;" title="${item.status === 'dq' ? 'Descalificado' : 'No se presentó'}: no suma puntos">
+            <div style="font-family:'JetBrains Mono',monospace;">${label}</div>
+            <div style="font-size:0.55rem;font-weight:700;color:#ef4444;text-transform:uppercase;margin-top:1px;">0 pts</div>
+          </td>`;
+        }
 
+        const displayVal = String(item.score);
         let style = '';
         let subtitle = '';
 
@@ -382,7 +395,8 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
     bindYearSelect();
     bindSorting();
     bindSimulatorControls(defaultMaxScore);
-    bindActions(allEvents, processedRankings, currentSortBy);
+    // Impresión y exportación usan SIEMPRE los datos reales (nunca los simulados)
+    bindActions(allEvents, sortChampionshipRanking(rankings, currentSortBy), currentSortBy);
   };
 
   const bindYearSelect = () => {
@@ -445,7 +459,7 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
         const val = Number(target.value);
         if (name) {
           simulatedCompetitorsMap.set(name, val);
-          const txtEl = document.getElementById(`sim-score-text-${esc(name)}`);
+          const txtEl = target.closest('[data-sim-card]')?.querySelector('[data-sim-score-text]');
           if (txtEl) txtEl.textContent = `${val} pts`;
         }
       });
@@ -514,6 +528,14 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     document.getElementById('btn-print-champ')?.addEventListener('click', () => {
       printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy);
+    });
+
+    document.getElementById('btn-print-top6')?.addEventListener('click', () => {
+      printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy, { top: PRIZE_POSITIONS });
+    });
+
+    document.getElementById('btn-excel-top6')?.addEventListener('click', () => {
+      exportChampionshipToExcel(selectedYear, selectedModality, activeEvents, rows, sortedBy, { top: PRIZE_POSITIONS });
     });
   };
 
