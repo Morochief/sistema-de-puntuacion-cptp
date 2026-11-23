@@ -218,11 +218,43 @@ export function sortChampionshipRanking(
     const secondarySort = sortBy === 'totalActual' ? 'baseFirme' : 'totalActual';
     if (a[secondarySort] !== b[secondarySort]) return b[secondarySort] - a[secondarySort];
     if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) return b.baseFirme - a.baseFirme;
-    // 3. Desempate táctico manual (Padrón Maestro)
+    // 3. Desempate manual (botón "Resolver Empates" del módulo; se guarda en el Padrón Maestro)
     const rankA = a.tieRank ?? 999;
     const rankB = b.tieRank ?? 999;
     if (rankA !== rankB) return rankA - rankB;
     // 4. Alfabético final
     return a.competitorName.localeCompare(b.competitorName);
   });
+}
+
+/** Indica si dos filas empatan en todos los criterios previos al desempate manual. */
+export function isChampionshipTie(a: ChampionshipRankingRow, b: ChampionshipRankingRow, sortBy: ChampionshipSortKey): boolean {
+  if (a[sortBy] !== b[sortBy]) return false;
+  const secondarySort = sortBy === 'totalActual' ? 'baseFirme' : 'totalActual';
+  if (a[secondarySort] !== b[secondarySort]) return false;
+  if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) return false;
+  return true;
+}
+
+export interface ChampionshipTieGroup {
+  /** Primera posición que ocupa el grupo (1 = primer puesto). */
+  startPosition: number;
+  rows: ChampionshipRankingRow[];
+}
+
+/**
+ * Grupos de tiradores empatados (2 o más, con puntaje > 0) según el criterio de orden,
+ * en el orden en que se muestran hoy (respetando el desempate manual ya guardado).
+ */
+export function detectChampionshipTies(rankings: ChampionshipRankingRow[], sortBy: ChampionshipSortKey): ChampionshipTieGroup[] {
+  const sorted = sortChampionshipRanking(rankings, sortBy);
+  const groups: ChampionshipTieGroup[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i + 1;
+    while (j < sorted.length && isChampionshipTie(sorted[i], sorted[j], sortBy)) j++;
+    if (j - i > 1 && sorted[i][sortBy] > 0) groups.push({ startPosition: i + 1, rows: sorted.slice(i, j) });
+    i = j;
+  }
+  return groups;
 }

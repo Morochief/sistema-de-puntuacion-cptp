@@ -315,6 +315,7 @@ Tres funciones clave en cada motor:
 | `heatsReorder.ts` | 350 | Modal reorden manual + reset sorteo |
 | `championship.ts` | 46 | Campeonato General Anual: carga de datos (Dexie) |
 | `championshipCore.ts` | 228 | Campeonato: lógica pura Top 2 / Top 3 / Top Gun, En Riesgo, orden (con tests) |
+| `championshipTieBreaker.ts` | 142 | Modal "Resolver Empates" del campeonato (orden manual de empatados) |
 | `championshipSimulator.ts` | 107 | Simulador multirival + máximos por modalidad |
 | `masterCompetitors.ts` | — | CRUD Padrón Maestro, migración automática, dedup |
 | `tiebreaker.ts` | — | Desempates manuales |
@@ -413,7 +414,7 @@ Tiradores con el mismo `sharedRifleId` (Rifle A, B, C, D, E) no pueden estar en 
 
 1. Por el criterio seleccionado (Top 3, Top 2 o Top Gun)
 2. Por el otro criterio
-3. Por `championshipTieRank` manual (del Padrón Maestro)
+3. Por `championshipTieRank` manual (del Padrón Maestro). Se carga con el botón **⚖️ Resolver Empates** del módulo (staff/admin), que lista los grupos empatados en todos los totales y permite ordenarlos con ▲ ▼
 4. Alfabético por nombre
 
 ---

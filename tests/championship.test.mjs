@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   computeChampionshipRankings,
   sortChampionshipRanking,
+  detectChampionshipTies,
   normalizeName,
   resolveEventModality,
   sumParticipantSeries
@@ -173,4 +174,27 @@ test('el simulador recalcula etiquetas, respeta DQ y no modifica los datos reale
   assert.equal(dq.isBaseFirme || dq.isTaken || dq.isAtRisk || dq.isDiscarded, false);
   assert.equal(ana.events[e3.id].isAtRisk, true);
   assert.equal(JSON.stringify(rankings), snapshot, 'los datos reales no cambian');
+});
+
+// ── Desempate manual del campeonato ─────────────────────────────────────────
+test('detecta empates exactos y el orden manual (tieRank) decide quién va primero', () => {
+  const mk = (name, totalActual, baseFirme, mejores4, tieRank) => ({ competitorName: name, category: '', events: {}, totalActual, baseFirme, mejores4, tieRank });
+  const rows = [mk('Zoe', 280, 190, 350), mk('Abel', 280, 190, 350), mk('Caro', 300, 200, 380), mk('Dani', 280, 185, 350), mk('Ema', 0, 0, 0), mk('Fede', 0, 0, 0)];
+  const groups = detectChampionshipTies(rows, 'totalActual');
+  assert.equal(groups.length, 1, 'solo Zoe y Abel empatan en todo (los de 0 puntos no cuentan)');
+  assert.equal(groups[0].startPosition, 2);
+  assert.deepEqual(groups[0].rows.map(r => r.competitorName), ['Abel', 'Zoe'], 'sin orden manual: alfabético');
+  // El usuario pone a Zoe primero
+  const ordered = rows.map(r => r.competitorName === 'Zoe' ? { ...r, tieRank: 1 } : r.competitorName === 'Abel' ? { ...r, tieRank: 2 } : r);
+  assert.deepEqual(sortChampionshipRanking(ordered, 'totalActual').slice(0, 3).map(r => r.competitorName), ['Caro', 'Zoe', 'Abel']);
+  assert.deepEqual(detectChampionshipTies(ordered, 'totalActual')[0].rows.map(r => r.competitorName), ['Zoe', 'Abel']);
+});
+
+test('el desempate manual viene del Padrón Maestro al calcular el campeonato', () => {
+  const e = ev('2026-03-01', { modality: '.308' });
+  const pa = part(e.id, 'Abel'); const pz = part(e.id, 'Zoe');
+  const series = [ser(pa, 1, 90), ser(pz, 1, 90)];
+  const masters = [{ name: 'Zoe', championshipTieRank: 1, createdAt: 0 }, { name: 'Abel', championshipTieRank: 2, createdAt: 0 }];
+  const { rankings } = compute({ events: [e], participants: [pa, pz], series, masters, modality: '.308' });
+  assert.deepEqual(sortChampionshipRanking(rankings, 'totalActual').map(r => r.competitorName), ['Zoe', 'Abel']);
 });
