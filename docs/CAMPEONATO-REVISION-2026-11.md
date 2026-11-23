@@ -51,6 +51,20 @@ Campeonato General. Rama: `fix/campeonato-general`.
 
 - `masterCompetitors.ts`: `migrateParticipantsToPadron()` usaba la variable inexistente `nameTrimmed`. Después del primer tirador agregado tiraba `ReferenceError` y la migración al Padrón se cortaba (agregaba uno por cada arranque de la app). Se cambió por `normalized`. En el navegador ya no aparece el error.
 
+## Ciclo 5: nueva impresión y Top 6 premiados (pedido del cliente)
+
+- **Pedido:** sacar la leyenda "Planilla oficial del campeonato - Sujeta a fiscalización del Club CPTP". Imprimir con el mismo formato que se ve en el módulo, indicando el calibre y con los logos. Poder exportar las 6 primeras posiciones, que son las que reciben premio.
+- **Cambio:**
+  - `printChampionshipPreview` se reescribió con los mismos colores y etiquetas que la tabla del módulo (Base Firme, En Riesgo, Top 3, Descarte, DQ/DNS, medallas 1-2-3 y Top 6 resaltado). El encabezado lleva los logos CPTP y Long Range, la modalidad (por ejemplo ".22 LR — Long Range") y el año. Ya no tiene pie ni la leyenda de fiscalización.
+  - Botones nuevos en el módulo: **🏆 Top 6 Premiados** (vista de impresión con las 6 primeras posiciones y botón **Descargar imagen** en PNG) y **Exportar Top 6** (CSV).
+  - `printModal.ts` agrega un botón opcional "Descargar imagen". Usa html2canvas con `foreignObjectRendering`, porque el render normal desplazaba el texto, y antes rasteriza los logos SVG, porque si no salían en blanco.
+- **Ciclos de verificación en el navegador (Chrome headless, 8 tiradores y 4 fechas):**
+  1. Primera versión: la vista de impresión se veía bien, pero en el PNG faltaban los logos y el texto salía corrido. Corregí los logos rasterizándolos.
+  2. El texto seguía corrido. Cambié a `foreignObjectRendering` y el PNG quedó bien.
+  3. Con fuentes web (Rajdhani) el PNG cortaba los textos porque no incluye las fuentes. Volví a las fuentes del sistema y agregué `nowrap`. Resultado correcto.
+  4. Final: la vista Top 6 muestra 6 filas y no tiene la leyenda de fiscalización. Los dos logos cargan, el PNG `Campeonato_22LR_2026_Top6.png` se descarga bien y el CSV `Campeonato_22LR_2026_Top6.csv` trae el título con el calibre más 6 filas. La impresión completa tampoco tiene la leyenda. El PDF generado conserva los colores. No hubo errores en la consola.
+- **Build y tests:** `npm run build` OK, `npm test` 12/12.
+
 ## Estructura final
 
 - `championship.ts`: solo lee Dexie y llama al core. Agrega `getChampionshipYears()`.

@@ -2,7 +2,7 @@ import { getChampionshipData, getChampionshipYears, sortChampionshipRanking, typ
 import { simulateChampionshipRankings, getMaxEventScore, isCentralFireModality, SIMULATED_EVENT_ID } from '../championshipSimulator';
 import type { ShootingEvent, Modality } from '../types';
 import { esc } from '../modals';
-import { exportChampionshipToExcel, printChampionshipPreview } from '../printChampionship';
+import { exportChampionshipToExcel, printChampionshipPreview, PRIZE_POSITIONS } from '../printChampionship';
 import { ALL_MODALITIES, MODALITY_CONFIGS } from '../modalityConfig';
 
 let currentSortBy: 'baseFirme' | 'totalActual' | 'mejores4' = 'totalActual';
@@ -99,6 +99,12 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
               </button>
               <button id="btn-excel-champ" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(34,197,94,0.35);color:#22c55e;cursor:pointer;" title="Exportar Excel">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:-2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Exportar
+              </button>
+              <button id="btn-print-top6" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(245,158,11,0.5);color:#b45309;cursor:pointer;font-weight:700;" title="Imprimir o descargar las ${PRIZE_POSITIONS} posiciones premiadas">
+                🏆 Top ${PRIZE_POSITIONS} Premiados
+              </button>
+              <button id="btn-excel-top6" class="btn-ghost-custom" style="padding:6px 12px;font-size:0.78rem;border-color:rgba(34,197,94,0.35);color:#16a34a;cursor:pointer;" title="Exportar a Excel solo las ${PRIZE_POSITIONS} posiciones premiadas">
+                Exportar Top ${PRIZE_POSITIONS}
               </button>
             ` : ''}
           </div>
@@ -522,6 +528,14 @@ export async function renderChampionshipPanel(container: HTMLElement): Promise<v
 
     document.getElementById('btn-print-champ')?.addEventListener('click', () => {
       printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy);
+    });
+
+    document.getElementById('btn-print-top6')?.addEventListener('click', () => {
+      printChampionshipPreview(selectedYear, selectedModality, activeEvents, rows, sortedBy, { top: PRIZE_POSITIONS });
+    });
+
+    document.getElementById('btn-excel-top6')?.addEventListener('click', () => {
+      exportChampionshipToExcel(selectedYear, selectedModality, activeEvents, rows, sortedBy, { top: PRIZE_POSITIONS });
     });
   };
 

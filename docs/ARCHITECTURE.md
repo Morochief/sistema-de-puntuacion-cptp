@@ -148,9 +148,12 @@ EventDetailView / ChampionshipView
   → print.ts / printCF.ts builds self-contained HTML string
       printEventCards() / printRankingCard() / printBlankSheet()
       or printChampionship.ts → printChampionshipPreview()
-  → openPrintModal(html, title)
+  → openPrintModal(html, title, { imageFileName? })
       → injects HTML into an <iframe> inside a modal overlay
       → the iframe's own "Imprimir" button calls window.print() scoped to iframe content
+      → optional "Descargar imagen": html2canvas (foreignObjectRendering) over the iframe body → PNG
+  → ChampionshipView also offers "Top 6 Premiados" (print/PNG) and "Exportar Top 6" (CSV),
+      both via printChampionship.ts with { top: PRIZE_POSITIONS }
   → CSV export: excel.ts / printChampionship.ts build UTF-8 BOM-prefixed CSV,
       download via Blob + <a download>
   → html2canvas used in EventDetailView.ts for canvas-based captures outside iframe

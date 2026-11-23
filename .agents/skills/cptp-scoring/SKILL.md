@@ -108,7 +108,7 @@ src/
     ├── printScoreSheet.ts         # Planillas .22 LR A4 landscape (2 series)
     ├── printRankingCard.ts        # Tarjeta de posiciones A4 vertical
     ├── printCF.ts                 # Planillas CF A4 (1 serie, columna bonus)
-    ├── printChampionship.ts       # Impresion + CSV del campeonato
+    ├── printChampionship.ts       # Impresion (formato del modulo + logos + calibre) + CSV; Top 6 premiados
     ├── eventsManager.ts           # Funciones CRUD eventos
     ├── analyticsManager.ts        # Extraccion de stats sociales y competitivos
     ├── authManager.ts             # Auth con Supabase + Roles (Admin/User)
@@ -303,6 +303,8 @@ Logica pura en `championshipCore.ts` (testeada con `npm test`); `championship.ts
 **Ordenamiento:** criterio elegido (Top 3 / Top 2 / Top Gun) → el otro total → championshipTieRank manual → alfabetico
 
 **Simulador:** recalcula con `applyPlacements()` sobre copias (no muta datos reales). Max por evento desde modalityConfig (.22 LR 134, .308/.223 96/87, Blackjack 147). Imprimir/Exportar usan SIEMPRE los datos reales, nunca los simulados.
+
+**Impresion:** mismo formato visual que la tabla del modulo, logos (`/logo-cptp.svg`, `/logo-long-range.svg`), modalidad/calibre + año en el encabezado, SIN leyenda "Planilla oficial... fiscalizacion". Botones **Top 6 Premiados** (imprimir + "Descargar imagen" PNG) y **Exportar Top 6** (CSV) usan `{ top: PRIZE_POSITIONS }` (6).
 
 ---
 

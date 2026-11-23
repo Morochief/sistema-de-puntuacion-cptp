@@ -80,7 +80,8 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `sync.ts` | Push (Dexie to Supabase via deterministic UUID upsert) and Pull (Supabase to Dexie via put/upsert) |
 | `print.ts` | Generates .22 LR A4 landscape score sheets (2 series side by side) and portrait ranking cards |
 | `printCF.ts` | Generates Central Fire A4 landscape score sheets (1 series, bonus column) |
-| `printChampionship.ts` | Championship-specific print preview + CSV export |
+| `printChampionship.ts` | Championship print preview styled like the module table (logos, modality/caliber badge, colored cells) + CSV export; `options.top` limits to the first N rows (Top 6 prize positions, `PRIZE_POSITIONS`) |
+| `printModal.ts` | Print preview iframe modal; optional "Descargar imagen" (PNG via html2canvas with `foreignObjectRendering`, SVG logos rasterized first) |
 | `seeder.ts` | Bulk participant loading and score simulation utility (testing/demo tool) |
 | `excel.ts` | CSV export (with UTF-8 BOM) of event rankings |
 

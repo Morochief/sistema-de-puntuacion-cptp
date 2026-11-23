@@ -342,7 +342,7 @@ Auto-pull para espectadores cada 30 segundos.
 | `printScoreSheet.ts` | 558 | Planillas .22 LR A4 landscape (2 series lado a lado) |
 | `printRankingCard.ts` | 300 | Tarjeta de posiciones A4 vertical |
 | `printCF.ts` | 421 | Planillas Fuego Central (1 serie, columna bonus) |
-| `printChampionship.ts` | — | Impresión + CSV del Campeonato General |
+| `printChampionship.ts` | — | Impresión (mismo formato visual que el módulo, logos y calibre) + CSV del Campeonato General; opción Top 6 premiados |
 | `excel.ts` | — | Export CSV con BOM UTF-8 |
 
 Todas las planillas se renderizan en un **iframe dentro de un modal** para mantener estilos aislados.
@@ -405,6 +405,8 @@ Tiradores con el mismo `sharedRifleId` (Rifle A, B, C, D, E) no pueden estar en 
    - **Descarte** (tachado) = puntajes más allá del Top 3
 6. Categoría: la de la inscripción más reciente distinta de "General"; si no hay, la del Padrón
 7. Simulador: aplica las mismas reglas sobre copias; Imprimir y Exportar usan siempre los datos reales
+   - Impresión: mismo formato visual que la tabla del módulo, logos CPTP y Long Range, modalidad (calibre) y año en el encabezado, sin leyenda de "planilla oficial"
+   - **Top 6 Premiados** (`PRIZE_POSITIONS = 6`): imprimir, descargar como imagen PNG y exportar a Excel solo las 6 primeras posiciones
 8. Tests: `npm test` (`tests/championship.test.mjs`)
 
 ### 8.2. Ordenamiento del ranking
