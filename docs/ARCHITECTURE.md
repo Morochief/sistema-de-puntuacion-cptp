@@ -126,17 +126,18 @@ pullCloudDatabaseToLocal()
 
 ### 5. Championship Calculation Flow
 ```
-getChampionshipData(year, modality)
-  → db.events (filter by modality + year, not deleted, not isPilot)
-  → db.participants + db.series for those event IDs
-  → group participants by normalized name (NFD accent-stripped, lowercased)
-  → cross-reference db.masterCompetitors for canonical display name/category/tieRank
-  → for each shooter: build scoresList[{eventId, score, status}] per event
-      (dq/dns → 0 displayed as DQ/—, else sum of series.totalScore)
-  → sort scores desc → assign isBaseFirme (top 2), isTaken (top 3),
-      isAtRisk (3rd, if ≥4 events played → replaceable), isDiscarded (rest)
-  → baseFirme = sum(top 2), totalActual = sum(top 3)
-  → sortChampionshipRanking(rankings, 'totalActual' | 'baseFirme')
+getChampionshipData(year, modality)            [championship.ts: Dexie only]
+  → db.events → selectChampionshipEvents (resolveEventModality + year, not deleted, not isPilot)
+  → db.participants + db.series + db.masterCompetitors for those event IDs
+  → computeChampionshipRankings(...)            [championshipCore.ts: pure, tested]
+      → group participants by normalized name (accents stripped, spaces collapsed, lowercased)
+      → cross-reference masterCompetitors for display name/category/tieRank
+      → per event cell: not registered → null; dq/dns → 0 (no flags);
+          active → sum of series, one per seriesNumber (sync duplicates ignored)
+      → applyPlacements(cells, seasonOpen): active scores desc → isBaseFirme (top 2),
+          isTaken (top 3), isAtRisk (3rd while dates remain), isDiscarded (rest)
+      → baseFirme = top 2, totalActual = top 3, mejores4 (Top Gun) = top 4
+  → sortChampionshipRanking(rankings, 'totalActual' | 'baseFirme' | 'mejores4')
       → primary metric → secondary metric → manual championshipTieRank → alphabetical
 ```
 
@@ -202,7 +203,9 @@ app.ts
 scoring.ts ─────────────► types.ts
 scoringCentralFire.ts ──► types.ts, modalityConfig.ts
 modalityConfig.ts ──────► types.ts
-championship.ts ────────► db.ts, types.ts
+championship.ts ────────► db.ts, championshipCore.ts
+championshipCore.ts ────► types.ts (pure, no DB/DOM)
+championshipSimulator.ts► championshipCore.ts, modalityConfig.ts
 heatsManager.ts ────────► db.ts, types.ts, modals.ts (barrel)
 heatsRules.ts ──────────► types.ts
 heatsReorder.ts ────────► db.ts, types.ts, modals.ts, heatsRules.ts
@@ -387,7 +390,9 @@ cptp-scoring/
 │       ├── heatsManager.ts        # Barrel (re-export)
 │       ├── heatsRules.ts          # Reglas Dominguez + rifle compartido
 │       ├── heatsReorder.ts        # Modal reorden manual + reset sorteo
-│       ├── championship.ts        # Annual championship scoring math (Base Firme + Total Actual)
+│       ├── championship.ts        # Annual championship data loading (Dexie)
+│       ├── championshipCore.ts    # Annual championship pure logic (Top 2 / Top 3 / Top Gun)
+│       ├── championshipSimulator.ts # Championship simulator + max score per modality
 │       ├── masterCompetitors.ts   # Padron Maestro CRUD + management modal
 │       ├── tiebreaker.ts          # Manual tie resolution logic + modal
 │       ├── backup.ts              # JSON export/import of a full event

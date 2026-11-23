@@ -71,7 +71,9 @@ CPTP Scoring is a **single-page application (SPA)** using **hash-based routing**
 | `heatsManager.ts` | Barrel (re-export) — modules below |
 | `heatsRules.ts` | Dominguez family seeding rules (S1 & S2), shared-rifle rotation logic |
 | `heatsReorder.ts` | Manual heat reorder modal (different UI for .22 LR vs CF), reset seeding |
-| `championship.ts` | Pure math module for the annual "Campeonato General" — Base Firme (Top 2) / Total Actual (Top 3), tiebreakers |
+| `championship.ts` | Loads championship data from Dexie and delegates to `championshipCore.ts` |
+| `championshipCore.ts` | Pure logic for the annual "Campeonato General" — Top 2 (Base Firme) / Top 3 (Total Actual) / Top Gun (best 4), En Riesgo, tiebreakers. Covered by `npm test` |
+| `championshipSimulator.ts` | In-memory "next date" simulator + max score per modality |
 | `masterCompetitors.ts` | CRUD + management UI for the "Padron Maestro" (master competitor registry), with auto-migration from existing participants and deduplication |
 | `tiebreaker.ts` | Manual tiebreaker ranking logic and modal for resolving equal-score ties within an event |
 | `backup.ts` | JSON export/import of full database and single event backups with strict Zod schema validation |
@@ -245,15 +247,21 @@ Each `Modality` (`.22 LR` | `.308` | `.223`) has a `ModalityConfig` describing:
 
 ## Championship System (`championship.ts`)
 
-- Aggregates a shooter's results across **all events of a given year and modality**, grouping participants by **normalized name** (NFD accent-stripped, lowercased) across events, cross-referenced with the Padron Maestro for canonical display name/category.
+- Pure logic lives in `championshipCore.ts`; `championship.ts` only reads Dexie. Tests: `npm test` (esbuild bundles `tests/championship.test.mjs` and runs it with `node:test`).
+- Aggregates a shooter's results across **all events of a given year and modality**, grouping participants by **normalized name** (NFD accent-stripped, lowercased, repeated spaces collapsed), cross-referenced with the Padron Maestro for canonical display name/category/tieRank.
+- Event modality = `resolveEventModality()`: ".308"/".223" in the name or championshipDate wins over the stored value (same rule as Analytics).
 - Events with `isPilot: true` are excluded from championship calculations.
-- Scores are sorted descending; then:
-  - **Base Firme** = sum of the **Top 2** scores
-  - **Total Actual** = sum of the **Top 3** scores
-  - The 3rd-best score is flagged `isAtRisk` if the shooter has **4 or more** event participations that year (it may be discarded once a 4th event is scored, raising the 4th score into the top 3)
+- Event score = sum of the shooter's series, **one per `seriesNumber`** (sync duplicates: latest `createdAt` wins). DQ / DNS = 0 and get no placement flags.
+- Active scores are sorted descending; then:
+  - **Top 2 / Base Firme** = sum of the 2 best scores
+  - **Top 3 / Total Actual** = sum of the 3 best scores
+  - **Top Gun** (`mejores4`) = sum of the 4 best scores
+  - The 3rd-best score is flagged `isAtRisk` **while dates remain** (season open: selected year >= current year), because a better score in a future date displaces it
   - Scores beyond the top 3 are `isDiscarded` (displayed with strikethrough in the UI)
+- Category: most recent non-'General' registration, then Padron category.
+- Simulator (`championshipSimulator.ts`) re-applies the same rules (`applyPlacements`) on copies; print/CSV always use real (non-simulated) data. CSV cells starting with `= + - @` are prefixed with `'`.
 - **Sorting (`sortChampionshipRanking`)** applies, in order:
-  1. Primary metric (`baseFirme` or `totalActual`, user-selectable)
+  1. Primary metric (`totalActual`, `baseFirme` or `mejores4`, user-selectable)
   2. Secondary metric (the other of the two totals)
   3. Manual `championshipTieRank` from Padron Maestro (lower = better; unset treated as 999)
   4. Alphabetical by competitor name

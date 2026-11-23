@@ -93,7 +93,9 @@ src/
     ├── scoring.ts                 # Motor .22 LR (10 tiros, 67 max)
     ├── scoringCentralFire.ts      # Motor CF .308/.223 (12 tiros, bonus, 96 max)
     ├── modalityConfig.ts          # Config central por modalidad
-    ├── championship.ts            # Campeonato General Anual (Base Firme + Total Actual)
+    ├── championship.ts            # Campeonato: carga Dexie + delega en championshipCore
+    ├── championshipCore.ts        # Campeonato: logica pura (Top 2/Top 3/Top Gun, En Riesgo, orden)
+    ├── championshipSimulator.ts   # Simulador multirival + maximos por modalidad
     ├── eventsManager.ts           # CRUD eventos + filtros + paginacion
     ├── heatsManager.ts            # Barrel de re-export (compatibilidad)
     ├── heatsRules.ts              # Reglas Dominguez + rifle compartido
@@ -286,16 +288,21 @@ Tiradores con el mismo sharedRifleId (Rifle A, B, C, D, E) no pueden estar en la
 
 ## Campeonato General Anual
 
-1. Filtra eventos del año y modalidad (excluye isPilot)
-2. Agrupa por nombre normalizado (sin acentos, minusculas)
-3. Por tirador y evento: suma totalScore de sus series
-4. dq = 0 (muestra DQ), dns = 0 (muestra "-")
-5. Ordena puntajes de mayor a menor
-6. **Base Firme** (verde) = Top 2 | **Total Actual** (azul) = Top 3
-7. **En Riesgo** (amarillo) = 3er puntaje si hay 4+ eventos
-8. **Descarte** (tachado) = puntajes > Top 3
+Logica pura en `championshipCore.ts` (testeada con `npm test`); `championship.ts` solo carga Dexie.
 
-**Ordenamiento:** Total Actual → Base Firme → championshipTieRank manual → alfabetico
+1. Filtra eventos del año y modalidad (excluye isPilot). Modalidad efectiva = `resolveEventModality()`: si el nombre o championshipDate dice ".308"/".223" gana eso (misma regla que Analytics)
+2. Agrupa por nombre normalizado (sin acentos, minusculas, sin espacios dobles)
+3. Por tirador y evento: suma totalScore de sus series, una por seriesNumber (si hay duplicadas por sync gana la mas reciente)
+4. dq = 0 (muestra DQ), dns inscrito = 0 (muestra DNS), no inscrito = "-". Ninguno recibe etiqueta
+5. Ordena los puntajes activos de mayor a menor
+6. **Top 2 / Base Firme** (verde) = 2 mejores | **Top 3 / Total Actual** (azul) = 3 mejores | **Top Gun** = 4 mejores
+7. **En Riesgo** (amarillo) = 3er puntaje mientras falten fechas (temporada abierta = año seleccionado >= año actual)
+8. **Descarte** (tachado) = puntajes > Top 3
+9. Categoria: la de la inscripcion mas reciente distinta de 'General', luego la del Padron
+
+**Ordenamiento:** criterio elegido (Top 3 / Top 2 / Top Gun) → el otro total → championshipTieRank manual → alfabetico
+
+**Simulador:** recalcula con `applyPlacements()` sobre copias (no muta datos reales). Max por evento desde modalityConfig (.22 LR 134, .308/.223 96/87, Blackjack 147). Imprimir/Exportar usan SIEMPRE los datos reales, nunca los simulados.
 
 ---
 
