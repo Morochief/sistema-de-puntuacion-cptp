@@ -33,7 +33,7 @@ export interface ChampionshipRankingRow {
   totalActual: number; // Top 3: suma de los 3 mejores
   baseFirme: number;   // Top 2: suma de los 2 mejores
   mejores4: number;    // Top Gun: suma de los 4 mejores
-  tieRank?: number;    // Posición táctica manual en caso de empate general
+  tieRank?: number;    // Desempate manual codificado (ver encodeTieRank)
 }
 
 /** Normaliza un nombre para agrupar: sin tildes, sin espacios dobles, minúsculas. */
@@ -207,33 +207,75 @@ export function computeChampionshipRankings(input: ChampionshipInput): { ranking
   return { rankings, allEvents: yearEvents };
 }
 
+/**
+ * Desempate manual guardado en el Padrón (championshipTieRank).
+ * Se codifica como Top3 * TIE_RANK_FACTOR + posición (ej: 285 pts, 1° del grupo → 28501),
+ * así solo vale para el empate en el que se cargó: si el Top 3 del tirador cambia,
+ * el orden manual viejo deja de aplicarse solo y vuelve a regir la regla del descarte.
+ */
+export const TIE_RANK_FACTOR = 100;
+
+export function encodeTieRank(totalActual: number, position: number): number {
+  return totalActual * TIE_RANK_FACTOR + position;
+}
+
+/** Posición manual vigente dentro del empate de Top 3, o Infinity si no hay una válida. */
+export function manualTieOrder(row: ChampionshipRankingRow): number {
+  const r = row.tieRank;
+  if (r == null || r <= 0) return Infinity;
+  const pos = r % TIE_RANK_FACTOR;
+  return Math.floor(r / TIE_RANK_FACTOR) === row.totalActual && pos > 0 ? pos : Infinity;
+}
+
+/** Puntajes de descarte (los que quedan fuera del Top 3), de mayor a menor. */
+export function getDiscards(row: ChampionshipRankingRow): number[] {
+  return Object.values(row.events || {})
+    .filter((ev): ev is ChampionshipScore => !!ev && ev.status === 'active')
+    .map(ev => ev.score)
+    .sort((x, y) => y - x)
+    .slice(3);
+}
+
+/** Compara descartes: gana el que tiene el mayor descarte; si empatan, el siguiente, etc. */
+function compareDiscards(a: ChampionshipRankingRow, b: ChampionshipRankingRow): number {
+  const da = getDiscards(a), db = getDiscards(b);
+  const n = Math.max(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    const x = da[i] ?? -1, y = db[i] ?? -1;
+    if (x !== y) return y - x;
+  }
+  return 0;
+}
+
+/**
+ * Orden del campeonato.
+ * - Top 3 (oficial): Top 3 → orden manual de "Resolver Empates" → mayor descarte → alfabético.
+ * - Top 2 / Top Gun (vistas auxiliares): criterio elegido → el otro total (y Top 2 en Top Gun) → alfabético.
+ */
 export function sortChampionshipRanking(
   rankings: ChampionshipRankingRow[],
   sortBy: ChampionshipSortKey = 'totalActual'
 ): ChampionshipRankingRow[] {
   return [...rankings].sort((a, b) => {
-    // 1. Criterio primario
     if (a[sortBy] !== b[sortBy]) return b[sortBy] - a[sortBy];
-    // 2. Criterio secundario (desempate por el otro total)
-    const secondarySort = sortBy === 'totalActual' ? 'baseFirme' : 'totalActual';
-    if (a[secondarySort] !== b[secondarySort]) return b[secondarySort] - a[secondarySort];
-    if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) return b.baseFirme - a.baseFirme;
-    // 3. Desempate manual (botón "Resolver Empates" del módulo; se guarda en el Padrón Maestro)
-    const rankA = a.tieRank ?? 999;
-    const rankB = b.tieRank ?? 999;
-    if (rankA !== rankB) return rankA - rankB;
-    // 4. Alfabético final
+    if (sortBy === 'totalActual') {
+      // Desempate manual del club (si lo cargaron para este mismo Top 3)
+      const ma = manualTieOrder(a), mb = manualTieOrder(b);
+      if (ma !== mb) return ma - mb;
+      // Regla del club: a igual Top 3 queda arriba el de mayor puntaje de descarte
+      const d = compareDiscards(a, b);
+      if (d !== 0) return d;
+    } else {
+      if (a.totalActual !== b.totalActual) return b.totalActual - a.totalActual;
+      if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) return b.baseFirme - a.baseFirme;
+    }
     return a.competitorName.localeCompare(b.competitorName);
   });
 }
 
-/** Indica si dos filas empatan en todos los criterios previos al desempate manual. */
-export function isChampionshipTie(a: ChampionshipRankingRow, b: ChampionshipRankingRow, sortBy: ChampionshipSortKey): boolean {
-  if (a[sortBy] !== b[sortBy]) return false;
-  const secondarySort = sortBy === 'totalActual' ? 'baseFirme' : 'totalActual';
-  if (a[secondarySort] !== b[secondarySort]) return false;
-  if (sortBy === 'mejores4' && a.baseFirme !== b.baseFirme) return false;
-  return true;
+/** Indica si dos filas comparten el mismo Top 3 (se pueden reordenar con "Resolver Empates"). */
+export function isChampionshipTie(a: ChampionshipRankingRow, b: ChampionshipRankingRow): boolean {
+  return a.totalActual === b.totalActual;
 }
 
 export interface ChampionshipTieGroup {
@@ -243,17 +285,18 @@ export interface ChampionshipTieGroup {
 }
 
 /**
- * Grupos de tiradores empatados (2 o más, con puntaje > 0) según el criterio de orden,
- * en el orden en que se muestran hoy (respetando el desempate manual ya guardado).
+ * Grupos de tiradores con el mismo Top 3 (2 o más, con puntaje > 0), en el orden en que se
+ * muestran hoy. Solo aplica al orden oficial (Top 3); en Top 2 / Top Gun devuelve [].
  */
 export function detectChampionshipTies(rankings: ChampionshipRankingRow[], sortBy: ChampionshipSortKey): ChampionshipTieGroup[] {
+  if (sortBy !== 'totalActual') return [];
   const sorted = sortChampionshipRanking(rankings, sortBy);
   const groups: ChampionshipTieGroup[] = [];
   let i = 0;
   while (i < sorted.length) {
     let j = i + 1;
-    while (j < sorted.length && isChampionshipTie(sorted[i], sorted[j], sortBy)) j++;
-    if (j - i > 1 && sorted[i][sortBy] > 0) groups.push({ startPosition: i + 1, rows: sorted.slice(i, j) });
+    while (j < sorted.length && isChampionshipTie(sorted[i], sorted[j])) j++;
+    if (j - i > 1 && sorted[i].totalActual > 0) groups.push({ startPosition: i + 1, rows: sorted.slice(i, j) });
     i = j;
   }
   return groups;

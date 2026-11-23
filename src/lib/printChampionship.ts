@@ -270,6 +270,7 @@ export function printChampionshipPreview(
       <div style="background:#fefce8;color:#ca8a04;">En Riesgo: 3er puntaje mientras falten fechas</div>
       <div style="background:#f8fafc;color:#475569;border:1px solid #cbd5e1;">Top 3: 3 mejores</div>
       <div style="background:#f5f3ff;color:#6366f1;">Top Gun: 4 mejores</div>
+      <div style="background:#fef2f2;color:#b91c1c;">Empate en Top 3: queda arriba el mayor descarte</div>
     </div>
     <div class="emission">Emisión: ${new Date().toLocaleDateString('es-PY')}</div>
   </div>

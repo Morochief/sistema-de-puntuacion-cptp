@@ -6,6 +6,9 @@ import {
   computeChampionshipRankings,
   sortChampionshipRanking,
   detectChampionshipTies,
+  encodeTieRank,
+  getDiscards,
+  manualTieOrder,
   normalizeName,
   resolveEventModality,
   sumParticipantSeries
@@ -129,15 +132,14 @@ test('categoría: toma la de la inscripción más reciente y si no, la del Padr�
   assert.equal(r.category, 'Senior');
 });
 
-test('orden: criterio elegido, el otro total, desempate manual y alfabético', () => {
+test('orden Top 2 / Top Gun: criterio elegido, el otro total y alfabético', () => {
   const rows = [
     { competitorName: 'B', category: '', events: {}, totalActual: 300, baseFirme: 200, mejores4: 350 },
     { competitorName: 'A', category: '', events: {}, totalActual: 300, baseFirme: 200, mejores4: 350 },
-    { competitorName: 'C', category: '', events: {}, totalActual: 300, baseFirme: 210, mejores4: 340, tieRank: 5 },
-    { competitorName: 'D', category: '', events: {}, totalActual: 300, baseFirme: 200, mejores4: 350, tieRank: 1 }
+    { competitorName: 'C', category: '', events: {}, totalActual: 310, baseFirme: 200, mejores4: 340 },
   ];
-  assert.deepEqual(sortChampionshipRanking(rows, 'totalActual').map(r => r.competitorName), ['C', 'D', 'A', 'B']);
-  assert.deepEqual(sortChampionshipRanking(rows, 'mejores4').map(r => r.competitorName), ['D', 'A', 'B', 'C']);
+  assert.deepEqual(sortChampionshipRanking(rows, 'baseFirme').map(r => r.competitorName), ['C', 'A', 'B']);
+  assert.deepEqual(sortChampionshipRanking(rows, 'mejores4').map(r => r.competitorName), ['A', 'B', 'C']);
 });
 
 // ── Bug 2: máximos por modalidad ────────────────────────────────────────────
@@ -176,25 +178,67 @@ test('el simulador recalcula etiquetas, respeta DQ y no modifica los datos reale
   assert.equal(JSON.stringify(rankings), snapshot, 'los datos reales no cambian');
 });
 
-// ── Desempate manual del campeonato ─────────────────────────────────────────
-test('detecta empates exactos y el orden manual (tieRank) decide quién va primero', () => {
-  const mk = (name, totalActual, baseFirme, mejores4, tieRank) => ({ competitorName: name, category: '', events: {}, totalActual, baseFirme, mejores4, tieRank });
-  const rows = [mk('Zoe', 280, 190, 350), mk('Abel', 280, 190, 350), mk('Caro', 300, 200, 380), mk('Dani', 280, 185, 350), mk('Ema', 0, 0, 0), mk('Fede', 0, 0, 0)];
-  const groups = detectChampionshipTies(rows, 'totalActual');
-  assert.equal(groups.length, 1, 'solo Zoe y Abel empatan en todo (los de 0 puntos no cuentan)');
-  assert.equal(groups[0].startPosition, 2);
-  assert.deepEqual(groups[0].rows.map(r => r.competitorName), ['Abel', 'Zoe'], 'sin orden manual: alfabético');
-  // El usuario pone a Zoe primero
-  const ordered = rows.map(r => r.competitorName === 'Zoe' ? { ...r, tieRank: 1 } : r.competitorName === 'Abel' ? { ...r, tieRank: 2 } : r);
-  assert.deepEqual(sortChampionshipRanking(ordered, 'totalActual').slice(0, 3).map(r => r.competitorName), ['Caro', 'Zoe', 'Abel']);
-  assert.deepEqual(detectChampionshipTies(ordered, 'totalActual')[0].rows.map(r => r.competitorName), ['Zoe', 'Abel']);
+// ── Desempate del campeonato (regla del club + orden manual) ────────────────
+// Filas con celdas reales para poder calcular descartes
+const rowFrom = (name, scores, tieRank) => {
+  const events = {};
+  scores.forEach((score, i) => { events[i + 1] = { eventId: i + 1, score, status: 'active', isBaseFirme: false, isTaken: false, isAtRisk: false, isDiscarded: false }; });
+  const sorted = [...scores].sort((x, y) => y - x);
+  const sum = n => sorted.slice(0, n).reduce((t, v) => t + v, 0);
+  return { competitorName: name, category: '', events, totalActual: sum(3), baseFirme: sum(2), mejores4: sum(4), tieRank };
+};
+
+test('regla del club: a igual Top 3 queda arriba el de mayor descarte (aunque tenga menor Top 2)', () => {
+  // Caso .223: Cardozo y Ayala con el mismo Top 3; Ayala tiene mejor Top 2 pero Cardozo mejor descarte
+  const ayala = rowFrom('Sebastian Ayala', [96, 90, 70, 60]);   // Top3 256, Top2 186, descarte 60
+  const cardozo = rowFrom('Francisco Cardozo', [90, 86, 80, 75]); // Top3 256, Top2 176, descarte 75
+  const lider = rowFrom('Lider', [96, 96, 96]);
+  assert.equal(ayala.totalActual, cardozo.totalActual);
+  assert.ok(ayala.baseFirme > cardozo.baseFirme);
+  assert.deepEqual(sortChampionshipRanking([ayala, lider, cardozo], 'totalActual').map(r => r.competitorName), ['Lider', 'Francisco Cardozo', 'Sebastian Ayala']);
+  assert.deepEqual(getDiscards(cardozo), [75]);
+  // Independiente del alfabeto: el de mejor descarte va arriba aunque su nombre sea posterior
+  assert.deepEqual(sortChampionshipRanking([rowFrom('Alfa', [96, 90, 70, 60]), rowFrom('Zeta', [90, 86, 80, 75])], 'totalActual').map(r => r.competitorName), ['Zeta', 'Alfa']);
+});
+
+test('descartes: se compara el mayor, luego el siguiente; sin descarte va abajo', () => {
+  const a = rowFrom('A', [90, 90, 90, 70, 50]);
+  const b = rowFrom('B', [90, 90, 90, 70, 60]);
+  const c = rowFrom('C', [90, 90, 90]);
+  assert.deepEqual(sortChampionshipRanking([a, c, b], 'totalActual').map(r => r.competitorName), ['B', 'A', 'C']);
+});
+
+test('Resolver Empates agrupa a todos los que tienen el mismo Top 3 y el orden manual manda', () => {
+  const ayala = rowFrom('Sebastian Ayala', [96, 90, 70, 60]);
+  const cardozo = rowFrom('Francisco Cardozo', [90, 86, 80, 75]);
+  const otro = rowFrom('Otro', [80, 80, 80]);
+  const groups = detectChampionshipTies([ayala, cardozo, otro], 'totalActual');
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].startPosition, 1);
+  assert.deepEqual(groups[0].rows.map(r => r.competitorName), ['Francisco Cardozo', 'Sebastian Ayala'], 'orden sugerido = regla del descarte');
+  assert.deepEqual(detectChampionshipTies([ayala, cardozo], 'baseFirme'), [], 'en Top 2 / Top Gun no se ofrece');
+  // El club decide poner a Ayala primero
+  const manual = [
+    { ...ayala, tieRank: encodeTieRank(256, 1) },
+    { ...cardozo, tieRank: encodeTieRank(256, 2) },
+  ];
+  assert.deepEqual(sortChampionshipRanking(manual, 'totalActual').map(r => r.competitorName), ['Sebastian Ayala', 'Francisco Cardozo']);
+});
+
+test('un orden manual viejo (de otro Top 3) no se aplica y vuelve a regir el descarte', () => {
+  const ayala = { ...rowFrom('Sebastian Ayala', [96, 90, 70, 60]), tieRank: encodeTieRank(240, 1) };
+  const cardozo = { ...rowFrom('Francisco Cardozo', [90, 86, 80, 75]), tieRank: encodeTieRank(240, 2) };
+  assert.equal(manualTieOrder(ayala), Infinity);
+  assert.deepEqual(sortChampionshipRanking([ayala, cardozo], 'totalActual').map(r => r.competitorName), ['Francisco Cardozo', 'Sebastian Ayala']);
+  // valores del formato anterior (1, 2...) tampoco aplican
+  assert.equal(manualTieOrder({ ...cardozo, tieRank: 1 }), Infinity);
 });
 
 test('el desempate manual viene del Padrón Maestro al calcular el campeonato', () => {
   const e = ev('2026-03-01', { modality: '.308' });
   const pa = part(e.id, 'Abel'); const pz = part(e.id, 'Zoe');
   const series = [ser(pa, 1, 90), ser(pz, 1, 90)];
-  const masters = [{ name: 'Zoe', championshipTieRank: 1, createdAt: 0 }, { name: 'Abel', championshipTieRank: 2, createdAt: 0 }];
+  const masters = [{ name: 'Zoe', championshipTieRank: encodeTieRank(90, 1), createdAt: 0 }, { name: 'Abel', championshipTieRank: encodeTieRank(90, 2), createdAt: 0 }];
   const { rankings } = compute({ events: [e], participants: [pa, pz], series, masters, modality: '.308' });
   assert.deepEqual(sortChampionshipRanking(rankings, 'totalActual').map(r => r.competitorName), ['Zoe', 'Abel']);
 });

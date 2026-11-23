@@ -78,6 +78,17 @@ Campeonato General. Rama: `fix/campeonato-general`.
   - `npm run build` OK.
 - **Límite conocido:** el número de desempate se guarda por tirador, no por año ni modalidad. Solo se usa cuando dos tiradores empatan en **todos** los totales, así que un conflicto entre modalidades exige que la misma pareja empate exacto en las dos (muy raro). Si pasa, alcanza con volver a usar Resolver Empates.
 
+## Ciclo 7: regla del descarte y reordenar cualquier empate de Top 3
+
+- **Pedido de Kevin:** a igual Top 3 queda arriba el que tiene **mayor puntaje de descarte**, no el de mejor Top 2. Caso real en .223: Francisco "Pancho" Cardozo tenía que quedar 3° y Sebastián Ayala 4°. Además, tiene que poder reordenar a mano a cualquiera que tenga el mismo Top 3, aunque el Top 2 sea distinto.
+- **Cambio en el orden oficial (Top 3):** Top 3 → orden manual de "Resolver Empates" (si hay uno cargado para ese Top 3) → **mayor descarte** (se compara el mejor descarte, después el siguiente, y quien no tiene descarte va abajo) → alfabético. El Top 2 ya no desempata. En las vistas Top 2 y Top Gun se mantiene el orden automático por totales.
+- **Resolver Empates:** ahora agrupa a todos los que tienen el mismo Top 3. Muestra el descarte de cada uno y el orden sugerido es el de la regla.
+- **Orden manual por empate:** se guarda en el Padrón como `Top3 × 100 + posición` (por ejemplo 25601). Así solo vale para ese empate: si el Top 3 del tirador cambia en otra fecha, otro año u otra modalidad, el orden manual deja de aplicarse solo y vuelve a regir el descarte. Los valores cargados con el formato anterior (1, 2…) se ignoran y hay que volver a cargarlos. No hace falta tocar la base de datos.
+- **Verificación:**
+  - Tests nuevos: regla del descarte con el caso Cardozo/Ayala (y con nombres invertidos, para que no dependa del alfabeto), comparación de varios descartes, agrupación por Top 3, que el orden manual mande, que un orden viejo se ignore y que se lea del Padrón. `npm test` 26/26. Al quitar la regla a propósito, fallan los tests 13 y 14.
+  - Navegador, con el caso .223 (Ayala 96/90/70/60 y Cardozo 90/86/80/75, ambos con 256): queda Cardozo 3° y Ayala 4° por descarte (75 contra 60). El modal muestra "Descarte: 75 / 60" y, si se cambia el orden a mano, Ayala pasa a 3° y se guarda en el Padrón (25601/25602). En la vista Top 2 no aparece el botón. La impresión Top 6 respeta el orden y lleva la leyenda "Empate en Top 3: queda arriba el mayor descarte". No hubo errores en la consola.
+  - `npm run build` OK.
+
 ## Estructura final
 
 - `championship.ts`: solo lee Dexie y llama al core. Agrega `getChampionshipYears()`.

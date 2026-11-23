@@ -315,9 +315,9 @@ Logica pura en `championshipCore.ts` (testeada con `npm test`); `championship.ts
 8. **Descarte** (tachado) = puntajes > Top 3
 9. Categoria: la de la inscripcion mas reciente distinta de 'General', luego la del Padron
 
-**Ordenamiento:** criterio elegido (Top 3 / Top 2 / Top Gun) → el otro total → championshipTieRank manual → alfabetico
+**Ordenamiento oficial (Top 3):** Top 3 → orden manual vigente (`manualTieOrder`, championshipTieRank = Top3*100+pos, solo vale si coincide con el Top 3 actual) → **mayor descarte** (`getDiscards`, comparacion lexicografica) → alfabetico. **Top 2 / Top Gun:** criterio → el otro total (y Top 2 en Top Gun) → alfabetico, sin manual.
 
-**Resolver Empates** (`championshipTieBreaker.ts`, boton staff-only en el modulo): `detectChampionshipTies()` agrupa empates exactos (todos los totales iguales, puntaje > 0); el usuario ordena con ▲▼ y se guarda `championshipTieRank` = 1..n en todos los registros del Padron con ese nombre (sync via `championship_tie_rank`). Las filas empatadas muestran badge EMPATE.
+**Resolver Empates** (`championshipTieBreaker.ts`, boton staff-only, solo en orden Top 3): `detectChampionshipTies()` agrupa a los que tienen el mismo Top 3 (> 0); orden sugerido = regla del descarte; el usuario ordena con ▲▼ y se guarda `encodeTieRank(top3, pos)` en todos los registros del Padron con ese nombre (sync via `championship_tie_rank`). Badge EMPATE en filas con mismo Top 3.
 
 **Simulador:** recalcula con `applyPlacements()` sobre copias (no muta datos reales). Max por evento desde modalityConfig (.22 LR 134, .308/.223 96/87, Blackjack 147). Imprimir/Exportar usan SIEMPRE los datos reales, nunca los simulados.
 
